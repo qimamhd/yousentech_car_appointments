@@ -42,3 +42,45 @@
 .ycc-legend .dot.past{background:#8795aa}
 .ycc-grid-wrap{max-height:68vh}
 .ycc-modal .modal-content{direction:inherit}
+
+/* V3.2 — compact desktop calendar: visual-only overrides */
+.ycc-board{padding:12px 16px;font-size:12px}
+.ycc-head{margin-bottom:10px;gap:8px}
+.ycc-head h1{font-size:19px;line-height:1.25;margin:3px 0}
+.ycc-head h1 i{font-size:19px}
+.ycc-head p,.ycc-head small{font-size:10px}
+.ycc-new{padding:6px 11px;font-size:11px;border-radius:7px}
+.ycc-toolbar{padding:8px 11px;margin-bottom:9px;border-radius:9px;gap:8px}
+.ycc-toolbar label{font-size:10px;min-width:145px}
+.ycc-toolbar select{min-width:145px;max-width:190px;margin-top:3px;height:29px;padding:3px 7px;font-size:11px}
+.ycc-nav{gap:5px}
+.ycc-nav strong{font-size:11px}
+.ycc-nav small{font-size:9px}
+.ycc-nav button,.ycc-switch button{padding:4px 8px;font-size:10px;border-radius:6px}
+.ycc-kpis{gap:9px;margin-bottom:9px}
+.ycc-kpis>div{padding:9px 12px;min-height:58px;border-radius:9px}
+.ycc-kpis small{font-size:10px}
+.ycc-kpis strong{font-size:20px;line-height:1.2;margin-top:3px}
+.ycc-legend{padding:7px 11px;gap:10px;margin-bottom:9px;font-size:10px;border-radius:8px}
+.ycc-grid-wrap{max-height:calc(100vh - 295px);border-radius:9px}
+.ycc-grid{min-width:740px}
+.ycc-grid th,.ycc-grid td{padding:4px 5px}
+.ycc-grid thead th{font-size:10px;padding-top:6px;padding-bottom:6px}
+.ycc-grid thead th small{font-size:9px;margin-top:2px}
+.ycc-grid .ycc-day-heading{width:142px;min-width:142px;padding-inline:9px;font-size:10px}
+.ycc-grid .ycc-day-heading small{font-size:9px;margin-top:2px}
+.ycc-grid td{height:67px}
+.ycc-cell{min-height:57px;height:57px;padding:3px 4px;gap:2px;border-radius:7px}
+.ycc-cell strong{font-size:12px;line-height:1.1}
+.ycc-cell small{font-size:9px;line-height:1.15}
+.ycc-span-label{font-size:8px;padding:1px 3px}
+.ycc-mini-booking{font-size:9px;padding:0 3px;line-height:1.2}
+.ycc-modal .modal-title{font-size:16px}
+.ycc-occupancy strong{font-size:20px}
+.ycc-booking{padding:9px}
+@media(max-width:900px){
+ .ycc-board{padding:9px}
+ .ycc-head h1{font-size:18px}
+ .ycc-grid-wrap{max-height:65vh}
+ .ycc-grid .ycc-day-heading{width:118px;min-width:118px}
+}

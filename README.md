@@ -28,3 +28,7 @@ The booking displays the canonical V3 branch using `custom_branch_id`
 for backward compatibility with existing reservations and slots.
 After updating files, upgrade the addon with `-u yousentech_car_appointments`
 and restart Odoo / refresh assets. Do not uninstall the addon.
+
+
+## V3.2 compact UI
+Reduced typography, statistics cards, date headers, and calendar period tiles. Visual-only change; booking and branch logic untouched.
