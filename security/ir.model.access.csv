@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ycc_branch,ycc.branch,model_ycc_branch,base.group_user,1,1,1,0
+access_ycc_slot,ycc.slot,model_ycc_slot,base.group_user,1,1,1,0
+access_ycc_weekday,ycc.weekday,model_ycc_weekday,base.group_user,1,0,0,0
+access_ycc_exception,ycc.exception,model_ycc_exception,base.group_user,1,1,1,0
+access_ycc_service,ycc.service,model_ycc_service,base.group_user,1,1,1,0
+access_ycc_appointment,ycc.appointment,model_ycc_appointment,base.group_user,1,1,1,0
+access_ycc_contact,ycc.contact,model_ycc_contact,base.group_user,1,1,1,0
