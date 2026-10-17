@@ -17,3 +17,14 @@ Extract the folder `yousentech_car_appointments` to the Odoo 13 addons path. Res
 This package has passed static Python, JavaScript syntax and XML parsing checks, but has NOT been tested on a live Odoo 13 database. Validate views, ACLs, reservations, simultaneous bookings and UI before production use.
 
 If upgrading a prior version that has data in the old standalone `ycc.branch` table, do not upgrade directly: the new `branch_id` required field needs a migration mapping to `custom.branches`. Take a database backup and migrate those records first.
+
+## V3.1 — Branch consistency fix
+The canonical branch is `custom.branches` from V3. `ycc.branch` is only
+per-branch appointment configuration, with a unique Many2one `branch_id`
+pointing to `custom.branches`. The calendar reads the branch display label
+from `config.branch_id.display_name`, never from a nonexistent `ycc.branch.name`.
+The booking displays the canonical V3 branch using `custom_branch_id`
+(a related field); it still stores its appointment configuration reference
+for backward compatibility with existing reservations and slots.
+After updating files, upgrade the addon with `-u yousentech_car_appointments`
+and restart Odoo / refresh assets. Do not uninstall the addon.

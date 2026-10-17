@@ -95,6 +95,8 @@ class YCCAppointment(models.Model):
     _order = 'date desc,id desc'
     name = fields.Char(default='New',readonly=True,copy=False)
     branch_id = fields.Many2one('ycc.branch',string='الفرع',required=True,tracking=True)
+    custom_branch_id = fields.Many2one('custom.branches', string='الفرع الفعلي (V3)',
+                                       related='branch_id.branch_id', store=True, readonly=True)
     slot_id = fields.Many2one('ycc.slot',string='بداية الفترة',required=True,tracking=True)
     end_slot_id = fields.Many2one('ycc.slot',string='نهاية الفترة (اختياري)',tracking=True,help='اتركه فارغًا لحجز فترة واحدة، أو اختر نهاية الفترة لحجز فترات متتالية.')
     date = fields.Date(string='تاريخ الموعد',required=True,default=fields.Date.context_today,tracking=True)

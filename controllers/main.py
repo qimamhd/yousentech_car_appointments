@@ -7,12 +7,19 @@ class YCCCalendar(http.Controller):
     @http.route('/ycc/calendar/data',type='json',auth='user')
     def calendar_data(self,branch_id=None,start=None,end=None):
         Branch = request.env['ycc.branch']
-        branches = Branch.search([]).read(['name'])
+        # Settings are stored in ycc.branch, while branch names and identities
+        # come exclusively from the existing V3 custom.branches model.
+        configurations = Branch.search([('active', '=', True)])
+        branches = [
+            {'id': config.id, 'name': config.branch_id.display_name,
+             'custom_branch_id': config.branch_id.id}
+            for config in configurations if config.branch_id
+        ]
         if not branches: return {'branches':[],'slots':[],'appointments':[],'exceptions':[]}
-        branch = Branch.browse(int(branch_id)) if branch_id else Branch.browse(branches[0]['id'])
+        branch = Branch.browse(int(branch_id)) if branch_id else configurations.filtered(lambda c: c.branch_id)[:1]
         branch.check_access_rights('read')
         branch.check_access_rule('read')
-        if not branch.exists(): return {'branches':branches,'slots':[],'appointments':[],'exceptions':[]}
+        if not branch.exists() or not branch.branch_id: return {'branches':branches,'slots':[],'appointments':[],'exceptions':[]}
         first = fields.Date.from_string(start) if start else date.today()
         last = fields.Date.from_string(end) if end else first+timedelta(days=7)
         if last <= first or (last-first).days > 42: return {'error':'Invalid date range'}
