@@ -1,15 +1,19 @@
-# Yousen Car Care Appointments — Odoo 13
+# Yousen Car Care Appointments — Odoo 13 (V2)
 
-Standalone addon for PPF, tinting and detailing bookings, integrated with the existing `qimamhd_wo_v3` navigation.
+Independent addon. Requires installed `qimamhd_wo_v3` and its dependency `custom_branch_13`.
 
-## Installation
+## Changes
+- Appointment configuration references the existing `custom.branches` branch; one configuration per existing branch.
+- Service is informational: no price field.
+- Calendar shows days vertically and time slots horizontally, colored occupancy and colored statistics.
+- Arabic/English layout direction follows the Odoo user language.
+- A booking may cover one or more consecutive time slots using **Start Period** and **End Period**. All occupied slots are counted and capacity-checked atomically on the server. Multi-period bookings are marked in the calendar and shown in each occupied slot.
+- Existing Odoo 13 car-care operations and settings menus are reused.
 
-Place the **yousentech_car_appointments** folder directly under an Odoo 13 addons directory. Install `qimamhd_wo_v3` first, then update the Apps list and install this addon.
+## Install
+Extract the folder `yousentech_car_appointments` to the Odoo 13 addons path. Restart Odoo, update Apps and upgrade/install the module on a **test database first**.
 
-Menus:
-- العناية بالسيارات → العمليات → تقويم المواعيد / المواعيد
-- العناية بالسيارات → تهيئة النظام → تهيئة نظام المواعيد / خدمات المواعيد
+## Important
+This package has passed static Python, JavaScript syntax and XML parsing checks, but has NOT been tested on a live Odoo 13 database. Validate views, ACLs, reservations, simultaneous bookings and UI before production use.
 
-The provisional hold defaults to 120 minutes. A scheduled job expires holds every 5 minutes. Calendar shows Gregorian/Hijri dates and period occupancy; clicking an open period displays the booked cars.
-
-**Testing status:** Source package validated for Python/XML syntax only. Odoo 13 installation, UI and concurrency have not been runtime tested. Install on a test database before production.
+If upgrading a prior version that has data in the old standalone `ycc.branch` table, do not upgrade directly: the new `branch_id` required field needs a migration mapping to `custom.branches`. Take a database backup and migrate those records first.

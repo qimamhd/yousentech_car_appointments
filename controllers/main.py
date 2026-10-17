@@ -20,7 +20,7 @@ class YCCCalendar(http.Controller):
         exceptions = request.env['ycc.exception'].search([('branch_id','=',branch.id),('date','>=',first),('date','<',last)])
         appointments = request.env['ycc.appointment'].search([('branch_id','=',branch.id),('date','>=',first),('date','<',last),('state','in',['provisional','contacting','confirmed','done'])])
         now = fields.Datetime.now()
-        return {'branches':branches,'branch_id':branch.id,
-            'slots':[{'id':s.id,'name':s.name,'capacity':s.capacity,'days':[int(x) for x in s.weekday_ids.mapped('code')]} for s in slots],
+        return {'branches':branches,'branch_id':branch.id,'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)),
+            'slots':[{'id':s.id,'name':s.name,'start_hour':s.start_hour,'end_hour':s.end_hour,'capacity':s.capacity,'days':[int(x) for x in s.weekday_ids.mapped('code')]} for s in slots],
             'exceptions':[{'date':fields.Date.to_string(e.date),'slot_id':e.slot_id.id or False,'reason':e.reason} for e in exceptions],
-            'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'slot_id':a.slot_id.id,'client':a.partner_id.name,'vehicle':'%s · %s'%(a.vehicle_model,a.vehicle_plate),'service':a.service_id.name,'state':a.state,'agent':a.agent_id.name or '','hold_until':a.hold_until or ''} for a in appointments if a._occupies(now)]}
+            'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'slot_id':a.slot_id.id,'slot_ids':a._covered_slots().ids,'client':a.partner_id.name,'vehicle':'%s · %s'%(a.vehicle_model,a.vehicle_plate),'service':a.service_id.name,'state':a.state,'agent':a.agent_id.name or '','hold_until':a.hold_until or ''} for a in appointments if a._occupies(now)]}
