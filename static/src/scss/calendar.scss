@@ -355,3 +355,22 @@
  .ycc-board .ycc-kpis>div{min-height:64px;padding:9px}
  .ycc-board .ycc-kpis strong{font-size:20px}
 }
+
+/* V4.3 selected design 12, occupied cards only */
+.ycc-board .ycc-cell.ycc-style-12{display:flex;flex-direction:row;align-items:center;justify-content:space-between;text-align:start;gap:7px;padding:0 7px 0 0;min-height:60px;height:60px;background:#fff;border:1px solid #cbd9fb;border-radius:10px;box-shadow:0 2px 7px rgba(39,81,169,.10);color:#173b83;overflow:hidden;direction:inherit}
+.ycc-board[dir="rtl"] .ycc-cell.ycc-style-12{padding:0 0 0 7px}
+.ycc-board .ycc-cell.ycc-style-12.busy{border-color:#efd39c}
+.ycc-board .ycc-cell.ycc-style-12.full{border-color:#efb6bd}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-icon{flex:0 0 48px;align-self:stretch;display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,#326bff,#2550d7);color:white;font-size:20px;border-radius:8px 0 0 8px;order:0}
+.ycc-board[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-icon{border-radius:0 8px 8px 0}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy{flex:0 0 51px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;order:1}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{font-size:17px;line-height:1.1;font-weight:800;color:#173d91}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy small{font-size:9px;color:#8093b5;white-space:nowrap}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-people{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex:1 1 auto;min-width:0;order:2}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-people-top{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;min-width:0}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-mini-booking{min-width:0;max-width:calc(100% - 27px);background:#e8eeff;border:1px solid #d5e0ff;color:#3453b3;border-radius:7px;font-size:10px;font-weight:650;padding:3px 6px}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-extra{background:#f3f6ff;border:1px solid #d9e3ff;border-radius:6px;padding:2px 5px;font-size:10px;font-weight:700;white-space:nowrap}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-sub{color:#6a56bd;font-size:9px;white-space:nowrap}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-menu{order:3;flex:0 0 10px;font-size:13px;color:#6685d1;text-align:center}
+.ycc-board .ycc-cell.ycc-style-12:hover{border-color:#7499f5;box-shadow:0 4px 12px rgba(39,81,169,.18)}
+@media(max-width:1100px){.ycc-board .ycc-cell.ycc-style-12{gap:4px;padding-inline-end:5px}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-icon{flex-basis:36px;font-size:16px}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy{flex-basis:43px}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{font-size:14px}.ycc-board .ycc-cell.ycc-style-12 .ycc-mini-booking{font-size:9px;padding:2px 4px}}

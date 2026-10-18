@@ -70,3 +70,7 @@ manually refreshing the browser (within the polling interval).
 Statistics tiles are shorter. Occupied slot cells use their full width to
 display a compact booking name and an extended-booking chip on one line.
 This is a frontend-only change; appointment and capacity logic is unchanged.
+
+
+## V4.3 — selected card design 12
+Occupied calendar cards now use the modern white panel with a blue car icon, occupancy, customer chip, extra-booking count and extended booking indicator. Empty periods retain original color coding. Click action and 10-second refresh are unchanged.
