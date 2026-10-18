@@ -55,3 +55,11 @@ Contact history appears above Notes on the appointment form. Add Contact opens a
 wizard which saves a new contact entry and updates the read-only next follow-up
 date. Contact date/time is the actual communication timestamp; next follow-up
 is a separate optional field. Existing records are retained.
+
+## V4 UI refresh (2026-10)
+- Unified compact, card-based visual language across appointment, contact popup, branch configuration, services and the weekly/monthly calendar.
+- Calendar redesigned with a title icon, branch/date toolbar, colored KPI cards, status legend, compact occupancy matrix and improved period details modal.
+- RTL/LTR continues to follow the Odoo user language. Gregorian and Hijri date lines remain separate.
+- Multi-slot bookings continue to occupy each covered period and display an extended-booking marker. This release does **not** implement a single physical HTML table cell spanning multiple slots.
+- No booking capacity, branch mapping, workflow, database field or record-rule changes in V4.
+- Upgrade the addon on a staging database and hard refresh Odoo assets before production rollout. Visual compilation and interactive behavior still require testing in a running Odoo 13 instance.
