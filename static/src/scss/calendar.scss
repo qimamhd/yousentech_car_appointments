@@ -107,3 +107,104 @@
 .ycc-board .ycc-kpis .stat-confirmed strong{color:#273d99}
 .ycc-board .ycc-kpis .stat-hold{background:#fff0d8;color:#94600f}
 @media(max-width:700px){.ycc-board .ycc-date-control{order:3;flex-basis:100%}.ycc-board .ycc-date-caption{flex:1}.ycc-board .ycc-date-main{font-size:10px}}
+
+/* V3.8 - Odoo 13 appointment form: scoped, Odoo 17-inspired visual hierarchy.
+   Scope all selectors to this specific form to avoid changing other modules. */
+.ycc-appointment-form .ycc-appointment-sheet{
+  max-width:1200px!important;
+  padding:20px 24px 24px!important;
+  background:#fff;
+}
+.ycc-appointment-form .ycc-appointment-sheet .oe_title h1{
+  font-size:23px;font-weight:750;color:#233653;margin:0 0 12px;
+}
+.ycc-appointment-form .ycc-appointment-sheet .o_group{
+  margin-bottom:12px;
+}
+.ycc-appointment-form .ycc-appointment-sheet .o_group .o_group{
+  background:#fbfcff;border:1px solid #e5eaf3;border-radius:10px;
+  padding:12px 14px;vertical-align:top;
+}
+.ycc-appointment-form .ycc-appointment-sheet .o_group .o_group .o_group{
+  background:transparent;border:0;padding:0;
+}
+.ycc-appointment-form .ycc-appointment-sheet .o_horizontal_separator{
+  color:#43577b;font-weight:700;font-size:14px;
+}
+.ycc-appointment-form .ycc-contact-panel{
+  margin-top:16px;border:1px solid #dfe6f2;border-radius:12px;
+  background:#fff;overflow:hidden;clear:both;
+}
+.ycc-appointment-form .ycc-contact-heading{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:10px;padding:11px 15px;
+  background:#f3f6fd;border-bottom:1px solid #e3e9f3;
+}
+.ycc-appointment-form .ycc-contact-title{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  color:#233a60;font-size:14px;
+}
+.ycc-appointment-form .ycc-contact-title>.fa{
+  color:#5862c9;font-size:18px;
+}
+.ycc-appointment-form .ycc-contact-title strong{font-size:14px;font-weight:700}
+.ycc-appointment-form .ycc-contact-subtitle{
+  font-size:10px;font-weight:400;color:#8492aa;
+}
+.ycc-appointment-form .ycc-add-contact{
+  margin:0!important;padding:7px 13px!important;
+  background:#585bc5!important;border:1px solid #585bc5!important;
+  border-radius:7px!important;color:#fff!important;font-size:11px!important;
+  font-weight:600;box-shadow:none!important;float:none!important;
+}
+.ycc-appointment-form .ycc-add-contact:hover{
+  background:#4549ac!important;border-color:#4549ac!important;
+}
+.ycc-appointment-form .ycc-contact-followup{
+  display:flex;align-items:center;gap:8px;padding:9px 15px;
+  color:#5d6e87;font-size:11px;border-bottom:1px solid #eef1f7;
+}
+.ycc-appointment-form .ycc-contact-followup label{
+  margin:0!important;font-size:11px!important;font-weight:600;
+}
+.ycc-appointment-form .ycc-contact-followup .o_field_widget{
+  width:auto!important;min-width:120px;max-width:250px;
+  font-size:11px;color:#405776;
+}
+.ycc-appointment-form .ycc-contact-table{
+  padding:0 10px 10px;
+}
+.ycc-appointment-form .ycc-contact-table .o_field_x2many{
+  width:100%!important;
+}
+.ycc-appointment-form .ycc-contact-table .o_list_view{
+  border:1px solid #edf0f6;border-radius:7px;overflow:hidden;
+}
+.ycc-appointment-form .ycc-contact-table .o_list_view thead{
+  background:#f4f6fa;
+}
+.ycc-appointment-form .ycc-contact-table .o_list_view th{
+  font-size:11px;font-weight:650;color:#4c5d77;
+}
+.ycc-appointment-form .ycc-contact-table .o_list_view td{
+  font-size:11px;padding-top:8px;padding-bottom:8px;
+}
+.ycc-appointment-form .ycc-notes-panel{
+  margin-top:13px;padding:12px 15px;
+  border:1px solid #e5eaf2;border-radius:10px;background:#fbfcff;
+}
+.ycc-appointment-form .ycc-notes-heading{
+  color:#455b7a;font-size:12px;font-weight:700;margin-bottom:9px;
+}
+.ycc-appointment-form .ycc-notes-panel .o_field_widget{
+  width:100%!important;
+}
+.ycc-appointment-form .ycc-notes-panel textarea{
+  min-height:55px;font-size:12px;
+}
+@media(max-width:767px){
+  .ycc-appointment-form .ycc-appointment-sheet{padding:12px!important}
+  .ycc-appointment-form .ycc-contact-heading{padding:9px 10px}
+  .ycc-appointment-form .ycc-contact-subtitle{display:none}
+  .ycc-appointment-form .ycc-contact-table{overflow-x:auto}
+}
