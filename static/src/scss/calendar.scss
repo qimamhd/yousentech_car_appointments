@@ -84,3 +84,26 @@
  .ycc-grid-wrap{max-height:65vh}
  .ycc-grid .ycc-day-heading{width:118px;min-width:118px}
 }
+
+/* V3.3 — make every booking card a clear, accessible navigation target */
+.ycc-modal .ycc-booking{cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
+.ycc-modal .ycc-booking:hover,.ycc-modal .ycc-booking:focus{
+ background:#f0f4ff;border-color:#aebdec;box-shadow:0 3px 12px rgba(49,76,135,.09);outline:none
+}
+.ycc-modal .ycc-booking:focus-visible{outline:2px solid #5c59cf;outline-offset:2px}
+.ycc-modal .ycc-open-booking{pointer-events:none}
+
+/* V3.4 — date navigation: separate, readable Gregorian/Hijri lines */
+.ycc-board .ycc-date-control{display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;flex:1 1 340px}
+.ycc-board .ycc-date-caption{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;max-width:490px;padding:4px 12px;border:1px solid #e6eaf3;border-radius:9px;background:#f8faff;text-align:center}
+.ycc-board .ycc-date-main{font-size:11px;font-weight:750;line-height:1.5;color:#243653;white-space:normal}
+.ycc-board .ycc-date-main i{color:#5b5bd6;margin-inline-end:6px}
+.ycc-board .ycc-date-hijri{font-size:9px;line-height:1.4;color:#7a89a3;white-space:normal}
+.ycc-board .ycc-date-control button{height:30px;min-width:30px;border:1px solid #dfe5f0;border-radius:7px;background:#fff;color:#4c5b77;font-size:11px;padding:4px 8px;cursor:pointer}
+.ycc-board .ycc-date-control button:hover{background:#eef1ff;border-color:#bfc8ee}
+.ycc-board .ycc-date-control .ycc-today{color:#5355c5;font-weight:700;background:#f3f3ff;border-color:#d7d9fa}
+/* Confirmed is BLUE, clearly distinct from GREEN available slot cells. */
+.ycc-board .ycc-kpis .stat-confirmed{background:#e5e9ff;color:#303f9f;border:1px solid #cdd6ff}
+.ycc-board .ycc-kpis .stat-confirmed strong{color:#273d99}
+.ycc-board .ycc-kpis .stat-hold{background:#fff0d8;color:#94600f}
+@media(max-width:700px){.ycc-board .ycc-date-control{order:3;flex-basis:100%}.ycc-board .ycc-date-caption{flex:1}.ycc-board .ycc-date-main{font-size:10px}}

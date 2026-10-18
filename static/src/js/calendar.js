@@ -33,8 +33,28 @@ var Calendar=AbstractAction.extend({
  var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slot.name,branchName:branch?branch.name:'',capacity:slot.capacity,bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed'||b.state==='done';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length});
  var $modal=$('<div class="modal fade ycc-modal" tabindex="-1" role="dialog"/>').html(html);$('body').append($modal);
  $modal.on('click','.ycc-close',function(){$modal.modal('hide');});
- $modal.on('click','.ycc-open-booking',function(){var id=parseInt($(this).attr('data-id'),10);$modal.modal('hide');self.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',res_id:id,views:[[false,'form']],target:'current'});});
+ // Open the actual appointment when clicking anywhere on its card.
+ // Wait until the Bootstrap modal is fully closed before navigating.
+ var openingBooking=false;
+ function openBooking(e){
+     if(e){e.preventDefault();e.stopPropagation();}
+     if(openingBooking)return;
+     var id=parseInt($(this).closest('.ycc-booking').attr('data-id'),10);
+     if(!id)return;
+     openingBooking=true;
+     $modal.one('hidden.bs.modal.yccOpen',function(){
+         $modal.remove();
+         self.do_action({type:'ir.actions.act_window',name:'تفاصيل الحجز',
+             res_model:'ycc.appointment',res_id:id,views:[[false,'form']],
+             view_mode:'form',target:'current'});
+     });
+     $modal.modal('hide');
+ }
+ $modal.on('click','.ycc-booking',openBooking);
+ $modal.on('keydown','.ycc-booking',function(e){
+     if(e.key==='Enter'||e.key===' '||e.which===13||e.which===32)openBooking.call(this,e);
+ });
  $modal.on('click','.ycc-create-period',function(){$modal.modal('hide');self.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',views:[[false,'form']],target:'current',context:{default_branch_id:self.branchId,default_slot_id:slotId,default_date:date}});});
- $modal.on('hidden.bs.modal',function(){$modal.remove();self._load();});$modal.modal('show');}
+ $modal.on('hidden.bs.modal',function(){if(!openingBooking){$modal.remove();self._load();}});$modal.modal('show');}
 });core.action_registry.add('ycc_appointment_calendar',Calendar);return Calendar;
 });

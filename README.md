@@ -32,3 +32,11 @@ and restart Odoo / refresh assets. Do not uninstall the addon.
 
 ## V3.2 compact UI
 Reduced typography, statistics cards, date headers, and calendar period tiles. Visual-only change; booking and branch logic untouched.
+
+
+## V3.3 booking card navigation
+Click or press Enter/Space on a booking card in the period popup to open the existing ycc.appointment form. Navigation waits for modal close; no new booking is created. Booking capacity logic unchanged.
+
+
+## V3.4 — calendar visual improvements
+Date navigation now displays Gregorian and Hijri ranges in two distinct lines with clear previous/next controls and a Today button. Confirmed appointment KPI is blue/purple rather than green (green remains available booking slots). No changes to appointment logic, capacity, or branch data.
