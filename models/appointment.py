@@ -103,7 +103,18 @@ class YCCAppointment(models.Model):
     partner_id = fields.Many2one('res.partner',string='العميل',required=True,tracking=True)
     phone = fields.Char(string='الجوال')
     vehicle_plate = fields.Char(string='لوحة السيارة',required=True)
-    vehicle_model = fields.Char(string='السيارة والموديل',required=True)
+    # Original free-text value retained for existing appointments and integrations.
+    vehicle_model = fields.Char(string='وصف السيارة السابق', copy=False)
+    car_manuf_id = fields.Many2one('wo.car.manufactory', string='الشركة المصنعة', tracking=True)
+    # All vehicle types must remain selectable, including legacy types without a manufacturer.
+    # New types inherit the selected manufacturer via the form context only.
+    car_type_id = fields.Many2one('wo.car.types', string='نوع السيارة', tracking=True)
+
+    def _validate_vehicle_selection(self):
+        for rec in self:
+            if not rec.car_type_id and not rec.vehicle_model:
+                raise ValidationError(_('يرجى تحديد الشركة المصنعة ونوع السيارة.'))
+
     service_id = fields.Many2one('ycc.service',string='الخدمة',required=True)
     agent_id = fields.Many2one('res.users',string='المندوب',default=lambda self:self.env.user)
     notes = fields.Text(string='الملاحظات')
@@ -171,6 +182,7 @@ class YCCAppointment(models.Model):
             branch = self.env['ycc.branch'].browse(vals.get('branch_id'))
             vals['hold_until'] = fields.Datetime.to_string(fields.Datetime.from_string(fields.Datetime.now())+timedelta(minutes=branch.provisional_minutes or 120))
         rec = super().create(vals)
+        rec._validate_vehicle_selection()
         rec._check_capacity()
         return rec
 
@@ -187,9 +199,23 @@ class YCCAppointment(models.Model):
                 if rec.state in ('expired', 'cancelled', 'no_show'):
                     raise UserError(_('Closed appointments cannot be reopened.'))
         result = super().write(vals)
+        if set(vals) & {'car_manuf_id','car_type_id','vehicle_model'}:
+            self._validate_vehicle_selection()
         if set(vals) & {'branch_id','slot_id','end_slot_id','date','state','hold_until'}:
             self._check_capacity()
         return result
+
+    def action_open_contact_wizard(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'إضافة سجل تواصل',
+            'res_model': 'ycc.contact.wizard',
+            'view_mode': 'form',
+            'views': [(self.env.ref('yousentech_car_appointments.view_ycc_contact_wizard_form').id, 'form')],
+            'target': 'new',
+            'context': {'default_appointment_id': self.id},
+        }
 
     def action_contacting(self): self.write({'state':'contacting'})
     def action_confirm(self):
@@ -204,6 +230,36 @@ class YCCAppointment(models.Model):
     @api.model
     def cron_expire_holds(self):
         self.search([('state','in',['provisional','contacting']),('hold_until','!=',False),('hold_until','<=',fields.Datetime.now())]).write({'state':'expired'})
+
+class YCCContactWizard(models.TransientModel):
+    _name = 'ycc.contact.wizard'
+    _description = 'إضافة سجل تواصل'
+
+    appointment_id = fields.Many2one('ycc.appointment', string='الحجز', required=True, readonly=True)
+    contact_at = fields.Datetime(string='تاريخ ووقت التواصل', required=True, default=fields.Datetime.now)
+    user_id = fields.Many2one('res.users', string='المندوب', required=True, default=lambda self: self.env.user)
+    channel = fields.Selection([('call','اتصال'),('whatsapp','واتساب'),('sms','رسالة'),('other','أخرى')], string='وسيلة التواصل', required=True, default='call')
+    result = fields.Selection([('no_answer','لم يرد'),('follow_up','متابعة'),('reschedule','تغيير موعد'),('confirmed','تأكيد'),('other','أخرى')], string='نتيجة التواصل', required=True, default='follow_up')
+    note = fields.Text(string='تفاصيل التواصل', required=True)
+    next_contact_at = fields.Datetime(string='موعد المتابعة القادمة')
+
+    def action_save_contact(self):
+        self.ensure_one()
+        appointment = self.appointment_id
+        appointment.check_access_rights('write')
+        appointment.check_access_rule('write')
+        self.env['ycc.contact'].create({
+            'appointment_id': appointment.id,
+            'contact_at': self.contact_at,
+            'user_id': self.user_id.id,
+            'channel': self.channel,
+            'result': self.result,
+            'note': self.note,
+            'next_contact_at': self.next_contact_at,
+        })
+        appointment.write({'next_contact_at': self.next_contact_at or False})
+        return {'type': 'ir.actions.act_window_close'}
+
 
 class YCCContact(models.Model):
     _name = 'ycc.contact'

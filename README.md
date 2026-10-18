@@ -40,3 +40,18 @@ Click or press Enter/Space on a booking card in the period popup to open the exi
 
 ## V3.4 — calendar visual improvements
 Date navigation now displays Gregorian and Hijri ranges in two distinct lines with clear previous/next controls and a Today button. Confirmed appointment KPI is blue/purple rather than green (green remains available booking slots). No changes to appointment logic, capacity, or branch data.
+
+
+## V3.5 Vehicle catalogs
+Appointment form uses V3 `wo.car.manufactory` and `wo.car.types` with `header_id` domain and create context. Old `vehicle_model` remains nullable and read-only in the form for legacy records. Validation allows old text-only bookings, but new records must have either a selected type or legacy vehicle description (server-side compatibility). No changes to V3 models.
+
+
+## V3.6 — Unfiltered vehicle types
+All `wo.car.types` are visible, even those with no `header_id`. Creating a new type from the appointment passes `default_header_id` from the selected manufacturer. No automatic clearing or mismatched-manufacturer constraint is imposed on existing records.
+
+
+## V3.7 Contact history
+Contact history appears above Notes on the appointment form. Add Contact opens a popup
+wizard which saves a new contact entry and updates the read-only next follow-up
+date. Contact date/time is the actual communication timestamp; next follow-up
+is a separate optional field. Existing records are retained.

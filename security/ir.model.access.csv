@@ -6,3 +6,4 @@ access_ycc_exception,ycc.exception,model_ycc_exception,base.group_user,1,1,1,0
 access_ycc_service,ycc.service,model_ycc_service,base.group_user,1,1,1,0
 access_ycc_appointment,ycc.appointment,model_ycc_appointment,base.group_user,1,1,1,0
 access_ycc_contact,ycc.contact,model_ycc_contact,base.group_user,1,1,1,0
+access_ycc_contact_wizard_user,ycc.contact.wizard.user,model_ycc_contact_wizard,base.group_user,1,1,1,1
