@@ -59,3 +59,14 @@ is a separate optional field. Existing records are retained.
 
 ## V4.1 QWeb hotfix
 Compute spanCount in calendar.js rather than calling an inline JavaScript function from QWeb XML. Fixes QWeb2 SyntaxError Unexpected token [ on Odoo 13.
+
+
+## V4.2 — automatic calendar updates and compact occupancy cards
+The calendar re-queries the server every 10 seconds while visible and immediately
+when the browser window regains focus. It only redraws on changed data, preserving
+the calendar scroll position. The timer and focus handler are removed when the
+calendar action is destroyed. Changes saved by other users also appear without
+manually refreshing the browser (within the polling interval).
+Statistics tiles are shorter. Occupied slot cells use their full width to
+display a compact booking name and an extended-booking chip on one line.
+This is a frontend-only change; appointment and capacity logic is unchanged.

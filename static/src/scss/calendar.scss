@@ -312,3 +312,46 @@
 .ycc-appointment-form .ycc-notes-panel{background:#f8faff}
 @media(max-width:1050px){.ycc-board .ycc-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ycc-board .ycc-grid-wrap{max-height:60vh}.ycc-board .ycc-date-control{order:3;flex-basis:100%}}
 @media(max-width:640px){.ycc-board{padding:10px}.ycc-board .ycc-head h1{font-size:18px}.ycc-board .ycc-head-title{gap:8px}.ycc-board .ycc-title-icon{width:34px;height:34px}.ycc-board .ycc-kpis{gap:7px}.ycc-board .ycc-kpis>div{padding:10px;min-height:77px}.ycc-board .ycc-kpis strong{font-size:22px}.ycc-board .ycc-section-chip{display:none}.ycc-board .ycc-section-heading small{display:block;margin:2px 0}.ycc-board .ycc-date-caption{min-width:0;flex:1;padding:6px}.ycc-board .ycc-date-main{font-size:10px}.ycc-board .ycc-grid .ycc-day-heading{width:116px;min-width:116px}}
+
+/* V4.2 — tighter KPIs and occupied slot cards with no wasted side space */
+.ycc-board .ycc-kpis{gap:9px;margin-bottom:10px}
+.ycc-board .ycc-kpis>div{min-height:70px;padding:10px 13px;border-radius:10px}
+.ycc-board .ycc-kpis small{font-size:10px;line-height:1.15}
+.ycc-board .ycc-kpis strong{font-size:23px;line-height:1.15;margin-top:2px}
+.ycc-board .ycc-kpis em{font-size:9px}
+.ycc-board .ycc-kpi-icon{width:27px;height:27px;top:12px;inset-inline-end:12px;font-size:13px;border-radius:7px}
+.ycc-board .ycc-grid td{padding:3px;height:68px}
+.ycc-board .ycc-cell{
+    width:100%;min-height:60px;padding:5px 7px;gap:2px;
+    display:flex;flex-direction:column;align-items:stretch;justify-content:center;
+    overflow:hidden;text-align:center
+}
+.ycc-board .ycc-cell strong{font-size:13px}
+.ycc-board .ycc-cell small{font-size:9px}
+.ycc-board .ycc-cell .ycc-booking-details{
+    display:flex;align-items:center;justify-content:center;
+    flex-wrap:nowrap;gap:4px;width:100%;min-width:0;
+}
+.ycc-board .ycc-cell .ycc-span-label{
+    display:inline-flex;align-items:center;justify-content:center;
+    flex:0 0 auto;font-size:8px;padding:1px 4px;
+    max-width:48%;white-space:nowrap;
+}
+.ycc-board .ycc-cell .ycc-mini-booking{
+    display:inline-block;flex:0 1 auto;min-width:0;max-width:100%;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-size:9px;line-height:1.25;padding:2px 5px;
+}
+.ycc-board .ycc-cell .ycc-booking-details .ycc-mini-booking{
+    max-width:calc(100% - 92px)
+}
+.ycc-board .ycc-cell .ycc-booking-details .ycc-mini-booking:first-child:last-child{
+    max-width:95%
+}
+.ycc-board .ycc-cell.partial,.ycc-board .ycc-cell.busy,.ycc-board .ycc-cell.full{
+    border-width:1px;
+}
+@media(max-width:640px){
+ .ycc-board .ycc-kpis>div{min-height:64px;padding:9px}
+ .ycc-board .ycc-kpis strong{font-size:20px}
+}

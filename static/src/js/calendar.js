@@ -11,9 +11,47 @@ function fmt(d,opts,cal,lang){try{return new Intl.DateTimeFormat(lang+(cal?'-u-c
 var Calendar=AbstractAction.extend({
  events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-new':'_new'},
  init:function(){this._super.apply(this,arguments);this.mode='week';this.anchor=day(iso(new Date()));this.branchId=null;this.payload={branches:[],slots:[],appointments:[],exceptions:[]};},
- start:function(){return this._load();},
+ start:function(){
+    var self=this;
+    this._calendarAlive=true;
+    this._onWindowFocus=function(){if(self._calendarAlive){self._load(true);}};
+    window.addEventListener('focus',this._onWindowFocus);
+    this._refreshTimer=window.setInterval(function(){
+        if(self._calendarAlive && !document.hidden && self.$el.is(':visible') &&
+           !$('.ycc-modal:visible').length){self._load(true);}
+    },10000);
+    return this._load();
+ },
+ destroy:function(){
+    this._calendarAlive=false;
+    if(this._refreshTimer){window.clearInterval(this._refreshTimer);this._refreshTimer=null;}
+    if(this._onWindowFocus){window.removeEventListener('focus',this._onWindowFocus);}
+    return this._super.apply(this,arguments);
+ },
  _range:function(){var d=this.anchor;if(this.mode==='month'){return [new Date(d.getFullYear(),d.getMonth(),1,12),new Date(d.getFullYear(),d.getMonth()+1,1,12)];}var offset=(d.getDay()+1)%7,start=add(d,-offset);return [start,add(start,7)];},
- _load:function(){var self=this,r=this._range();return rpc.query({route:'/ycc/calendar/data',params:{branch_id:this.branchId,start:iso(r[0]),end:iso(r[1])}}).then(function(data){if(data.error){self.$el.text(data.error);return;}self.payload=data;self.branchId=data.branch_id||null;self._render();});},
+ _load:function(silent){
+    var self=this,r=this._range();
+    if(this._loading){return this._loading;}
+    this._loading=rpc.query({route:'/ycc/calendar/data',params:{
+        branch_id:this.branchId,start:iso(r[0]),end:iso(r[1])
+    }}).then(function(data){
+        if(!self._calendarAlive){return;}
+        if(data.error){if(!silent){self.$el.text(data.error);}return;}
+        var signature=JSON.stringify(data);
+        // Don't disturb the user's scroll or the current calendar on an unchanged poll.
+        if(silent && signature===self._lastSignature){return;}
+        var scroll=self.$('.ycc-grid-wrap'),top=scroll.scrollTop(),left=scroll.scrollLeft();
+        self.payload=data;
+        self.branchId=data.branch_id||null;
+        self._lastSignature=signature;
+        self._render();
+        if(silent){self.$('.ycc-grid-wrap').scrollTop(top).scrollLeft(left);}
+    }).then(function(){self._loading=null;},function(err){
+        self._loading=null;
+        if(!silent){throw err;}
+    });
+    return this._loading;
+ },
  _render:function(){var r=this._range(),data=this.payload,slots=data.slots||[],bookings=data.appointments||[],lang=(data.lang||'en_US').replace('_','-'),rtl=/^(ar|fa|ur|he)(-|$)/i.test(lang),days=[];
  for(var d=r[0];d<r[1];d=add(d,1)){days.push({date:iso(d),weekday:d.getDay(),label:fmt(d,{weekday:'long',day:'numeric',month:'short'},'gregory',lang),hijri:fmt(d,{day:'numeric',month:'short'},'islamic-umalqura',lang)});}
  var today=data.today||iso(new Date());
