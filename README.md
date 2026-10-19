@@ -120,3 +120,6 @@ The WO forecast uses `partner_id`/normalized customer names only, never car plat
 
 
 V5: forecast now limits primary results to order_date <= selected day <= delivery_date; overdue and undated work orders are separated behind expandable details. Customer-name matching only; no plate matching. Forecast button is prominent in the calendar modal and appointment form. The appointment form opens a dedicated summary wizard instead of a long toast.
+
+
+V5.1: Highlight selected-day delivery orders, collapse later-delivery orders in both calendar popup and appointment form forecast; overdue orders remain collapsed.

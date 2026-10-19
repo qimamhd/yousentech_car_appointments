@@ -106,17 +106,27 @@ var Calendar=AbstractAction.extend({
            $stats.append($('<div class="ycc-forecast-stat"/>').append($('<strong/>').text(pair[1]),$('<small/>').text(pair[0])));
          });
          $msg.append($stats);
-         $msg.append($('<h5 class="ycc-forecast-title"/>').text('السيارات المتوقعة في اليوم المحدد'));
-         var $list=$('<div class="ycc-forecast-list"/>');
-         (result.orders||[]).forEach(function(item){
-           var $line=$('<div class="ycc-forecast-line"/>');
-           $line.append($('<strong/>').text(item.customer));
-           $line.append($('<span/>').text(item.order+' · التسليم: '+item.delivery_date));
-           $line.append($('<small/>').text(item.status+(item.matched_appointment?' · له حجز وصول بالاسم':'')));
-           $list.append($line);
-         });
-         if(!result.orders||!result.orders.length){$list.append($('<div class="ycc-forecast-empty"/>').text('لا توجد أوامر تركيب مطابقة لليوم المحدد.'));}
-         $msg.append($list);
+         var $today=$('<section class="ycc-forecast-today"/>');
+         $today.append($('<h5 class="ycc-forecast-title"/>').text('موعد التسليم في اليوم المحدد ('+(result.today_count||0)+')'));
+         function renderForecastRows(items, emptyText){
+           var $list=$('<div class="ycc-forecast-list"/>');
+           (items||[]).forEach(function(item){
+             $list.append($('<div class="ycc-forecast-line"/>').append(
+               $('<strong/>').text(item.customer),
+               $('<span/>').text(item.order+' · التسليم: '+item.delivery_date),
+               $('<small/>').text(item.status+(item.matched_appointment?' · له حجز وصول بالاسم':''))));
+           });
+           if(!items||!items.length){$list.append($('<div class="ycc-forecast-empty"/>').text(emptyText));}
+           return $list;
+         }
+         $today.append(renderForecastRows(result.orders,'لا توجد أوامر موعد تسليمها في هذا اليوم.'));
+         $msg.append($today);
+         if(result.later_count){
+           var $later=$('<details class="ycc-forecast-later"/>');
+           $later.append($('<summary/>').text('موعد التسليم لاحقاً ('+result.later_count+') — عرض التفاصيل'));
+           $later.append(renderForecastRows(result.later_orders,'لا توجد أوامر لاحقة.'));
+           $msg.append($later);
+         }
          if(result.overdue||result.undated_orders){
            var $details=$('<details class="ycc-forecast-warnings"/>');
            $details.append($('<summary/>').text('أوامر متأخرة أو دون موعد تسليم ('+(result.overdue+result.undated_orders)+') — عرض التفاصيل'));

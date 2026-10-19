@@ -329,8 +329,10 @@ class YCCAppointment(models.Model):
                     'order': order.display_name, 'delivery_date': delivery or 'غير محدد',
                     'status': status, 'matched_appointment': bool(key and key in arrived_by_customer)}
 
-        items = [item_for(o, 'موعد التسليم اليوم' if fields.Date.to_string(o.delivery_date) == day
-                          else 'متوقع وجودها') for o in current_orders]
+        today_orders = current_orders.filtered(lambda o: fields.Date.to_string(o.delivery_date) == day)
+        later_orders = current_orders - today_orders
+        items = [item_for(o, 'موعد التسليم اليوم') for o in today_orders]
+        later_items = [item_for(o, 'موعد التسليم لاحقاً') for o in later_orders]
         warnings = [item_for(o, 'تجاوز موعد التسليم') for o in overdue_orders]
         warnings += [item_for(o, 'دون موعد تسليم') for o in undated_orders]
         groups = {}
@@ -351,7 +353,7 @@ class YCCAppointment(models.Model):
                 'matched_customers': len(matched_keys),
                 'overdue': overdue_count, 'undated_orders': undated_count,
                 'multiple_customers': multiple_customers, 'orders': items,
-                'warnings': warnings, 'message': summary}
+                'later_orders': later_items, 'today_count': len(items), 'later_count': len(later_items), 'warnings': warnings, 'message': summary}
 
     def action_forecast_delivery_load(self):
         self.ensure_one()
@@ -366,8 +368,12 @@ class YCCAppointment(models.Model):
         table_head = '<table class="table table-sm table-striped"><thead><tr><th>العميل</th><th>أمر التركيب</th><th>التسليم</th><th>الحالة</th></tr></thead><tbody>'
         body = '<div dir="rtl" style="line-height:1.9"><p>%s</p>' % safe(result.get('message'))
         if result.get('status') == 'ok':
-            body += '<h4>السيارات المتوقعة في اليوم المحدد (%s)</h4>' % result['pending_orders']
-            body += table_head + rows(result['orders']) + '</tbody></table>' if result['orders'] else '<p>لا توجد أوامر مطابقة للتاريخ.</p>'
+            body += '<div style="background:#e6f4ff;border:2px solid #2b75d6;border-radius:10px;padding:12px"><h4>موعد التسليم في اليوم المحدد (%s)</h4>' % result['today_count']
+            body += table_head + rows(result['orders']) + '</tbody></table>' if result['orders'] else '<p>لا توجد أوامر موعد تسليمها في هذا اليوم.</p>'
+            body += '</div>'
+            if result['later_count']:
+                body += '<details style="margin-top:10px"><summary>موعد التسليم لاحقاً (%s) — عرض التفاصيل</summary>' % result['later_count']
+                body += table_head + rows(result['later_orders']) + '</tbody></table></details>'
             if result['overdue'] or result['undated_orders']:
                 body += '<details><summary>أوامر متأخرة أو بلا موعد تسليم (%s) — عرض التفاصيل</summary>' % (result['overdue'] + result['undated_orders'])
                 body += table_head + rows(result['warnings']) + '</tbody></table></details>'
