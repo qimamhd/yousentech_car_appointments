@@ -77,3 +77,17 @@ Occupied calendar cards now use the modern white panel with a blue car icon, occ
 
 
 V4.4: Restored week/month switch, and placed style 12 only inside the row.cells loop. Fixes undefined cell.css.
+
+
+## V4.5 — approved lifecycle policy
+- Arrived (`done`) bookings remain in occupancy and show a purple 'وصلت' badge
+  on occupied calendar cards and in the period details popup.
+- Past-period confirmed/arrived bookings remain visible for historical review.
+- Cancelled, no-show and expired provisional bookings are excluded from
+  occupancy display, while their database records and contact history remain.
+- Confirmed KPI counts confirmed only (not arrived); arrived is shown separately
+  in the period popup.
+- Extended bookings follow these rules for each covered slot.
+- Existing 10-second automatic refresh picks up changes without manual reload.
+No changes to appointment state transitions, stored data or server-side capacity
+rules were necessary because those already implement this policy.

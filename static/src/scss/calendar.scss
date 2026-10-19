@@ -374,3 +374,29 @@
 .ycc-board .ycc-cell.ycc-style-12 .ycc-12-menu{order:3;flex:0 0 10px;font-size:13px;color:#6685d1;text-align:center}
 .ycc-board .ycc-cell.ycc-style-12:hover{border-color:#7499f5;box-shadow:0 4px 12px rgba(39,81,169,.18)}
 @media(max-width:1100px){.ycc-board .ycc-cell.ycc-style-12{gap:4px;padding-inline-end:5px}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-icon{flex-basis:36px;font-size:16px}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy{flex-basis:43px}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{font-size:14px}.ycc-board .ycc-cell.ycc-style-12 .ycc-mini-booking{font-size:9px;padding:2px 4px}}
+
+/* V4.5: approved arrived / past / removed-from-occupancy policies */
+.ycc-board .ycc-cell.ycc-style-12.ycc-has-arrived{
+  border-color:#9c85dc;box-shadow:0 2px 8px rgba(100,70,160,.14);
+}
+.ycc-board .ycc-cell.ycc-style-12.ycc-has-arrived .ycc-12-icon{
+  background:linear-gradient(145deg,#8c69d7,#6045b5);
+}
+.ycc-board .ycc-cell.ycc-style-12.ycc-has-arrived .ycc-12-occupancy strong{color:#6045b5}
+.ycc-board .ycc-arrived-chip{
+  display:inline-flex;align-items:center;gap:3px;margin-inline-end:4px;
+  background:#f0e9ff;color:#6845a9;border-radius:5px;
+  padding:1px 4px;font-size:9px;font-weight:700;
+}
+.ycc-modal .ycc-booking-done{
+  border-inline-start:3px solid #7956c8;background:#faf7ff;
+}
+.ycc-modal .ycc-state.done{
+  background:#eee5ff;color:#6845aa;font-weight:700;
+}
+.ycc-modal .ycc-stat-arrived{
+  background:#f0e9ff;color:#6543a7;border-radius:6px;
+}
+.ycc-board .ycc-cell.past.ycc-has-arrived{
+  opacity:0.88;
+}
