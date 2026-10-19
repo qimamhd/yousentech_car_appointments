@@ -402,3 +402,18 @@
 }
 
 .ycc-forecast-list{margin-top:12px;max-height:280px;overflow-y:auto;display:grid;gap:6px}.ycc-forecast-line{background:#fff;border:1px solid #d9e1ef;border-radius:8px;padding:7px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px}.ycc-forecast-line strong{color:#26447a}.ycc-forecast-line span{color:#586b85}.ycc-forecast-line small{color:#8359a3}
+
+/* V5: frequently used forecast action and compact date-scoped results */
+.ycc-dialog .ycc-forecast-period{background:#2866e9!important;border-color:#2866e9!important;color:#fff!important;font-weight:800!important;padding:10px 19px!important;border-radius:9px!important;box-shadow:0 3px 10px rgba(40,102,233,.25)}
+.ycc-dialog .ycc-forecast-period:hover{background:#174ec5!important;box-shadow:0 4px 14px rgba(40,102,233,.35)}
+.ycc-forecast-result{background:#f8faff;border:1px solid #dce6fa;border-radius:10px;padding:12px;margin-bottom:12px;color:#24405e}
+.ycc-forecast-summary{font-size:12px;line-height:1.8}
+.ycc-forecast-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
+.ycc-forecast-stat{background:white;border:1px solid #dce6fa;border-radius:8px;text-align:center;padding:8px 3px;display:flex;flex-direction:column;gap:3px}
+.ycc-forecast-stat strong{font-size:20px;color:#2555bc}.ycc-forecast-stat small{font-size:10px;color:#667d9c}
+.ycc-forecast-title{font-size:13px;font-weight:750;margin:12px 0 8px}
+.ycc-forecast-empty{background:white;border-radius:8px;padding:12px;color:#6c7d94}
+.ycc-forecast-warnings{margin-top:12px;background:#fff9ed;border:1px solid #efd6a6;border-radius:8px;padding:9px}
+.ycc-forecast-warnings summary{cursor:pointer;font-size:12px;color:#96610c;font-weight:700}
+.ycc-forecast-warnings .ycc-forecast-list{max-height:190px}
+@media(max-width:700px){.ycc-forecast-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}

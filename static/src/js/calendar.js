@@ -95,8 +95,43 @@ var Calendar=AbstractAction.extend({
  $modal.on('click','.ycc-forecast-period',function(){
      var $btn=$(this);$btn.prop('disabled',true);
      rpc.query({route:'/ycc/calendar/forecast',params:{branch_id:self.branchId,date:date}})
-       .then(function(result){var $msg=$modal.find('.ycc-forecast-result');if(!$msg.length){$msg=$('<div class="ycc-forecast-result alert alert-info" role="status"/>');$modal.find('.modal-body').prepend($msg);} $msg.empty().append($('<div/>').text(result.message||'تعذر التحقق.')); if(result.orders && result.orders.length){var $list=$('<div class="ycc-forecast-list"/>');result.orders.forEach(function(item){var $line=$('<div class="ycc-forecast-line"/>');$line.append($('<strong/>').text(item.customer));$line.append($('<span/>').text(item.order+' · التسليم: '+item.delivery_date));$line.append($('<small/>').text(item.status+(item.matched_appointment?' · له حجز وصول بالاسم':'')));$list.append($line);});$msg.append($list);}},
-       function(){$modal.find('.modal-body').prepend($('<div class="alert alert-warning"/>').text('تعذر التحقق من أوامر التركيب.'));})
+       .then(function(result){
+         var $msg=$modal.find('.ycc-forecast-result');
+         if(!$msg.length){$msg=$('<div class="ycc-forecast-result" role="status"/>');$modal.find('.modal-body').prepend($msg);}
+         $msg.empty();
+         $msg.append($('<div class="ycc-forecast-summary"/>').text(result.message||'تعذر التحقق.'));
+         if(result.status!=='ok'){return;}
+         var $stats=$('<div class="ycc-forecast-stats"/>');
+         [['متوقعة اليوم',result.pending_orders],['وصلت حسب المواعيد',result.arrived],['مطابقة بالاسم',result.matched_customers],['متأخرة',result.overdue]].forEach(function(pair){
+           $stats.append($('<div class="ycc-forecast-stat"/>').append($('<strong/>').text(pair[1]),$('<small/>').text(pair[0])));
+         });
+         $msg.append($stats);
+         $msg.append($('<h5 class="ycc-forecast-title"/>').text('السيارات المتوقعة في اليوم المحدد'));
+         var $list=$('<div class="ycc-forecast-list"/>');
+         (result.orders||[]).forEach(function(item){
+           var $line=$('<div class="ycc-forecast-line"/>');
+           $line.append($('<strong/>').text(item.customer));
+           $line.append($('<span/>').text(item.order+' · التسليم: '+item.delivery_date));
+           $line.append($('<small/>').text(item.status+(item.matched_appointment?' · له حجز وصول بالاسم':'')));
+           $list.append($line);
+         });
+         if(!result.orders||!result.orders.length){$list.append($('<div class="ycc-forecast-empty"/>').text('لا توجد أوامر تركيب مطابقة لليوم المحدد.'));}
+         $msg.append($list);
+         if(result.overdue||result.undated_orders){
+           var $details=$('<details class="ycc-forecast-warnings"/>');
+           $details.append($('<summary/>').text('أوامر متأخرة أو دون موعد تسليم ('+(result.overdue+result.undated_orders)+') — عرض التفاصيل'));
+           var $warningList=$('<div class="ycc-forecast-list"/>');
+           (result.warnings||[]).forEach(function(item){
+             $warningList.append($('<div class="ycc-forecast-line"/>').append(
+               $('<strong/>').text(item.customer),$('<span/>').text(item.order+' · التسليم: '+item.delivery_date),$('<small/>').text(item.status)));
+           });
+           $details.append($warningList);$msg.append($details);
+         }
+       },function(){
+         var $msg=$modal.find('.ycc-forecast-result');
+         if(!$msg.length){$msg=$('<div class="ycc-forecast-result"/>');$modal.find('.modal-body').prepend($msg);}
+         $msg.empty().append($('<div class="alert alert-warning"/>').text('تعذر التحقق من أوامر التركيب.'));
+       })
        .then(function(){$btn.prop('disabled',false);});
  });
  $modal.on('click','.ycc-create-period',function(){$modal.modal('hide');self.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',views:[[false,'form']],target:'current',context:{default_branch_id:self.branchId,default_slot_id:slotId,default_date:date}});});

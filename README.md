@@ -117,3 +117,6 @@ V4.8: Forecast directly uses qimamhd_wo_v3 model wo.installation.order.mst and f
 
 ## V4.9 Customer-based occupancy forecast
 The WO forecast uses `partner_id`/normalized customer names only, never car plates. It shows an order-by-order summary in the calendar popup, preserves overdue and undated active orders, and flags multiple active orders for the same customer instead of merging cars. The appointment form notification also shows aggregate counts. Matching a customer across modules is advisory and never automatically frees capacity.
+
+
+V5: forecast now limits primary results to order_date <= selected day <= delivery_date; overdue and undated work orders are separated behind expandable details. Customer-name matching only; no plate matching. Forecast button is prominent in the calendar modal and appointment form. The appointment form opens a dedicated summary wizard instead of a long toast.

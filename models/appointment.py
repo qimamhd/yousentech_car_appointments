@@ -300,64 +300,82 @@ class YCCAppointment(models.Model):
             return {'status': 'unconfigured', 'message': 'حقول أوامر التركيب في النسخة المثبتة غير متوافقة.'}
         active_states = ['confirm', 'under_checking', 'work_order', 'execute_request',
                          'execute_started', 'return_to_modify']
-        orders = Order.search([('branch_id', '=', branch.branch_id.id),
-                               ('state', 'in', active_states), ('order_date', '<=', day)])
-        # Overdue orders are intentionally retained: delivery_date is an estimate,
-        # not proof of physical departure or completion.
+        # The selected calendar date must fall within the order's expected
+        # stay: order_date <= day <= delivery_date. Old overdue orders are
+        # displayed separately, not counted as present for this day.
+        common = [('branch_id', '=', branch.branch_id.id),
+                  ('state', 'in', active_states), ('order_date', '<=', day)]
+        current_orders = Order.search(common + [('delivery_date', '>=', day)], order='delivery_date asc, id asc')
+        # Keep overdue / undated records available only behind an expandable
+        # warning, capped to avoid dumping years of historical records.
+        overdue_count = Order.search_count(common + [('delivery_date', '<', day)])
+        undated_count = Order.search_count(common + [('delivery_date', '=', False)])
+        overdue_orders = Order.search(common + [('delivery_date', '<', day)], order='delivery_date desc, id desc', limit=30)
+        undated_orders = Order.search(common + [('delivery_date', '=', False)], order='id desc', limit=20)
+
         def customer_key(partner):
-            if not partner:
-                return None
-            # Use partner identity where present. Name-only fallback is for
-            # independent partner records with matching normalized names.
-            return ' '.join((partner.name or '').split()).casefold() or None
+            return ' '.join((partner.name or '').split()).casefold() if partner else ''
+
         arrived_by_customer = {}
         for appt in arrived:
             key = customer_key(appt.partner_id)
             if key:
                 arrived_by_customer.setdefault(key, []).append(appt)
+
+        def item_for(order, status):
+            key = customer_key(order.partner_id)
+            delivery = fields.Date.to_string(order.delivery_date) if order.delivery_date else False
+            return {'customer': order.partner_id.name if order.partner_id else 'عميل غير محدد',
+                    'order': order.display_name, 'delivery_date': delivery or 'غير محدد',
+                    'status': status, 'matched_appointment': bool(key and key in arrived_by_customer)}
+
+        items = [item_for(o, 'موعد التسليم اليوم' if fields.Date.to_string(o.delivery_date) == day
+                          else 'متوقع وجودها') for o in current_orders]
+        warnings = [item_for(o, 'تجاوز موعد التسليم') for o in overdue_orders]
+        warnings += [item_for(o, 'دون موعد تسليم') for o in undated_orders]
         groups = {}
-        items = []
-        for order in orders:
+        for order in current_orders:
             key = customer_key(order.partner_id)
             if key:
                 groups.setdefault(key, []).append(order)
-            delivery = fields.Date.to_string(order.delivery_date) if order.delivery_date else False
-            label = (order.partner_id.name or 'عميل غير محدد') if order.partner_id else 'عميل غير محدد'
-            items.append({'customer': label, 'order': order.display_name,
-                          'delivery_date': delivery or 'غير محدد',
-                          'status': ('دون موعد تسليم' if not delivery else
-                                     'تجاوز موعد التسليم' if delivery < day else
-                                     'موعد التسليم اليوم' if delivery == day else 'غير مكتمل'),
-                          'matched_appointment': bool(key and key in arrived_by_customer)})
-        multiple_customers = sorted({orders_group[0].partner_id.name for orders_group in groups.values()
-                                     if len(orders_group) > 1 and orders_group[0].partner_id})
+        multiple_customers = sorted({group[0].partner_id.name for group in groups.values()
+                                     if len(group) > 1 and group[0].partner_id})
         matched_keys = set(groups) & set(arrived_by_customer)
-        matched_arrivals = sum(len(arrived_by_customer[k]) for k in matched_keys)
-        # One matched appointment is not necessarily the same physical car.
-        # Do not subtract it from counts unless a vehicle-level link exists.
-        overdue = sum(1 for item in items if item['status'] == 'تجاوز موعد التسليم')
-        undated = sum(1 for item in items if item['status'] == 'دون موعد تسليم')
-        summary = ('بتاريخ %s | أوامر تركيب غير مكتملة: %s | سيارات وصلت حسب المواعيد: %s | '
-                   'عملاء متطابقون بالاسم: %s | متأخرة عن التسليم: %s | دون موعد تسليم: %s | '
-                   'سعة الفرع: %s. المطابقة بالعميل فقط، ولا تعني تطابق السيارة؛ '
-                   'لا يتم دمج أوامر متعددة للعميل أو احتساب السعة المتاحة تلقائياً.') % (
-                       day, len(orders), len(arrived), len(matched_keys), overdue,
-                       undated, branch.capacity)
-        if multiple_customers:
-            summary += ' تنبيه: توجد أوامر متعددة لعملاء بأسماء متطابقة: %s.' % ', '.join(multiple_customers[:8])
+        summary = ('تاريخ الفحص: %s | سيارات متوقعة حسب موعد التسليم: %s | '
+                   'حجوزات وصلت: %s | عملاء متطابقون بالاسم: %s | '
+                   'أوامر متأخرة: %s | دون موعد تسليم: %s. '
+                   'المطابقة بالعميل فقط، ولا تؤكد تطابق السيارة أو خروجها فعلياً.') % (
+                       day, len(items), len(arrived), len(matched_keys), overdue_count, undated_count)
         return {'status': 'ok', 'date': day, 'capacity': branch.capacity,
-                'pending_orders': len(orders), 'arrived': len(arrived),
-                'matched_customers': len(matched_keys), 'matched_arrivals': matched_arrivals,
-                'overdue': overdue, 'undated_orders': undated,
+                'pending_orders': len(items), 'arrived': len(arrived),
+                'matched_customers': len(matched_keys),
+                'overdue': overdue_count, 'undated_orders': undated_count,
                 'multiple_customers': multiple_customers, 'orders': items,
-                'message': summary}
+                'warnings': warnings, 'message': summary}
 
     def action_forecast_delivery_load(self):
         self.ensure_one()
         result = self.forecast_delivery_load(self.branch_id.id, self.date)
-        return {'type': 'ir.actions.client', 'tag': 'display_notification',
-                'params': {'title': 'ملخص السيارات الموجودة', 'message': result['message'],
-                           'type': 'warning' if result['status'] != 'ok' else 'info', 'sticky': True}}
+        from markupsafe import escape
+        def safe(value):
+            return str(escape(str(value or '')))
+        def rows(items):
+            return ''.join('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (
+                safe(item['customer']), safe(item['order']), safe(item['delivery_date']),
+                safe(item['status'])) for item in items)
+        table_head = '<table class="table table-sm table-striped"><thead><tr><th>العميل</th><th>أمر التركيب</th><th>التسليم</th><th>الحالة</th></tr></thead><tbody>'
+        body = '<div dir="rtl" style="line-height:1.9"><p>%s</p>' % safe(result.get('message'))
+        if result.get('status') == 'ok':
+            body += '<h4>السيارات المتوقعة في اليوم المحدد (%s)</h4>' % result['pending_orders']
+            body += table_head + rows(result['orders']) + '</tbody></table>' if result['orders'] else '<p>لا توجد أوامر مطابقة للتاريخ.</p>'
+            if result['overdue'] or result['undated_orders']:
+                body += '<details><summary>أوامر متأخرة أو بلا موعد تسليم (%s) — عرض التفاصيل</summary>' % (result['overdue'] + result['undated_orders'])
+                body += table_head + rows(result['warnings']) + '</tbody></table></details>'
+        body += '</div>'
+        wizard = self.env['ycc.forecast.wizard'].create({'details': body})
+        return {'type': 'ir.actions.act_window', 'name': 'التحقق من السيارات الموجودة',
+                'res_model': 'ycc.forecast.wizard', 'res_id': wizard.id,
+                'view_mode': 'form', 'views': [(False, 'form')], 'target': 'new'}
 
     def action_open_contact_wizard(self):
         self.ensure_one()
@@ -426,3 +444,9 @@ class YCCContact(models.Model):
     result = fields.Selection([('no_answer','لم يرد'),('follow_up','متابعة'),('reschedule','تغيير موعد'),('confirmed','تأكيد'),('other','أخرى')],string='النتيجة',required=True,default='follow_up')
     note = fields.Text(string='التفاصيل',required=True)
     next_contact_at = fields.Datetime(string='المتابعة القادمة')
+
+
+class YCCForecastWizard(models.TransientModel):
+    _name = 'ycc.forecast.wizard'
+    _description = 'ملخص التحقق من السيارات الموجودة'
+    details = fields.Html(string='ملخص الإشغال', readonly=True, sanitize=True)
