@@ -92,6 +92,13 @@ var Calendar=AbstractAction.extend({
  $modal.on('keydown','.ycc-booking',function(e){
      if(e.key==='Enter'||e.key===' '||e.which===13||e.which===32)openBooking.call(this,e);
  });
+ $modal.on('click','.ycc-forecast-period',function(){
+     var $btn=$(this);$btn.prop('disabled',true);
+     rpc.query({route:'/ycc/calendar/forecast',params:{branch_id:self.branchId,date:date}})
+       .then(function(result){var $msg=$modal.find('.ycc-forecast-result');if(!$msg.length){$msg=$('<div class="ycc-forecast-result alert alert-info" role="status"/>');$modal.find('.modal-body').prepend($msg);} $msg.empty().append($('<div/>').text(result.message||'تعذر التحقق.')); if(result.orders && result.orders.length){var $list=$('<div class="ycc-forecast-list"/>');result.orders.forEach(function(item){var $line=$('<div class="ycc-forecast-line"/>');$line.append($('<strong/>').text(item.customer));$line.append($('<span/>').text(item.order+' · التسليم: '+item.delivery_date));$line.append($('<small/>').text(item.status+(item.matched_appointment?' · له حجز وصول بالاسم':'')));$list.append($line);});$msg.append($list);}},
+       function(){$modal.find('.modal-body').prepend($('<div class="alert alert-warning"/>').text('تعذر التحقق من أوامر التركيب.'));})
+       .then(function(){$btn.prop('disabled',false);});
+ });
  $modal.on('click','.ycc-create-period',function(){$modal.modal('hide');self.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',views:[[false,'form']],target:'current',context:{default_branch_id:self.branchId,default_slot_id:slotId,default_date:date}});});
  $modal.on('hidden.bs.modal',function(){if(!openingBooking){$modal.remove();self._load();}});$modal.modal('show');}
 });core.action_registry.add('ycc_appointment_calendar',Calendar);return Calendar;

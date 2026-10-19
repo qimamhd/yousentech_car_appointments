@@ -400,3 +400,5 @@
 .ycc-board .ycc-cell.past.ycc-has-arrived{
   opacity:0.88;
 }
+
+.ycc-forecast-list{margin-top:12px;max-height:280px;overflow-y:auto;display:grid;gap:6px}.ycc-forecast-line{background:#fff;border:1px solid #d9e1ef;border-radius:8px;padding:7px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px}.ycc-forecast-line strong{color:#26447a}.ycc-forecast-line span{color:#586b85}.ycc-forecast-line small{color:#8359a3}

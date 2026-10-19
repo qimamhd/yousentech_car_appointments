@@ -31,7 +31,7 @@ class YCCBranch(models.Model):
                     ])
                     occupied = {}
                     for booking in appointments:
-                        if booking._occupies():
+                        if booking._occupies() and booking.slot_id and booking.date:
                             for day, slot in booking._covered_periods():
                                 key = (day, slot.id)
                                 occupied[key] = occupied.get(key, 0) + 1
@@ -97,6 +97,7 @@ class YCCException(models.Model):
     _description = 'إغلاق فترات الحجز'
     branch_id = fields.Many2one('ycc.branch',required=True,ondelete='cascade')
     date = fields.Date(required=True)
+    end_date = fields.Date(string='نهاية الإجازة (اختياري)')
     slot_id = fields.Many2one('ycc.slot',string='الفترة (فارغ يعني كامل اليوم)')
     reason = fields.Char(required=True)
 
@@ -119,16 +120,16 @@ class YCCAppointment(models.Model):
     _inherit = ['mail.thread','mail.activity.mixin']
     _order = 'date desc,id desc'
     name = fields.Char(default='New',readonly=True,copy=False)
-    branch_id = fields.Many2one('ycc.branch',string='الفرع',required=True,tracking=True)
+    branch_id = fields.Many2one('ycc.branch',string='الفرع',tracking=True)
     custom_branch_id = fields.Many2one('custom.branches', string='الفرع الفعلي (V3)',
                                        related='branch_id.branch_id', store=True, readonly=True)
-    slot_id = fields.Many2one('ycc.slot',string='بداية الفترة',required=True,tracking=True)
+    slot_id = fields.Many2one('ycc.slot',string='بداية الفترة',tracking=True)
     end_slot_id = fields.Many2one('ycc.slot',string='نهاية الفترة (اختياري)',tracking=True,help='اتركه فارغًا لحجز فترة واحدة، أو اختر نهاية الفترة لحجز فترات متتالية.')
-    date = fields.Date(string='تاريخ بداية الحجز',required=True,default=fields.Date.context_today,tracking=True)
+    date = fields.Date(string='تاريخ بداية الحجز',default=fields.Date.context_today,tracking=True)
     end_date = fields.Date(string='تاريخ نهاية الحجز', tracking=True, help='اتركه فارغًا لحجز يوم واحد. يمكن أن تمتد السيارة لأيام متعددة.')
     partner_id = fields.Many2one('res.partner',string='العميل',required=True,tracking=True)
-    phone = fields.Char(string='الجوال')
-    vehicle_plate = fields.Char(string='لوحة السيارة',required=True)
+    phone = fields.Char(string='الجوال', required=True)
+    vehicle_plate = fields.Char(string='لوحة السيارة')
     # Original free-text value retained for existing appointments and integrations.
     vehicle_model = fields.Char(string='وصف السيارة السابق', copy=False)
     car_manuf_id = fields.Many2one('wo.car.manufactory', string='الشركة المصنعة', tracking=True)
@@ -141,7 +142,7 @@ class YCCAppointment(models.Model):
             if not rec.car_type_id and not rec.vehicle_model:
                 raise ValidationError(_('يرجى تحديد الشركة المصنعة ونوع السيارة.'))
 
-    service_id = fields.Many2one('ycc.service',string='الخدمة',required=True)
+    service_id = fields.Many2one('ycc.service',string='الخدمة')
     agent_id = fields.Many2one('res.users',string='المندوب',default=lambda self:self.env.user)
     notes = fields.Text(string='الملاحظات')
     state = fields.Selection([('provisional','مبدئي'),('contacting','جاري التواصل'),('confirmed','مؤكد'),('expired','منتهي'),('cancelled','ملغي'),('done','وصلت السيارة'),('no_show','لم يحضر')],string='الحالة',default='provisional',required=True,tracking=True)
@@ -214,6 +215,8 @@ class YCCAppointment(models.Model):
     def _check_capacity(self):
         # Serialize bookings per branch to avoid overlapping multi-day races.
         for rec in self.sorted(key=lambda r: (r.branch_id.id, r.id)):
+            if not rec.branch_id or not rec.slot_id or not rec.date:
+                continue
             self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', ['ycc:branch:%s' % rec.branch_id.id])
             periods = rec._covered_periods()
             if not rec._occupies():
@@ -222,7 +225,7 @@ class YCCAppointment(models.Model):
             others = self.search([
                 ('branch_id', '=', rec.branch_id.id), ('id', '!=', rec.id),
                 ('date', '<=', fields.Date.to_string(last)),
-                '|', ('end_date', '=', False), ('end_date', '>=', fields.Date.to_string(first)),
+                '|', '&', ('end_date', '=', False), ('date', '>=', fields.Date.to_string(first)), ('end_date', '>=', fields.Date.to_string(first)),
                 ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done'])
             ])
             now = fields.Datetime.now()
@@ -234,7 +237,8 @@ class YCCAppointment(models.Model):
                         occupied[key] = occupied.get(key, 0) + 1
             for day, slot in periods:
                 if self.env['ycc.exception'].search_count([
-                    ('branch_id', '=', rec.branch_id.id), ('date', '=', day),
+                    ('branch_id', '=', rec.branch_id.id), ('date', '<=', day),
+                    '|', '&', ('end_date', '=', False), ('date', '=', day), ('end_date', '>=', day),
                     '|', ('slot_id', '=', False), ('slot_id', '=', slot.id)
                 ]):
                     raise ValidationError(_('إحدى الفترات المحددة مغلقة بسبب استثناء أو إجازة.'))
@@ -245,11 +249,10 @@ class YCCAppointment(models.Model):
     def create(self, vals):
         vals = dict(vals)
         vals['name'] = self.env['ir.sequence'].next_by_code('ycc.appointment') or 'New'
-        if vals.get('state','provisional') in ('provisional','contacting'):
+        if vals.get('state','provisional') in ('provisional','contacting') and vals.get('branch_id'):
             branch = self.env['ycc.branch'].browse(vals.get('branch_id'))
             vals['hold_until'] = fields.Datetime.to_string(fields.Datetime.from_string(fields.Datetime.now())+timedelta(minutes=branch.provisional_minutes or 120))
         rec = super().create(vals)
-        rec._validate_vehicle_selection()
         rec._check_capacity()
         return rec
 
@@ -266,11 +269,95 @@ class YCCAppointment(models.Model):
                 if rec.state in ('expired', 'cancelled', 'no_show'):
                     raise UserError(_('Closed appointments cannot be reopened.'))
         result = super().write(vals)
-        if set(vals) & {'car_manuf_id','car_type_id','vehicle_model'}:
-            self._validate_vehicle_selection()
         if set(vals) & {'branch_id','slot_id','end_slot_id','date','end_date','state','hold_until'}:
             self._check_capacity()
         return result
+
+    @api.model
+    def forecast_delivery_load(self, branch_id, target_date):
+        """Read-only forecast by customer identity, never by license plate.
+
+        A shared customer can own multiple cars; distinct work orders remain
+        separate and are flagged for manual review instead of being merged.
+        """
+        if not branch_id or not target_date:
+            return {'status': 'missing', 'message': 'حدد الفرع والتاريخ أولاً للتحقق.'}
+        branch = self.env['ycc.branch'].browse(int(branch_id)).exists()
+        if not branch:
+            return {'status': 'missing', 'message': 'تهيئة الفرع غير متاحة.'}
+        day = fields.Date.to_string(fields.Date.from_string(target_date))
+        existing = self.search([('branch_id', '=', branch.id), ('date', '<=', day),
+                                '|', '&', ('end_date', '=', False), ('date', '=', day),
+                                ('end_date', '>=', day), ('state', '=', 'done')])
+        arrived = existing.filtered(lambda rec: rec.slot_id and rec._occupies() and
+                                    any(d == day for d, slot in rec._covered_periods()))
+        model_name = 'wo.installation.order.mst'
+        if model_name not in self.env:
+            return {'status': 'unconfigured', 'message': 'موديول أوامر التركيب غير متاح في قاعدة البيانات.'}
+        Order = self.env[model_name]
+        needed = ('delivery_date', 'order_date', 'state', 'branch_id', 'partner_id')
+        if any(field not in Order._fields for field in needed):
+            return {'status': 'unconfigured', 'message': 'حقول أوامر التركيب في النسخة المثبتة غير متوافقة.'}
+        active_states = ['confirm', 'under_checking', 'work_order', 'execute_request',
+                         'execute_started', 'return_to_modify']
+        orders = Order.search([('branch_id', '=', branch.branch_id.id),
+                               ('state', 'in', active_states), ('order_date', '<=', day)])
+        # Overdue orders are intentionally retained: delivery_date is an estimate,
+        # not proof of physical departure or completion.
+        def customer_key(partner):
+            if not partner:
+                return None
+            # Use partner identity where present. Name-only fallback is for
+            # independent partner records with matching normalized names.
+            return ' '.join((partner.name or '').split()).casefold() or None
+        arrived_by_customer = {}
+        for appt in arrived:
+            key = customer_key(appt.partner_id)
+            if key:
+                arrived_by_customer.setdefault(key, []).append(appt)
+        groups = {}
+        items = []
+        for order in orders:
+            key = customer_key(order.partner_id)
+            if key:
+                groups.setdefault(key, []).append(order)
+            delivery = fields.Date.to_string(order.delivery_date) if order.delivery_date else False
+            label = (order.partner_id.name or 'عميل غير محدد') if order.partner_id else 'عميل غير محدد'
+            items.append({'customer': label, 'order': order.display_name,
+                          'delivery_date': delivery or 'غير محدد',
+                          'status': ('دون موعد تسليم' if not delivery else
+                                     'تجاوز موعد التسليم' if delivery < day else
+                                     'موعد التسليم اليوم' if delivery == day else 'غير مكتمل'),
+                          'matched_appointment': bool(key and key in arrived_by_customer)})
+        multiple_customers = sorted({orders_group[0].partner_id.name for orders_group in groups.values()
+                                     if len(orders_group) > 1 and orders_group[0].partner_id})
+        matched_keys = set(groups) & set(arrived_by_customer)
+        matched_arrivals = sum(len(arrived_by_customer[k]) for k in matched_keys)
+        # One matched appointment is not necessarily the same physical car.
+        # Do not subtract it from counts unless a vehicle-level link exists.
+        overdue = sum(1 for item in items if item['status'] == 'تجاوز موعد التسليم')
+        undated = sum(1 for item in items if item['status'] == 'دون موعد تسليم')
+        summary = ('بتاريخ %s | أوامر تركيب غير مكتملة: %s | سيارات وصلت حسب المواعيد: %s | '
+                   'عملاء متطابقون بالاسم: %s | متأخرة عن التسليم: %s | دون موعد تسليم: %s | '
+                   'سعة الفرع: %s. المطابقة بالعميل فقط، ولا تعني تطابق السيارة؛ '
+                   'لا يتم دمج أوامر متعددة للعميل أو احتساب السعة المتاحة تلقائياً.') % (
+                       day, len(orders), len(arrived), len(matched_keys), overdue,
+                       undated, branch.capacity)
+        if multiple_customers:
+            summary += ' تنبيه: توجد أوامر متعددة لعملاء بأسماء متطابقة: %s.' % ', '.join(multiple_customers[:8])
+        return {'status': 'ok', 'date': day, 'capacity': branch.capacity,
+                'pending_orders': len(orders), 'arrived': len(arrived),
+                'matched_customers': len(matched_keys), 'matched_arrivals': matched_arrivals,
+                'overdue': overdue, 'undated_orders': undated,
+                'multiple_customers': multiple_customers, 'orders': items,
+                'message': summary}
+
+    def action_forecast_delivery_load(self):
+        self.ensure_one()
+        result = self.forecast_delivery_load(self.branch_id.id, self.date)
+        return {'type': 'ir.actions.client', 'tag': 'display_notification',
+                'params': {'title': 'ملخص السيارات الموجودة', 'message': result['message'],
+                           'type': 'warning' if result['status'] != 'ok' else 'info', 'sticky': True}}
 
     def action_open_contact_wizard(self):
         self.ensure_one()

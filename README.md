@@ -107,3 +107,13 @@ rules were necessary because those already implement this policy.
   bookings from concurrent requests. Closed slots/dates cannot be newly booked.
 - Lowering capacity below existing active occupancy is rejected.
 - Existing single-day bookings remain compatible; no data migration required.
+
+
+V4.7: Fixed missing ycc.exception.end_date field in config view; made appointment scheduling/vehicle/service optional while requiring customer and phone. Added read-only forecast buttons to appointment form and calendar popup. Work order forecast requires verified model/field mapping via ir.config_parameter keys: ycc.installation_order_model, ycc.installation_delivery_field, ycc.installation_state_field, ycc.installation_branch_field, ycc.installation_completed_values. Until configured the forecast explicitly warns that order data is unavailable; it does not falsely claim zero unfinished cars.
+
+
+V4.8: Forecast directly uses qimamhd_wo_v3 model wo.installation.order.mst and fields delivery_date, order_date, state, branch_id, car_panel_no. Excludes completed/cancelled/draft orders; flags undated orders and warns about possible cross-system duplicates. No configurable model mapping required.
+
+
+## V4.9 Customer-based occupancy forecast
+The WO forecast uses `partner_id`/normalized customer names only, never car plates. It shows an order-by-order summary in the calendar popup, preserves overdue and undated active orders, and flags multiple active orders for the same customer instead of merging cars. The appointment form notification also shows aggregate counts. Matching a customer across modules is advisory and never automatically frees capacity.
