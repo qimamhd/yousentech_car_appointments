@@ -91,3 +91,19 @@ V4.4: Restored week/month switch, and placed style 12 only inside the row.cells 
 - Existing 10-second automatic refresh picks up changes without manual reload.
 No changes to appointment state transitions, stored data or server-side capacity
 rules were necessary because those already implement this policy.
+
+## V4.6 — branch-wide capacity and multi-day bookings
+- `ycc.branch.capacity` is the single authoritative branch capacity, editable in
+  the configuration form header. Slot rows show this as a readonly related field.
+- Existing slot capacity values are no longer authoritative; on upgrade all
+  slot rows reflect the branch capacity (default 4 until configured).
+- `ycc.appointment.end_date` is optional; empty means the same day as `date`.
+- A booking occupies every configured working slot from its starting slot/date
+  through its inclusive ending slot/date, including days in between. Non-working
+  dates without configured slots do not create artificial capacity.
+- The calendar fetches appointments that overlap the visible date range and
+  renders a booking in each occupied date/slot cell. The modal shows the range.
+- Capacity checks are serialized per branch to protect overlapping multi-day
+  bookings from concurrent requests. Closed slots/dates cannot be newly booked.
+- Lowering capacity below existing active occupancy is rejected.
+- Existing single-day bookings remain compatible; no data migration required.

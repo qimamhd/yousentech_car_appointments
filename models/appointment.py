@@ -11,14 +11,39 @@ class YCCBranch(models.Model):
     branch_id = fields.Many2one('custom.branches', string='الفرع', required=True, ondelete='cascade', index=True)
     company_id = fields.Many2one('res.company', string='الشركة', default=lambda self: self.env.company)
     active = fields.Boolean(default=True)
+    capacity = fields.Integer(string='القدرة الاستيعابية للفرع', default=4, required=True)
     provisional_minutes = fields.Integer(string='صلاحية الحجز المبدئي بالدقائق', default=120, required=True)
     slot_ids = fields.One2many('ycc.slot', 'branch_id', string='فترات الحجز')
     exception_ids = fields.One2many('ycc.exception', 'branch_id', string='الاستثناءات')
     _sql_constraints = [('unique_branch', 'unique(branch_id)', 'يوجد إعداد مواعيد لهذا الفرع بالفعل.')]
 
-    @api.constrains('provisional_minutes')
+    def write(self, vals):
+        if 'capacity' in vals:
+            for rec in self:
+                new_capacity = vals['capacity']
+                if new_capacity < 1:
+                    raise ValidationError(_('القدرة الاستيعابية يجب أن تكون أكبر من صفر.'))
+                if new_capacity < rec.capacity:
+                    self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', ['ycc:branch:%s' % rec.id])
+                    appointments = self.env['ycc.appointment'].search([
+                        ('branch_id', '=', rec.id),
+                        ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done'])
+                    ])
+                    occupied = {}
+                    for booking in appointments:
+                        if booking._occupies():
+                            for day, slot in booking._covered_periods():
+                                key = (day, slot.id)
+                                occupied[key] = occupied.get(key, 0) + 1
+                                if occupied[key] > new_capacity:
+                                    raise ValidationError(_('لا يمكن خفض السعة: توجد فترات بها حجوزات تتجاوز السعة الجديدة.'))
+        return super().write(vals)
+
+    @api.constrains('provisional_minutes', 'capacity')
     def _check_minutes(self):
         for rec in self:
+            if rec.capacity <= 0:
+                raise ValidationError(_('القدرة الاستيعابية يجب أن تكون أكبر من صفر.'))
             if rec.provisional_minutes <= 0:
                 raise ValidationError(_('Hold duration must be positive.'))
 
@@ -37,7 +62,7 @@ class YCCSlot(models.Model):
     name = fields.Char(compute='_compute_name',store=True)
     start_hour = fields.Float(string='من الساعة',required=True)
     end_hour = fields.Float(string='إلى الساعة',required=True)
-    capacity = fields.Integer(string='القدرة الاستيعابية',default=4,required=True)
+    capacity = fields.Integer(string='القدرة الاستيعابية', related='branch_id.capacity', readonly=True)
     active = fields.Boolean(default=True)
     weekday_ids = fields.Many2many('ycc.weekday',string='أيام العمل')
 
@@ -53,11 +78,11 @@ class YCCSlot(models.Model):
         self.ensure_one()
         return not self.weekday_ids or str(day.weekday()) in self.weekday_ids.mapped('code')
 
-    @api.constrains('start_hour','end_hour','capacity','branch_id','weekday_ids','active')
+    @api.constrains('start_hour','end_hour','branch_id','weekday_ids','active')
     def _check_period(self):
         all_days = set(self.env['ycc.weekday'].search([]).ids)
         for rec in self:
-            if not (0 <= rec.start_hour < rec.end_hour <= 24) or rec.capacity < 1:
+            if not (0 <= rec.start_hour < rec.end_hour <= 24):
                 raise ValidationError(_('Invalid period or capacity.'))
             if not rec.active: continue
             own = set(rec.weekday_ids.ids) or all_days
@@ -99,7 +124,8 @@ class YCCAppointment(models.Model):
                                        related='branch_id.branch_id', store=True, readonly=True)
     slot_id = fields.Many2one('ycc.slot',string='بداية الفترة',required=True,tracking=True)
     end_slot_id = fields.Many2one('ycc.slot',string='نهاية الفترة (اختياري)',tracking=True,help='اتركه فارغًا لحجز فترة واحدة، أو اختر نهاية الفترة لحجز فترات متتالية.')
-    date = fields.Date(string='تاريخ الموعد',required=True,default=fields.Date.context_today,tracking=True)
+    date = fields.Date(string='تاريخ بداية الحجز',required=True,default=fields.Date.context_today,tracking=True)
+    end_date = fields.Date(string='تاريخ نهاية الحجز', tracking=True, help='اتركه فارغًا لحجز يوم واحد. يمكن أن تمتد السيارة لأيام متعددة.')
     partner_id = fields.Many2one('res.partner',string='العميل',required=True,tracking=True)
     phone = fields.Char(string='الجوال')
     vehicle_plate = fields.Char(string='لوحة السيارة',required=True)
@@ -129,50 +155,91 @@ class YCCAppointment(models.Model):
         now = fields.Datetime.from_string(now or fields.Datetime.now())
         return self.state in ('confirmed','done') or (self.state in ('provisional','contacting') and self.hold_until and fields.Datetime.from_string(self.hold_until) > now)
 
-    def _covered_slots(self):
+    def _booking_dates(self):
         self.ensure_one()
-        if not self.slot_id:
-            return self.env['ycc.slot']
-        end = self.end_slot_id or self.slot_id
-        if end.branch_id != self.branch_id or self.slot_id.branch_id != self.branch_id:
-            raise ValidationError(_('Start and end periods must belong to the selected branch.'))
-        if end.start_hour < self.slot_id.start_hour:
-            raise ValidationError(_('End period must follow the start period.'))
+        first = fields.Date.from_string(self.date)
+        last = fields.Date.from_string(self.end_date or self.date)
+        if last < first:
+            raise ValidationError(_('تاريخ نهاية الحجز لا يمكن أن يسبق تاريخ البداية.'))
+        if (last - first).days > 365:
+            raise ValidationError(_('الحد الأقصى للحجز سنة واحدة.'))
+        return first, last
+
+    def _covered_periods(self):
+        """Return (date, slot) for every operating period occupied by this booking.
+
+        An end slot is inclusive. Between dates, only configured working slots
+        are counted; this allows overnight / multi-day work without requiring
+        artificial midnight slots. Closed dates have no usable occupancy.
+        """
+        self.ensure_one()
+        first, last = self._booking_dates()
+        if not self.slot_id or self.slot_id.branch_id != self.branch_id:
+            raise ValidationError(_('فترة البداية يجب أن تتبع الفرع.'))
+        end_slot = self.end_slot_id or self.slot_id
+        if end_slot.branch_id != self.branch_id:
+            raise ValidationError(_('فترة النهاية يجب أن تتبع الفرع.'))
+        if first == last and end_slot.start_hour < self.slot_id.start_hour:
+            raise ValidationError(_('فترة النهاية يجب أن تأتي بعد فترة البداية.'))
         slots = self.env['ycc.slot'].search([
-            ('branch_id', '=', self.branch_id.id), ('active', '=', True),
-            ('start_hour', '>=', self.slot_id.start_hour),
-            ('start_hour', '<=', end.start_hour)], order='start_hour,id')
-        if not slots or slots[0] != self.slot_id or slots[-1] != end:
-            raise ValidationError(_('Invalid appointment period range.'))
-        for previous, following in zip(slots[:-1], slots[1:]):
-            if abs(previous.end_hour - following.start_hour) > 0.0001:
-                raise ValidationError(_('All periods in a multi-period appointment must be consecutive.'))
-        return slots
+            ('branch_id', '=', self.branch_id.id), ('active', '=', True)
+        ], order='start_hour,id')
+        if self.slot_id not in slots or end_slot not in slots:
+            raise ValidationError(_('فترة البداية أو النهاية غير مفعّلة.'))
+        result = []
+        current = first
+        while current <= last:
+            eligible = slots.filtered(lambda slot: slot.operates_on(current))
+            if current == first:
+                eligible = eligible.filtered(lambda slot: slot.start_hour >= self.slot_id.start_hour)
+            if current == last:
+                eligible = eligible.filtered(lambda slot: slot.start_hour <= end_slot.start_hour)
+            for slot in eligible:
+                result.append((fields.Date.to_string(current), slot))
+            current += timedelta(days=1)
+        if not result or result[0] != (fields.Date.to_string(first), self.slot_id) or result[-1] != (fields.Date.to_string(last), end_slot):
+            raise ValidationError(_('فترة البداية أو النهاية غير متاحة في اليوم المحدد.'))
+        # In a single day, preserve the old requirement for consecutive slots.
+        if first == last:
+            for (_, previous), (_, following) in zip(result[:-1], result[1:]):
+                if abs(previous.end_hour - following.start_hour) > 0.0001:
+                    raise ValidationError(_('فترات الحجز في اليوم الواحد يجب أن تكون متتالية.'))
+        return result
+
+    def _covered_slots(self):
+        """Compatibility with existing consumers; date-aware callers use periods."""
+        self.ensure_one()
+        return self.env['ycc.slot'].browse(list(dict.fromkeys(slot.id for _, slot in self._covered_periods())))
 
     def _check_capacity(self):
-        # Lock the branch/day, rather than individual slots, to avoid deadlocks
-        # and race conditions when one booking spans multiple periods.
-        for rec in self.sorted(key=lambda r: (r.branch_id.id, str(r.date), r.id)):
-            key = 'ycc:%s:%s' % (rec.branch_id.id, rec.date)
-            self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', [key])
-            now = fields.Datetime.now()
-            day = fields.Date.from_string(rec.date)
-            slots = rec._covered_slots()
+        # Serialize bookings per branch to avoid overlapping multi-day races.
+        for rec in self.sorted(key=lambda r: (r.branch_id.id, r.id)):
+            self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', ['ycc:branch:%s' % rec.branch_id.id])
+            periods = rec._covered_periods()
+            if not rec._occupies():
+                continue
+            first, last = rec._booking_dates()
             others = self.search([
-                ('branch_id', '=', rec.branch_id.id), ('date', '=', rec.date),
-                ('id', '!=', rec.id),
-                ('state', 'in', ['provisional','contacting','confirmed','done'])])
-            for slot in slots:
-                if not slot.operates_on(day):
-                    raise ValidationError(_('One of the selected periods is not available on this weekday.'))
+                ('branch_id', '=', rec.branch_id.id), ('id', '!=', rec.id),
+                ('date', '<=', fields.Date.to_string(last)),
+                '|', ('end_date', '=', False), ('end_date', '>=', fields.Date.to_string(first)),
+                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done'])
+            ])
+            now = fields.Datetime.now()
+            occupied = {}
+            for other in others:
+                if other._occupies(now):
+                    for day, slot in other._covered_periods():
+                        key = (day, slot.id)
+                        occupied[key] = occupied.get(key, 0) + 1
+            for day, slot in periods:
                 if self.env['ycc.exception'].search_count([
-                    ('branch_id', '=', rec.branch_id.id), ('date', '=', rec.date),
-                    '|', ('slot_id', '=', False), ('slot_id', '=', slot.id)]):
-                    raise ValidationError(_('One of the selected periods is closed.'))
-                if rec._occupies(now):
-                    count = sum(1 for other in others if other._occupies(now) and slot in other._covered_slots())
-                    if count >= slot.capacity:
-                        raise ValidationError(_('One of the selected periods is full.'))
+                    ('branch_id', '=', rec.branch_id.id), ('date', '=', day),
+                    '|', ('slot_id', '=', False), ('slot_id', '=', slot.id)
+                ]):
+                    raise ValidationError(_('إحدى الفترات المحددة مغلقة بسبب استثناء أو إجازة.'))
+                if occupied.get((day, slot.id), 0) >= rec.branch_id.capacity:
+                    raise ValidationError(_('القدرة الاستيعابية مكتملة في %s، الفترة %s.') % (day, slot.name))
 
     @api.model
     def create(self, vals):
@@ -201,7 +268,7 @@ class YCCAppointment(models.Model):
         result = super().write(vals)
         if set(vals) & {'car_manuf_id','car_type_id','vehicle_model'}:
             self._validate_vehicle_selection()
-        if set(vals) & {'branch_id','slot_id','end_slot_id','date','state','hold_until'}:
+        if set(vals) & {'branch_id','slot_id','end_slot_id','date','end_date','state','hold_until'}:
             self._check_capacity()
         return result
 
