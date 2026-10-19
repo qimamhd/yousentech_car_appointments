@@ -123,3 +123,10 @@ V5: forecast now limits primary results to order_date <= selected day <= deliver
 
 
 V5.1: Highlight selected-day delivery orders, collapse later-delivery orders in both calendar popup and appointment form forecast; overdue orders remain collapsed.
+
+
+## V5.2 — forecast UI refinement
+- Removed overdue and undated orders from forecast results, including their count queries and popup sections.
+- Selected-day delivery stays visible with a subtle one-pixel border.
+- Future delivery orders remain collapsed.
+- Forecast summary and counters now describe only selected-day/future deliveries and arrivals.

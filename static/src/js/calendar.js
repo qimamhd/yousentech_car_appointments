@@ -102,7 +102,7 @@ var Calendar=AbstractAction.extend({
          $msg.append($('<div class="ycc-forecast-summary"/>').text(result.message||'تعذر التحقق.'));
          if(result.status!=='ok'){return;}
          var $stats=$('<div class="ycc-forecast-stats"/>');
-         [['متوقعة اليوم',result.pending_orders],['وصلت حسب المواعيد',result.arrived],['مطابقة بالاسم',result.matched_customers],['متأخرة',result.overdue]].forEach(function(pair){
+         [['موعد التسليم اليوم',result.today_count],['موعد التسليم لاحقاً',result.later_count],['وصلت حسب المواعيد',result.arrived],['مطابقة بالاسم',result.matched_customers]].forEach(function(pair){
            $stats.append($('<div class="ycc-forecast-stat"/>').append($('<strong/>').text(pair[1]),$('<small/>').text(pair[0])));
          });
          $msg.append($stats);
@@ -127,16 +127,7 @@ var Calendar=AbstractAction.extend({
            $later.append(renderForecastRows(result.later_orders,'لا توجد أوامر لاحقة.'));
            $msg.append($later);
          }
-         if(result.overdue||result.undated_orders){
-           var $details=$('<details class="ycc-forecast-warnings"/>');
-           $details.append($('<summary/>').text('أوامر متأخرة أو دون موعد تسليم ('+(result.overdue+result.undated_orders)+') — عرض التفاصيل'));
-           var $warningList=$('<div class="ycc-forecast-list"/>');
-           (result.warnings||[]).forEach(function(item){
-             $warningList.append($('<div class="ycc-forecast-line"/>').append(
-               $('<strong/>').text(item.customer),$('<span/>').text(item.order+' · التسليم: '+item.delivery_date),$('<small/>').text(item.status)));
-           });
-           $details.append($warningList);$msg.append($details);
-         }
+
        },function(){
          var $msg=$modal.find('.ycc-forecast-result');
          if(!$msg.length){$msg=$('<div class="ycc-forecast-result"/>');$modal.find('.modal-body').prepend($msg);}

@@ -306,13 +306,6 @@ class YCCAppointment(models.Model):
         common = [('branch_id', '=', branch.branch_id.id),
                   ('state', 'in', active_states), ('order_date', '<=', day)]
         current_orders = Order.search(common + [('delivery_date', '>=', day)], order='delivery_date asc, id asc')
-        # Keep overdue / undated records available only behind an expandable
-        # warning, capped to avoid dumping years of historical records.
-        overdue_count = Order.search_count(common + [('delivery_date', '<', day)])
-        undated_count = Order.search_count(common + [('delivery_date', '=', False)])
-        overdue_orders = Order.search(common + [('delivery_date', '<', day)], order='delivery_date desc, id desc', limit=30)
-        undated_orders = Order.search(common + [('delivery_date', '=', False)], order='id desc', limit=20)
-
         def customer_key(partner):
             return ' '.join((partner.name or '').split()).casefold() if partner else ''
 
@@ -333,8 +326,6 @@ class YCCAppointment(models.Model):
         later_orders = current_orders - today_orders
         items = [item_for(o, 'موعد التسليم اليوم') for o in today_orders]
         later_items = [item_for(o, 'موعد التسليم لاحقاً') for o in later_orders]
-        warnings = [item_for(o, 'تجاوز موعد التسليم') for o in overdue_orders]
-        warnings += [item_for(o, 'دون موعد تسليم') for o in undated_orders]
         groups = {}
         for order in current_orders:
             key = customer_key(order.partner_id)
@@ -343,17 +334,17 @@ class YCCAppointment(models.Model):
         multiple_customers = sorted({group[0].partner_id.name for group in groups.values()
                                      if len(group) > 1 and group[0].partner_id})
         matched_keys = set(groups) & set(arrived_by_customer)
-        summary = ('تاريخ الفحص: %s | سيارات متوقعة حسب موعد التسليم: %s | '
-                   'حجوزات وصلت: %s | عملاء متطابقون بالاسم: %s | '
-                   'أوامر متأخرة: %s | دون موعد تسليم: %s. '
-                   'المطابقة بالعميل فقط، ولا تؤكد تطابق السيارة أو خروجها فعلياً.') % (
-                       day, len(items), len(arrived), len(matched_keys), overdue_count, undated_count)
+        summary = ('تاريخ الفحص: %s | موعد التسليم اليوم: %s | '
+                   'موعد التسليم لاحقاً: %s | حجوزات وصلت: %s | '
+                   'عملاء متطابقون بالاسم: %s. '
+                   'المطابقة باسم العميل فقط، والنتيجة تقديرية ولا تؤكد وجود السيارة فعلياً.') % (
+                       day, len(items), len(later_items), len(arrived), len(matched_keys))
         return {'status': 'ok', 'date': day, 'capacity': branch.capacity,
                 'pending_orders': len(items), 'arrived': len(arrived),
                 'matched_customers': len(matched_keys),
-                'overdue': overdue_count, 'undated_orders': undated_count,
                 'multiple_customers': multiple_customers, 'orders': items,
-                'later_orders': later_items, 'today_count': len(items), 'later_count': len(later_items), 'warnings': warnings, 'message': summary}
+                'later_orders': later_items, 'today_count': len(items),
+                'later_count': len(later_items), 'message': summary}
 
     def action_forecast_delivery_load(self):
         self.ensure_one()
@@ -368,15 +359,12 @@ class YCCAppointment(models.Model):
         table_head = '<table class="table table-sm table-striped"><thead><tr><th>العميل</th><th>أمر التركيب</th><th>التسليم</th><th>الحالة</th></tr></thead><tbody>'
         body = '<div dir="rtl" style="line-height:1.9"><p>%s</p>' % safe(result.get('message'))
         if result.get('status') == 'ok':
-            body += '<div style="background:#e6f4ff;border:2px solid #2b75d6;border-radius:10px;padding:12px"><h4>موعد التسليم في اليوم المحدد (%s)</h4>' % result['today_count']
+            body += '<div style="background:#f0f7ff;border:1px solid #c9dcf5;border-radius:10px;padding:12px"><h4>موعد التسليم في اليوم المحدد (%s)</h4>' % result['today_count']
             body += table_head + rows(result['orders']) + '</tbody></table>' if result['orders'] else '<p>لا توجد أوامر موعد تسليمها في هذا اليوم.</p>'
             body += '</div>'
             if result['later_count']:
                 body += '<details style="margin-top:10px"><summary>موعد التسليم لاحقاً (%s) — عرض التفاصيل</summary>' % result['later_count']
                 body += table_head + rows(result['later_orders']) + '</tbody></table></details>'
-            if result['overdue'] or result['undated_orders']:
-                body += '<details><summary>أوامر متأخرة أو بلا موعد تسليم (%s) — عرض التفاصيل</summary>' % (result['overdue'] + result['undated_orders'])
-                body += table_head + rows(result['warnings']) + '</tbody></table></details>'
         body += '</div>'
         wizard = self.env['ycc.forecast.wizard'].create({'details': body})
         return {'type': 'ir.actions.act_window', 'name': 'التحقق من السيارات الموجودة',

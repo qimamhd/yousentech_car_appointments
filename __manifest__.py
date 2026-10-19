@@ -1,6 +1,6 @@
 {
  'name':'Yousen Car Care Appointments',
- 'version':'13.0.2.4.0',
+ 'version':'13.0.2.5.0',
  'summary':'PPF, tinting and detailing appointment management',
  'category':'Services',
  'author':'Yousen Tech',

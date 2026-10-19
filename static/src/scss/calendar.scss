@@ -426,3 +426,16 @@
 .ycc-forecast-later{margin-top:12px;background:#f3f6fd;border:1px solid #a9c7ed;border-radius:8px;padding:10px}
 .ycc-forecast-later summary{cursor:pointer;font-size:12px;color:#245eaa;font-weight:800}
 .ycc-forecast-later .ycc-forecast-list{max-height:190px}
+
+/* V5.2: subdued result card and due-today outline; no overdue section. */
+.ycc-forecast-result{
+  background:#f5f9ff!important;
+  border:1px solid #d6e4f5!important;
+  box-shadow:0 2px 8px rgba(37,85,160,.06)!important;
+}
+.ycc-forecast-today{
+  background:#edf6ff!important;
+  border:1px solid #c8dff7!important;
+  box-shadow:none!important;
+}
+.ycc-forecast-today .ycc-forecast-line{border-color:#dae6f4!important}
