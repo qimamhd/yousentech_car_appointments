@@ -1,112 +1,112 @@
 /* Odoo 13 appointments UI inspired by Odoo 17 readiness board */
-.ycc-board{direction:rtl;text-align:right;min-height:100%;padding:24px;background:#f6f8fc;color:#26354d}
-.ycc-board *{box-sizing:border-box}
-.ycc-head,.ycc-toolbar,.ycc-kpis,.ycc-legend{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
-.ycc-head{margin-bottom:18px}.ycc-head h1{font-size:25px;font-weight:800;margin:6px 0}.ycc-head h1 i{color:#5957ce;margin-left:8px}.ycc-head p,.ycc-head small{color:#8390a6;font-size:12px}
-.ycc-new{border-radius:9px;padding:10px 16px;background:#5957ce;border-color:#5957ce}
-.ycc-toolbar{background:#fff;border:1px solid #e4e9f2;padding:14px;border-radius:13px;margin-bottom:15px}
-.ycc-toolbar label{margin:0;color:#718098;font-size:12px;min-width:190px}.ycc-toolbar select{min-width:190px;margin-top:5px}
-.ycc-nav{display:flex;align-items:center;gap:9px}.ycc-nav strong,.ycc-nav small{display:block}.ycc-nav strong{font-size:13px}.ycc-nav small{font-size:10px;color:#8b98a8}
-.ycc-nav button,.ycc-switch button{border:1px solid #e1e5ef;background:#fff;border-radius:7px;padding:7px 11px;color:#485775}.ycc-switch{display:flex;gap:4px}.ycc-switch .active{background:#5957ce;color:#fff;border-color:#5957ce}
-.ycc-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px}.ycc-kpis>div{border:1px solid #e4e9f2;background:#fff;border-radius:12px;padding:15px 17px;min-height:88px}.ycc-kpis small{display:block;color:#8090a5;font-size:12px}.ycc-kpis strong{display:block;font-size:27px;font-weight:800;margin-top:6px}
-.ycc-legend{justify-content:flex-start;background:#fff;border:1px solid #e4e9f2;border-radius:10px;padding:11px 14px;font-size:11px;color:#718098;margin-bottom:14px}
-.ycc-grid-wrap{background:#fff;border:1px solid #e4e9f2;border-radius:14px;overflow:auto;max-height:62vh}.ycc-grid{width:100%;border-collapse:separate;border-spacing:0;min-width:850px;table-layout:fixed}.ycc-grid th,.ycc-grid td{border-left:1px solid #eef1f6;border-bottom:1px solid #eef1f6;padding:7px;text-align:center}.ycc-grid thead th{position:sticky;top:0;background:#f6f8fc;z-index:3;font-size:11px}.ycc-grid thead th:first-child{right:0;z-index:5}.ycc-grid thead th strong,.ycc-grid thead th small{display:block}.ycc-grid thead th small{font-size:10px;color:#8d99aa}.ycc-grid tbody th{position:sticky;right:0;z-index:2;background:#fff;font-size:12px;white-space:nowrap}.ycc-grid td{height:79px}
-.ycc-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;min-height:64px;border:1px solid transparent;border-radius:9px;transition:transform .14s,box-shadow .14s}.ycc-cell:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 5px 16px #24344d19}.ycc-cell strong{font-size:15px;font-weight:800}.ycc-cell small{font-size:10px}.ycc-cell.free{background:#e5f8ee;border-color:#b5e5cb;color:#187a4b}.ycc-cell.busy{background:#fff3db;border-color:#f4dba4;color:#97630f}.ycc-cell.full{background:#ffe7e7;border-color:#f0b8b8;color:#b34b4b}.ycc-cell.closed{background:#f1f3f7;border-color:#e3e6ec;color:#9ca6b5;cursor:not-allowed}
-.ycc-empty{padding:30px;text-align:center;color:#8995a8}.ycc-modal .modal-content{border:0;border-radius:14px;overflow:hidden}.ycc-modal .modal-header,.ycc-modal .modal-footer{background:#f8f9fd;border-color:#e9edf4}.ycc-modal .modal-title{font-size:19px;font-weight:800}.ycc-modal-intro{display:flex;justify-content:space-between;align-items:center;gap:14px}.ycc-modal-intro small,.ycc-modal-intro strong{display:block}.ycc-modal-intro small{color:#8290a3}.ycc-occupancy strong{font-size:25px;font-weight:800}.ycc-progress{height:8px;background:#e8edf3;border-radius:20px;overflow:hidden;margin:15px 0}.ycc-progress span{display:block;height:100%;background:#e4a63a}.ycc-modal-stats{display:flex;gap:10px;margin-bottom:13px}.ycc-modal-stats span{background:#f4f6fa;padding:8px 12px;border-radius:8px}.ycc-booking{display:flex;justify-content:space-between;align-items:center;gap:15px;border:1px solid #e7ebf3;border-radius:10px;padding:13px;margin-bottom:9px}.ycc-booking strong,.ycc-booking small{display:block}.ycc-booking small{color:#8290a3;font-size:11px;margin-top:4px}.ycc-state{padding:5px 10px;border-radius:15px;background:#fff0d8;color:#96660c;font-size:11px}.ycc-state.confirmed,.ycc-state.done{background:#dff7e9;color:#167646}
-@media(max-width:900px){.ycc-board{padding:12px}.ycc-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ycc-head h1{font-size:20px}}
+.ycc-board{text-align:right;min-height:100%;padding:24px;background:#f6f8fc;color:#26354d;}
+.ycc-board *{box-sizing:border-box;}
+.ycc-head,.ycc-toolbar,.ycc-kpis,.ycc-legend{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.ycc-head{margin-bottom:18px;}.ycc-head h1{font-size:25px;font-weight:800;margin:6px 0;}.ycc-head h1 i{color:#5957ce;margin-left:8px;}.ycc-head p,.ycc-head small{color:#8390a6;font-size:12px;}
+.ycc-new{border-radius:9px;padding:10px 16px;background:#5957ce;border-color:#5957ce;}
+.ycc-toolbar{background:#fff;border:1px solid #e4e9f2;padding:14px;border-radius:13px;margin-bottom:15px;}
+.ycc-toolbar label{margin:0;color:#718098;font-size:12px;min-width:190px;}.ycc-toolbar select{min-width:190px;margin-top:5px;}
+.ycc-nav{display:flex;align-items:center;gap:9px;}.ycc-nav strong,.ycc-nav small{display:block;}.ycc-nav strong{font-size:13px;}.ycc-nav small{font-size:10px;color:#8b98a8;}
+.ycc-nav button,.ycc-switch button{border:1px solid #e1e5ef;background:#fff;border-radius:7px;padding:7px 11px;color:#485775;}.ycc-switch{display:flex;gap:4px;}.ycc-switch .active{background:#5957ce;color:#fff;border-color:#5957ce;}
+.ycc-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:14px;}.ycc-kpis>div{border:1px solid #e4e9f2;background:#fff;border-radius:12px;padding:15px 17px;min-height:88px;}.ycc-kpis small{display:block;color:#8090a5;font-size:12px;}.ycc-kpis strong{display:block;font-size:27px;font-weight:800;margin-top:6px;}
+.ycc-legend{justify-content:flex-start;background:#fff;border:1px solid #e4e9f2;border-radius:10px;padding:11px 14px;font-size:11px;color:#718098;margin-bottom:14px;}
+.ycc-grid-wrap{background:#fff;border:1px solid #e4e9f2;border-radius:14px;overflow:auto;max-height:62vh;}.ycc-grid{width:100%;border-collapse:separate;border-spacing:0;min-width:850px;table-layout:fixed;}.ycc-grid th,.ycc-grid td{border-left:1px solid #eef1f6;border-bottom:1px solid #eef1f6;padding:7px;text-align:center;}.ycc-grid thead th{position:sticky;top:0;background:#f6f8fc;z-index:3;font-size:11px;}.ycc-grid thead th:first-child{right:0;z-index:5;}.ycc-grid thead th strong,.ycc-grid thead th small{display:block;}.ycc-grid thead th small{font-size:10px;color:#8d99aa;}.ycc-grid tbody th{position:sticky;inset-inline-start:0;z-index:2;background:#fff;font-size:12px;white-space:nowrap;}.ycc-grid td{height:79px;}
+.ycc-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;min-height:64px;border:1px solid transparent;border-radius:9px;transition:transform .14s,box-shadow .14s;}.ycc-cell:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 5px 16px #24344d19;}.ycc-cell strong{font-size:15px;font-weight:800;}.ycc-cell small{font-size:10px;}.ycc-cell.free{background:#e5f8ee;border-color:#b5e5cb;color:#187a4b;}.ycc-cell.busy{background:#fff3db;border-color:#f4dba4;color:#97630f;}.ycc-cell.full{background:#ffe7e7;border-color:#f0b8b8;color:#b34b4b;}.ycc-cell.closed{background:#f1f3f7;border-color:#e3e6ec;color:#9ca6b5;cursor:not-allowed;}
+.ycc-empty{padding:30px;text-align:center;color:#8995a8;}.ycc-modal .modal-content{border:0;border-radius:14px;overflow:hidden;}.ycc-modal .modal-header,.ycc-modal .modal-footer{background:#f8f9fd;border-color:#e9edf4;}.ycc-modal .modal-title{font-size:19px;font-weight:800;}.ycc-modal-intro{display:flex;justify-content:space-between;align-items:center;gap:14px;}.ycc-modal-intro small,.ycc-modal-intro strong{display:block;}.ycc-modal-intro small{color:#8290a3;}.ycc-occupancy strong{font-size:25px;font-weight:800;}.ycc-progress{height:8px;background:#e8edf3;border-radius:20px;overflow:hidden;margin:15px 0;}.ycc-progress span{display:block;height:100%;background:#e4a63a;}.ycc-modal-stats{display:flex;gap:10px;margin-bottom:13px;}.ycc-modal-stats span{background:#f4f6fa;padding:8px 12px;border-radius:8px;}.ycc-booking{display:flex;justify-content:space-between;align-items:center;gap:15px;border:1px solid #e7ebf3;border-radius:10px;padding:13px;margin-bottom:9px;}.ycc-booking strong,.ycc-booking small{display:block;}.ycc-booking small{color:#8290a3;font-size:11px;margin-top:4px;}.ycc-state{padding:5px 10px;border-radius:15px;background:#fff0d8;color:#96660c;font-size:11px;}.ycc-state.confirmed,.ycc-state.done{background:#dff7e9;color:#167646;}
+@media(max-width:900px){.ycc-board{padding:12px;}.ycc-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.ycc-head h1{font-size:20px;}}
 /* V2: horizontal time slots, vertical days, language-aware direction */
-.ycc-board[dir="ltr"]{direction:ltr;text-align:left}
-.ycc-board[dir="rtl"]{direction:rtl;text-align:right}
-.ycc-grid{min-width:900px;table-layout:fixed}
-.ycc-grid .ycc-day-heading{min-width:185px;width:185px;position:sticky;inset-inline-start:0;z-index:3;background:#f5f7fc;text-align:start;padding-inline:16px}
-.ycc-grid .ycc-day-heading strong,.ycc-grid .ycc-day-heading small{display:block}
-.ycc-grid .ycc-day-heading small{color:#8796a9;font-size:11px;margin-top:5px}
-.ycc-grid thead .ycc-day-heading{z-index:6}
-.ycc-grid td{height:120px;vertical-align:top}
-.ycc-cell{min-height:105px;height:100%;padding:8px 6px;gap:5px}
-.ycc-cell.free{background:#ddf8e9;border-color:#90dcb4;color:#086e3b}
-.ycc-cell.partial{background:#e3f0ff;border-color:#9ec8f6;color:#145b9e}
-.ycc-cell.busy{background:#fff0cc;border-color:#e9bd62;color:#925900}
-.ycc-cell.full{background:#ffe0e2;border-color:#e69aa2;color:#ad2538}
-.ycc-cell.past{background:#e7eaf1;border-color:#c6cdd9;color:#6c788b}
-.ycc-cell.closed{background:#f1f2f5;border-color:#d8dce3;color:#a3acb9}
-.ycc-span-label{display:inline-block;border-radius:5px;background:#735dd91c;color:#6547ba;padding:2px 5px;font-size:10px;font-weight:700}
-.ycc-mini-booking{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;font-size:10px;border:1px solid currentColor;border-radius:5px;padding:1px 5px;opacity:.9}
-.ycc-kpis>div{border:0;box-shadow:0 3px 12px #22314a0b}
-.ycc-kpis .stat-capacity{background:#e5ebff;color:#304c9e}
-.ycc-kpis .stat-booked{background:#e3f1ff;color:#155c9b}
-.ycc-kpis .stat-confirmed{background:#def8e9;color:#116c45}
-.ycc-kpis .stat-hold{background:#fff1d8;color:#926012}
-.ycc-kpis>div small{color:inherit;opacity:.75}
-.ycc-legend .dot.partial{background:#4b9ee8}
-.ycc-legend .dot.past{background:#8795aa}
-.ycc-grid-wrap{max-height:68vh}
-.ycc-modal .modal-content{direction:inherit}
+
+
+.ycc-grid{min-width:900px;table-layout:fixed;}
+.ycc-grid .ycc-day-heading{min-width:185px;width:185px;position:sticky;inset-inline-start:0;z-index:3;background:#f5f7fc;text-align:start;padding-inline:16px;}
+.ycc-grid .ycc-day-heading strong,.ycc-grid .ycc-day-heading small{display:block;}
+.ycc-grid .ycc-day-heading small{color:#8796a9;font-size:11px;margin-top:5px;}
+.ycc-grid thead .ycc-day-heading{z-index:6;}
+.ycc-grid td{height:120px;vertical-align:top;}
+.ycc-cell{min-height:105px;height:100%;padding:8px 6px;gap:5px;}
+.ycc-cell.free{background:#ddf8e9;border-color:#90dcb4;color:#086e3b;}
+.ycc-cell.partial{background:#e3f0ff;border-color:#9ec8f6;color:#145b9e;}
+.ycc-cell.busy{background:#fff0cc;border-color:#e9bd62;color:#925900;}
+.ycc-cell.full{background:#ffe0e2;border-color:#e69aa2;color:#ad2538;}
+.ycc-cell.past{background:#e7eaf1;border-color:#c6cdd9;color:#6c788b;}
+.ycc-cell.closed{background:#f1f2f5;border-color:#d8dce3;color:#a3acb9;}
+.ycc-span-label{display:inline-block;border-radius:5px;background:#735dd91c;color:#6547ba;padding:2px 5px;font-size:10px;font-weight:700;}
+.ycc-mini-booking{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;font-size:10px;border:1px solid currentColor;border-radius:5px;padding:1px 5px;opacity:.9;}
+.ycc-kpis>div{border:0;box-shadow:0 3px 12px #22314a0b;}
+.ycc-kpis .stat-capacity{background:#e5ebff;color:#304c9e;}
+.ycc-kpis .stat-booked{background:#e3f1ff;color:#155c9b;}
+.ycc-kpis .stat-confirmed{background:#def8e9;color:#116c45;}
+.ycc-kpis .stat-hold{background:#fff1d8;color:#926012;}
+.ycc-kpis>div small{color:inherit;opacity:.75;}
+.ycc-legend .dot.partial{background:#4b9ee8;}
+.ycc-legend .dot.past{background:#8795aa;}
+.ycc-grid-wrap{max-height:68vh;}
+.ycc-modal .modal-content{}
 
 /* V3.2 — compact desktop calendar: visual-only overrides */
-.ycc-board{padding:12px 16px;font-size:12px}
-.ycc-head{margin-bottom:10px;gap:8px}
-.ycc-head h1{font-size:19px;line-height:1.25;margin:3px 0}
-.ycc-head h1 i{font-size:19px}
-.ycc-head p,.ycc-head small{font-size:10px}
-.ycc-new{padding:6px 11px;font-size:11px;border-radius:7px}
-.ycc-toolbar{padding:8px 11px;margin-bottom:9px;border-radius:9px;gap:8px}
-.ycc-toolbar label{font-size:10px;min-width:145px}
-.ycc-toolbar select{min-width:145px;max-width:190px;margin-top:3px;height:29px;padding:3px 7px;font-size:11px}
-.ycc-nav{gap:5px}
-.ycc-nav strong{font-size:11px}
-.ycc-nav small{font-size:9px}
-.ycc-nav button,.ycc-switch button{padding:4px 8px;font-size:10px;border-radius:6px}
-.ycc-kpis{gap:9px;margin-bottom:9px}
-.ycc-kpis>div{padding:9px 12px;min-height:58px;border-radius:9px}
-.ycc-kpis small{font-size:10px}
-.ycc-kpis strong{font-size:20px;line-height:1.2;margin-top:3px}
-.ycc-legend{padding:7px 11px;gap:10px;margin-bottom:9px;font-size:10px;border-radius:8px}
-.ycc-grid-wrap{max-height:calc(100vh - 295px);border-radius:9px}
-.ycc-grid{min-width:740px}
-.ycc-grid th,.ycc-grid td{padding:4px 5px}
-.ycc-grid thead th{font-size:10px;padding-top:6px;padding-bottom:6px}
-.ycc-grid thead th small{font-size:9px;margin-top:2px}
-.ycc-grid .ycc-day-heading{width:142px;min-width:142px;padding-inline:9px;font-size:10px}
-.ycc-grid .ycc-day-heading small{font-size:9px;margin-top:2px}
-.ycc-grid td{height:67px}
-.ycc-cell{min-height:57px;height:57px;padding:3px 4px;gap:2px;border-radius:7px}
-.ycc-cell strong{font-size:12px;line-height:1.1}
-.ycc-cell small{font-size:9px;line-height:1.15}
-.ycc-span-label{font-size:8px;padding:1px 3px}
-.ycc-mini-booking{font-size:9px;padding:0 3px;line-height:1.2}
-.ycc-modal .modal-title{font-size:16px}
-.ycc-occupancy strong{font-size:20px}
-.ycc-booking{padding:9px}
+.ycc-board{padding:12px 16px;font-size:12px;}
+.ycc-head{margin-bottom:10px;gap:8px;}
+.ycc-head h1{font-size:19px;line-height:1.25;margin:3px 0;}
+.ycc-head h1 i{font-size:19px;}
+.ycc-head p,.ycc-head small{font-size:10px;}
+.ycc-new{padding:6px 11px;font-size:11px;border-radius:7px;}
+.ycc-toolbar{padding:8px 11px;margin-bottom:9px;border-radius:9px;gap:8px;}
+.ycc-toolbar label{font-size:10px;min-width:145px;}
+.ycc-toolbar select{min-width:145px;max-width:190px;margin-top:3px;height:29px;padding:3px 7px;font-size:11px;}
+.ycc-nav{gap:5px;}
+.ycc-nav strong{font-size:11px;}
+.ycc-nav small{font-size:9px;}
+.ycc-nav button,.ycc-switch button{padding:4px 8px;font-size:10px;border-radius:6px;}
+.ycc-kpis{gap:9px;margin-bottom:9px;}
+.ycc-kpis>div{padding:9px 12px;min-height:58px;border-radius:9px;}
+.ycc-kpis small{font-size:10px;}
+.ycc-kpis strong{font-size:20px;line-height:1.2;margin-top:3px;}
+.ycc-legend{padding:7px 11px;gap:10px;margin-bottom:9px;font-size:10px;border-radius:8px;}
+.ycc-grid-wrap{max-height:calc(100vh - 295px);border-radius:9px;}
+.ycc-grid{min-width:740px;}
+.ycc-grid th,.ycc-grid td{padding:4px 5px;}
+.ycc-grid thead th{font-size:10px;padding-top:6px;padding-bottom:6px;}
+.ycc-grid thead th small{font-size:9px;margin-top:2px;}
+.ycc-grid .ycc-day-heading{width:142px;min-width:142px;padding-inline:9px;font-size:10px;}
+.ycc-grid .ycc-day-heading small{font-size:9px;margin-top:2px;}
+.ycc-grid td{height:67px;}
+.ycc-cell{min-height:57px;height:57px;padding:3px 4px;gap:2px;border-radius:7px;}
+.ycc-cell strong{font-size:12px;line-height:1.1;}
+.ycc-cell small{font-size:9px;line-height:1.15;}
+.ycc-span-label{font-size:8px;padding:1px 3px;}
+.ycc-mini-booking{font-size:9px;padding:0 3px;line-height:1.2;}
+.ycc-modal .modal-title{font-size:16px;}
+.ycc-occupancy strong{font-size:20px;}
+.ycc-booking{padding:9px;}
 @media(max-width:900px){
- .ycc-board{padding:9px}
- .ycc-head h1{font-size:18px}
- .ycc-grid-wrap{max-height:65vh}
- .ycc-grid .ycc-day-heading{width:118px;min-width:118px}
+ .ycc-board{padding:9px;}
+ .ycc-head h1{font-size:18px;}
+ .ycc-grid-wrap{max-height:65vh;}
+ .ycc-grid .ycc-day-heading{width:118px;min-width:118px;}
 }
 
 /* V3.3 — make every booking card a clear, accessible navigation target */
-.ycc-modal .ycc-booking{cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
+.ycc-modal .ycc-booking{cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s;}
 .ycc-modal .ycc-booking:hover,.ycc-modal .ycc-booking:focus{
  background:#f0f4ff;border-color:#aebdec;box-shadow:0 3px 12px rgba(49,76,135,.09);outline:none
-}
-.ycc-modal .ycc-booking:focus-visible{outline:2px solid #5c59cf;outline-offset:2px}
-.ycc-modal .ycc-open-booking{pointer-events:none}
+;}
+.ycc-modal .ycc-booking:focus-visible{outline:2px solid #5c59cf;outline-offset:2px;}
+.ycc-modal .ycc-open-booking{pointer-events:none;}
 
 /* V3.4 — date navigation: separate, readable Gregorian/Hijri lines */
-.ycc-board .ycc-date-control{display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;flex:1 1 340px}
-.ycc-board .ycc-date-caption{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;max-width:490px;padding:4px 12px;border:1px solid #e6eaf3;border-radius:9px;background:#f8faff;text-align:center}
-.ycc-board .ycc-date-main{font-size:11px;font-weight:750;line-height:1.5;color:#243653;white-space:normal}
-.ycc-board .ycc-date-main i{color:#5b5bd6;margin-inline-end:6px}
-.ycc-board .ycc-date-hijri{font-size:9px;line-height:1.4;color:#7a89a3;white-space:normal}
-.ycc-board .ycc-date-control button{height:30px;min-width:30px;border:1px solid #dfe5f0;border-radius:7px;background:#fff;color:#4c5b77;font-size:11px;padding:4px 8px;cursor:pointer}
-.ycc-board .ycc-date-control button:hover{background:#eef1ff;border-color:#bfc8ee}
-.ycc-board .ycc-date-control .ycc-today{color:#5355c5;font-weight:700;background:#f3f3ff;border-color:#d7d9fa}
+.ycc-board .ycc-date-control{display:flex;align-items:center;justify-content:center;gap:7px;min-width:0;flex:1 1 340px;}
+.ycc-board .ycc-date-caption{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;max-width:490px;padding:4px 12px;border:1px solid #e6eaf3;border-radius:9px;background:#f8faff;text-align:center;}
+.ycc-board .ycc-date-main{font-size:11px;font-weight:750;line-height:1.5;color:#243653;white-space:normal;}
+.ycc-board .ycc-date-main i{color:#5b5bd6;margin-inline-end:6px;}
+.ycc-board .ycc-date-hijri{font-size:9px;line-height:1.4;color:#7a89a3;white-space:normal;}
+.ycc-board .ycc-date-control button{height:30px;min-width:30px;border:1px solid #dfe5f0;border-radius:7px;background:#fff;color:#4c5b77;font-size:11px;padding:4px 8px;cursor:pointer;}
+.ycc-board .ycc-date-control button:hover{background:#eef1ff;border-color:#bfc8ee;}
+.ycc-board .ycc-date-control .ycc-today{color:#5355c5;font-weight:700;background:#f3f3ff;border-color:#d7d9fa;}
 /* Confirmed is BLUE, clearly distinct from GREEN available slot cells. */
-.ycc-board .ycc-kpis .stat-confirmed{background:#e5e9ff;color:#303f9f;border:1px solid #cdd6ff}
-.ycc-board .ycc-kpis .stat-confirmed strong{color:#273d99}
-.ycc-board .ycc-kpis .stat-hold{background:#fff0d8;color:#94600f}
-@media(max-width:700px){.ycc-board .ycc-date-control{order:3;flex-basis:100%}.ycc-board .ycc-date-caption{flex:1}.ycc-board .ycc-date-main{font-size:10px}}
+.ycc-board .ycc-kpis .stat-confirmed{background:#e5e9ff;color:#303f9f;border:1px solid #cdd6ff;}
+.ycc-board .ycc-kpis .stat-confirmed strong{color:#273d99;}
+.ycc-board .ycc-kpis .stat-hold{background:#fff0d8;color:#94600f;}
+@media(max-width:700px){.ycc-board .ycc-date-control{order:3;flex-basis:100%;}.ycc-board .ycc-date-caption{flex:1;}.ycc-board .ycc-date-main{font-size:10px;}}
 
 /* V3.8 - Odoo 13 appointment form: scoped, Odoo 17-inspired visual hierarchy.
    Scope all selectors to this specific form to avoid changing other modules. */
@@ -147,7 +147,7 @@
 .ycc-appointment-form .ycc-contact-title>.fa{
   color:#5862c9;font-size:18px;
 }
-.ycc-appointment-form .ycc-contact-title strong{font-size:14px;font-weight:700}
+.ycc-appointment-form .ycc-contact-title strong{font-size:14px;font-weight:700;}
 .ycc-appointment-form .ycc-contact-subtitle{
   font-size:10px;font-weight:400;color:#8492aa;
 }
@@ -203,10 +203,10 @@
   min-height:55px;font-size:12px;
 }
 @media(max-width:767px){
-  .ycc-appointment-form .ycc-appointment-sheet{padding:12px!important}
-  .ycc-appointment-form .ycc-contact-heading{padding:9px 10px}
-  .ycc-appointment-form .ycc-contact-subtitle{display:none}
-  .ycc-appointment-form .ycc-contact-table{overflow-x:auto}
+  .ycc-appointment-form .ycc-appointment-sheet{padding:12px!important;}
+  .ycc-appointment-form .ycc-contact-heading{padding:9px 10px;}
+  .ycc-appointment-form .ycc-contact-subtitle{display:none;}
+  .ycc-appointment-form .ycc-contact-table{overflow-x:auto;}
 }
 
 /* V4 — Unified design language across Odoo 13 calendar, modal, configuration,
@@ -216,118 +216,118 @@
   background:#f6f8fc;color:var(--ycc-ink);padding:17px 20px 26px;
   font-size:12px;line-height:1.5;
 }
-.ycc-board .ycc-head{margin-bottom:14px;align-items:center}
-.ycc-board .ycc-head-title{display:flex;align-items:center;gap:12px}
-.ycc-board .ycc-title-icon{width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#eaeaff;color:#565ac6;font-size:19px}
-.ycc-board .ycc-head h1{font-size:21px;font-weight:800;line-height:1.25;margin:3px 0;color:#243554}
-.ycc-board .ycc-head p{font-size:11px;color:#8391a8}
-.ycc-board .ycc-eyebrow{font-size:10px;color:#8b99ad}
-.ycc-board .ycc-eyebrow i{padding:0 5px}
-.ycc-board .ycc-new{padding:9px 16px;font-size:11px;font-weight:700;border:0;border-radius:8px;background:#585bc5;box-shadow:0 4px 11px #585bc51c}
-.ycc-board .ycc-new:hover{background:#454ab3}
-.ycc-board .ycc-toolbar{background:#fff;border:1px solid var(--ycc-border);border-radius:12px;padding:12px 15px;margin-bottom:12px;box-shadow:0 3px 14px #26365207}
-.ycc-board .ycc-toolbar label{color:#70819a;font-weight:650;font-size:10px;min-width:160px}
-.ycc-board .ycc-toolbar select{height:32px;font-size:11px;border-color:#e0e6f0;border-radius:7px;background:#f9fbfe}
-.ycc-board .ycc-date-control{gap:8px}
-.ycc-board .ycc-date-caption{background:#f7f8fe;border:1px solid #e6e9f7;border-radius:10px;padding:6px 16px;min-width:270px;max-width:430px}
-.ycc-board .ycc-date-main{font-size:12px;color:#293b5d;font-weight:750}
-.ycc-board .ycc-date-hijri{font-size:10px;color:#8493ab}
-.ycc-board .ycc-date-control button{height:34px;min-width:34px;border-radius:8px;border-color:#e0e6f1}
-.ycc-board .ycc-date-control .ycc-today{background:#eeefff;color:#5356b9;border-color:#dce0ff}
-.ycc-board .ycc-switch{background:#f2f4fa;border-radius:9px;padding:3px;gap:2px}
-.ycc-board .ycc-switch button{background:transparent;border:0;border-radius:7px;padding:7px 13px;font-size:11px;color:#667792}
-.ycc-board .ycc-switch .active{background:#fff;color:#4c50b5;box-shadow:0 2px 6px #2436521c}
-.ycc-board .ycc-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
-.ycc-board .ycc-kpis>div{position:relative;overflow:hidden;min-height:94px;padding:14px 17px;border:1px solid transparent;border-radius:12px;box-shadow:0 3px 10px #26365206}
-.ycc-board .ycc-kpis small{font-size:11px;font-weight:650;color:inherit;opacity:.75}
-.ycc-board .ycc-kpis strong{font-size:27px;font-weight:800;margin:3px 0 0;color:inherit}
-.ycc-board .ycc-kpis em{font-style:normal;font-size:10px;opacity:.7;display:block}
-.ycc-board .ycc-kpi-icon{position:absolute;inset-inline-end:15px;top:17px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:#ffffff99;border-radius:10px;font-size:15px}
-.ycc-board .ycc-kpis .stat-capacity{background:#e9edff;color:#364c9c;border-color:#dce3ff}
-.ycc-board .ycc-kpis .stat-booked{background:#e5f1ff;color:#23659e;border-color:#d4e7fb}
-.ycc-board .ycc-kpis .stat-confirmed{background:#eceaff;color:#5046a6;border-color:#dedbfa}
-.ycc-board .ycc-kpis .stat-hold{background:#fff0d9;color:#9b691f;border-color:#f8e3bf}
-.ycc-board .ycc-board-section{background:#fff;border:1px solid #e3e9f2;border-radius:13px;overflow:hidden;box-shadow:0 4px 15px #24365208}
-.ycc-board .ycc-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 15px;background:#f9fbfe;border-bottom:1px solid #e7ecf4}
-.ycc-board .ycc-section-heading strong{font-size:13px;font-weight:750;color:#2c4164}
-.ycc-board .ycc-section-heading strong i{color:#585bc5;margin-inline-end:6px}
-.ycc-board .ycc-section-heading small{font-size:10px;color:#8996a9;margin-inline-start:10px}
-.ycc-board .ycc-section-chip{color:#7185a3;font-size:10px;background:#edf2fb;border-radius:30px;padding:5px 10px}
-.ycc-board .ycc-legend{border:0;border-radius:0;margin:0;padding:10px 15px;background:#fff;border-bottom:1px solid #edf0f6;gap:16px;color:#64748e;font-size:10px}
-.ycc-board .ycc-legend .dot{width:8px;height:8px}
-.ycc-board .ycc-grid-wrap{border:0;border-radius:0;box-shadow:none;max-height:calc(100vh - 405px);min-height:210px}
-.ycc-board .ycc-grid{border-collapse:separate;border-spacing:0;min-width:720px}
-.ycc-board .ycc-grid thead th{background:#f2f5fb;border-bottom:1px solid #e1e8f2;font-size:11px;color:#304362;padding:11px 6px}
-.ycc-board .ycc-grid thead th small{font-size:9px;color:#90a0b7;font-weight:400}
-.ycc-board .ycc-grid .ycc-day-heading{width:155px;min-width:155px;text-align:start;padding-inline:14px;background:#f9fbfe;color:#2d4364}
-.ycc-board .ycc-grid .ycc-day-heading strong{font-size:11px;font-weight:750}
-.ycc-board .ycc-grid .ycc-day-heading small{font-size:9px;color:#90a0b3;display:block;margin-top:3px}
-.ycc-board .ycc-grid td{height:74px;padding:5px;border-color:#edf1f6}
-.ycc-board .ycc-cell{min-height:62px;height:auto;padding:8px 6px;gap:3px;border-radius:8px;box-shadow:none;transition:background .15s,border-color .15s,transform .15s}
-.ycc-board .ycc-cell strong{font-size:14px;font-weight:800;line-height:1.1}
-.ycc-board .ycc-cell small{font-size:10px;line-height:1.3}
-.ycc-board .ycc-cell.free{background:#ebf9f2;color:#16794b;border-color:#c3ebd5}
-.ycc-board .ycc-cell.partial{background:#e7f1ff;color:#2963a3;border-color:#bcd5fa}
-.ycc-board .ycc-cell.busy{background:#fff2db;color:#9a631b;border-color:#f3d9a9}
-.ycc-board .ycc-cell.full{background:#ffe8e9;color:#b24b59;border-color:#f4c4c9}
-.ycc-board .ycc-cell.past{background:#edf0f5;color:#7c8aa0;border-color:#dce2eb}
-.ycc-board .ycc-cell.closed{background:#f6f7fa;color:#abb5c5;border-color:#edf0f5}
-.ycc-board .ycc-cell:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 4px 12px #253c6316}
-.ycc-board .ycc-mini-booking{font-size:9px;background:#ffffffa8;border-radius:4px;padding:1px 5px;max-width:94%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ycc-board .ycc-span-label{font-size:9px;background:#ffffffc7;border-radius:5px;padding:2px 6px;color:#5356b5}
-.ycc-modal .modal-dialog{max-width:780px}
-.ycc-modal .modal-content{border:1px solid #e0e6f1;border-radius:15px;box-shadow:0 18px 60px #20344d29}
-.ycc-modal .modal-header{padding:16px 20px;background:#f5f7fd;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e6ebf3}
-.ycc-modal .ycc-modal-eyebrow{font-size:10px;color:#8695ac}
-.ycc-modal .modal-title{font-size:17px;color:#2b3e5d;font-weight:800;margin-top:3px}
-.ycc-modal .modal-title i{color:#5a5dca;margin-inline-end:7px}
-.ycc-modal .modal-body{padding:17px 20px}
-.ycc-modal .ycc-modal-intro{background:#f8faff;border:1px solid #e7edf7;border-radius:10px;padding:12px 15px}
-.ycc-modal .ycc-occupancy strong{font-size:25px;color:#4d54b4}
-.ycc-modal .ycc-progress{height:6px;background:#edf1f8;margin:13px 0}
-.ycc-modal .ycc-progress span{background:#6463cf}
-.ycc-modal .ycc-modal-stats{gap:8px;margin-bottom:14px}
-.ycc-modal .ycc-modal-stats span{font-size:11px;padding:7px 12px;border-radius:7px}
-.ycc-modal .ycc-stat-confirmed{background:#eeedff;color:#4c49a3}
-.ycc-modal .ycc-stat-hold{background:#fff1da;color:#936016}
-.ycc-modal .ycc-stat-available{background:#e5f7ec;color:#197a4d}
-.ycc-modal .ycc-booking{border-radius:10px;padding:13px 15px;gap:12px;margin-bottom:8px;border:1px solid #e7ebf3;border-inline-start:4px solid #f0b65a}
-.ycc-modal .ycc-booking-confirmed,.ycc-modal .ycc-booking-done{border-inline-start-color:#6664d1}
-.ycc-modal .ycc-booking strong{font-size:12px;color:#293e60}
-.ycc-modal .ycc-booking small{font-size:10px}
-.ycc-modal .ycc-open-booking{font-size:10px;color:#585bc5}
-.ycc-modal .modal-footer{padding:12px 20px;gap:8px}
-.ycc-modal .ycc-create-period{background:#585bc5;border-color:#585bc5;border-radius:7px;font-size:11px;padding:8px 13px}
-.ycc-config-form .o_form_sheet_bg>.o_form_sheet,.ycc-contact-wizard .o_form_sheet_bg>.o_form_sheet{background:#fff;border:1px solid #e3e9f2;border-radius:13px;box-shadow:0 3px 16px #203c6010;padding:22px!important}
-.ycc-config-form .oe_title h1{font-size:22px;font-weight:800;color:#273b5c}
-.ycc-config-form .o_group{background:#f9fbfe;border:1px solid #e8edf4;border-radius:9px;padding:13px}
-.ycc-config-form .ycc-config-hint{padding:12px 14px;background:#f0f3ff;color:#4d599a;border:1px solid #dfe5ff;border-radius:9px;font-size:11px;margin:12px 0}
-.ycc-config-form .ycc-config-hint .fa{margin-inline-end:6px}
-.ycc-config-form .o_notebook .nav-tabs{border-bottom-color:#e4eaf2}
-.ycc-config-form .o_notebook .nav-tabs .nav-link{font-size:11px;padding:9px 15px}
-.ycc-config-form .o_list_view th,.ycc-config-form .o_list_view td{font-size:11px}
-.ycc-contact-wizard .o_group{background:#f8faff;border:1px solid #e6ebf5;border-radius:10px;padding:15px}
-.ycc-contact-wizard .o_form_sheet .o_field_widget{font-size:12px}
-.ycc-appointment-form .ycc-appointment-sheet{border:1px solid #e3e9f2;border-radius:12px;box-shadow:0 4px 18px #2636520d}
-.ycc-appointment-form .ycc-notes-panel{background:#f8faff}
-@media(max-width:1050px){.ycc-board .ycc-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ycc-board .ycc-grid-wrap{max-height:60vh}.ycc-board .ycc-date-control{order:3;flex-basis:100%}}
-@media(max-width:640px){.ycc-board{padding:10px}.ycc-board .ycc-head h1{font-size:18px}.ycc-board .ycc-head-title{gap:8px}.ycc-board .ycc-title-icon{width:34px;height:34px}.ycc-board .ycc-kpis{gap:7px}.ycc-board .ycc-kpis>div{padding:10px;min-height:77px}.ycc-board .ycc-kpis strong{font-size:22px}.ycc-board .ycc-section-chip{display:none}.ycc-board .ycc-section-heading small{display:block;margin:2px 0}.ycc-board .ycc-date-caption{min-width:0;flex:1;padding:6px}.ycc-board .ycc-date-main{font-size:10px}.ycc-board .ycc-grid .ycc-day-heading{width:116px;min-width:116px}}
+.ycc-board .ycc-head{margin-bottom:14px;align-items:center;}
+.ycc-board .ycc-head-title{display:flex;align-items:center;gap:12px;}
+.ycc-board .ycc-title-icon{width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#eaeaff;color:#565ac6;font-size:19px;}
+.ycc-board .ycc-head h1{font-size:21px;font-weight:800;line-height:1.25;margin:3px 0;color:#243554;}
+.ycc-board .ycc-head p{font-size:11px;color:#8391a8;}
+.ycc-board .ycc-eyebrow{font-size:10px;color:#8b99ad;}
+.ycc-board .ycc-eyebrow i{padding:0 5px;}
+.ycc-board .ycc-new{padding:9px 16px;font-size:11px;font-weight:700;border:0;border-radius:8px;background:#585bc5;box-shadow:0 4px 11px #585bc51c;}
+.ycc-board .ycc-new:hover{background:#454ab3;}
+.ycc-board .ycc-toolbar{background:#fff;border:1px solid var(--ycc-border);border-radius:12px;padding:12px 15px;margin-bottom:12px;box-shadow:0 3px 14px #26365207;}
+.ycc-board .ycc-toolbar label{color:#70819a;font-weight:650;font-size:10px;min-width:160px;}
+.ycc-board .ycc-toolbar select{height:32px;font-size:11px;border-color:#e0e6f0;border-radius:7px;background:#f9fbfe;}
+.ycc-board .ycc-date-control{gap:8px;}
+.ycc-board .ycc-date-caption{background:#f7f8fe;border:1px solid #e6e9f7;border-radius:10px;padding:6px 16px;min-width:270px;max-width:430px;}
+.ycc-board .ycc-date-main{font-size:12px;color:#293b5d;font-weight:750;}
+.ycc-board .ycc-date-hijri{font-size:10px;color:#8493ab;}
+.ycc-board .ycc-date-control button{height:34px;min-width:34px;border-radius:8px;border-color:#e0e6f1;}
+.ycc-board .ycc-date-control .ycc-today{background:#eeefff;color:#5356b9;border-color:#dce0ff;}
+.ycc-board .ycc-switch{background:#f2f4fa;border-radius:9px;padding:3px;gap:2px;}
+.ycc-board .ycc-switch button{background:transparent;border:0;border-radius:7px;padding:7px 13px;font-size:11px;color:#667792;}
+.ycc-board .ycc-switch .active{background:#fff;color:#4c50b5;box-shadow:0 2px 6px #2436521c;}
+.ycc-board .ycc-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px;}
+.ycc-board .ycc-kpis>div{position:relative;overflow:hidden;min-height:94px;padding:14px 17px;border:1px solid transparent;border-radius:12px;box-shadow:0 3px 10px #26365206;}
+.ycc-board .ycc-kpis small{font-size:11px;font-weight:650;color:inherit;opacity:.75;}
+.ycc-board .ycc-kpis strong{font-size:27px;font-weight:800;margin:3px 0 0;color:inherit;}
+.ycc-board .ycc-kpis em{font-style:normal;font-size:10px;opacity:.7;display:block;}
+.ycc-board .ycc-kpi-icon{position:absolute;inset-inline-end:15px;top:17px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:#ffffff99;border-radius:10px;font-size:15px;}
+.ycc-board .ycc-kpis .stat-capacity{background:#e9edff;color:#364c9c;border-color:#dce3ff;}
+.ycc-board .ycc-kpis .stat-booked{background:#e5f1ff;color:#23659e;border-color:#d4e7fb;}
+.ycc-board .ycc-kpis .stat-confirmed{background:#eceaff;color:#5046a6;border-color:#dedbfa;}
+.ycc-board .ycc-kpis .stat-hold{background:#fff0d9;color:#9b691f;border-color:#f8e3bf;}
+.ycc-board .ycc-board-section{background:#fff;border:1px solid #e3e9f2;border-radius:13px;overflow:hidden;box-shadow:0 4px 15px #24365208;}
+.ycc-board .ycc-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 15px;background:#f9fbfe;border-bottom:1px solid #e7ecf4;}
+.ycc-board .ycc-section-heading strong{font-size:13px;font-weight:750;color:#2c4164;}
+.ycc-board .ycc-section-heading strong i{color:#585bc5;margin-inline-end:6px;}
+.ycc-board .ycc-section-heading small{font-size:10px;color:#8996a9;margin-inline-start:10px;}
+.ycc-board .ycc-section-chip{color:#7185a3;font-size:10px;background:#edf2fb;border-radius:30px;padding:5px 10px;}
+.ycc-board .ycc-legend{border:0;border-radius:0;margin:0;padding:10px 15px;background:#fff;border-bottom:1px solid #edf0f6;gap:16px;color:#64748e;font-size:10px;}
+.ycc-board .ycc-legend .dot{width:8px;height:8px;}
+.ycc-board .ycc-grid-wrap{border:0;border-radius:0;box-shadow:none;max-height:calc(100vh - 405px);min-height:210px;}
+.ycc-board .ycc-grid{border-collapse:separate;border-spacing:0;min-width:720px;}
+.ycc-board .ycc-grid thead th{background:#f2f5fb;border-bottom:1px solid #e1e8f2;font-size:11px;color:#304362;padding:11px 6px;}
+.ycc-board .ycc-grid thead th small{font-size:9px;color:#90a0b7;font-weight:400;}
+.ycc-board .ycc-grid .ycc-day-heading{width:155px;min-width:155px;text-align:start;padding-inline:14px;background:#f9fbfe;color:#2d4364;}
+.ycc-board .ycc-grid .ycc-day-heading strong{font-size:11px;font-weight:750;}
+.ycc-board .ycc-grid .ycc-day-heading small{font-size:9px;color:#90a0b3;display:block;margin-top:3px;}
+.ycc-board .ycc-grid td{height:74px;padding:5px;border-color:#edf1f6;}
+.ycc-board .ycc-cell{min-height:62px;height:auto;padding:8px 6px;gap:3px;border-radius:8px;box-shadow:none;transition:background .15s,border-color .15s,transform .15s;}
+.ycc-board .ycc-cell strong{font-size:14px;font-weight:800;line-height:1.1;}
+.ycc-board .ycc-cell small{font-size:10px;line-height:1.3;}
+.ycc-board .ycc-cell.free{background:#ebf9f2;color:#16794b;border-color:#c3ebd5;}
+.ycc-board .ycc-cell.partial{background:#e7f1ff;color:#2963a3;border-color:#bcd5fa;}
+.ycc-board .ycc-cell.busy{background:#fff2db;color:#9a631b;border-color:#f3d9a9;}
+.ycc-board .ycc-cell.full{background:#ffe8e9;color:#b24b59;border-color:#f4c4c9;}
+.ycc-board .ycc-cell.past{background:#edf0f5;color:#7c8aa0;border-color:#dce2eb;}
+.ycc-board .ycc-cell.closed{background:#f6f7fa;color:#abb5c5;border-color:#edf0f5;}
+.ycc-board .ycc-cell:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 4px 12px #253c6316;}
+.ycc-board .ycc-mini-booking{font-size:9px;background:#ffffffa8;border-radius:4px;padding:1px 5px;max-width:94%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ycc-board .ycc-span-label{font-size:9px;background:#ffffffc7;border-radius:5px;padding:2px 6px;color:#5356b5;}
+.ycc-modal .modal-dialog{max-width:780px;}
+.ycc-modal .modal-content{border:1px solid #e0e6f1;border-radius:15px;box-shadow:0 18px 60px #20344d29;}
+.ycc-modal .modal-header{padding:16px 20px;background:#f5f7fd;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #e6ebf3;}
+.ycc-modal .ycc-modal-eyebrow{font-size:10px;color:#8695ac;}
+.ycc-modal .modal-title{font-size:17px;color:#2b3e5d;font-weight:800;margin-top:3px;}
+.ycc-modal .modal-title i{color:#5a5dca;margin-inline-end:7px;}
+.ycc-modal .modal-body{padding:17px 20px;}
+.ycc-modal .ycc-modal-intro{background:#f8faff;border:1px solid #e7edf7;border-radius:10px;padding:12px 15px;}
+.ycc-modal .ycc-occupancy strong{font-size:25px;color:#4d54b4;}
+.ycc-modal .ycc-progress{height:6px;background:#edf1f8;margin:13px 0;}
+.ycc-modal .ycc-progress span{background:#6463cf;}
+.ycc-modal .ycc-modal-stats{gap:8px;margin-bottom:14px;}
+.ycc-modal .ycc-modal-stats span{font-size:11px;padding:7px 12px;border-radius:7px;}
+.ycc-modal .ycc-stat-confirmed{background:#eeedff;color:#4c49a3;}
+.ycc-modal .ycc-stat-hold{background:#fff1da;color:#936016;}
+.ycc-modal .ycc-stat-available{background:#e5f7ec;color:#197a4d;}
+.ycc-modal .ycc-booking{border-radius:10px;padding:13px 15px;gap:12px;margin-bottom:8px;border:1px solid #e7ebf3;border-inline-start:4px solid #f0b65a;}
+.ycc-modal .ycc-booking-confirmed,.ycc-modal .ycc-booking-done{border-inline-start-color:#6664d1;}
+.ycc-modal .ycc-booking strong{font-size:12px;color:#293e60;}
+.ycc-modal .ycc-booking small{font-size:10px;}
+.ycc-modal .ycc-open-booking{font-size:10px;color:#585bc5;}
+.ycc-modal .modal-footer{padding:12px 20px;gap:8px;}
+.ycc-modal .ycc-create-period{background:#585bc5;border-color:#585bc5;border-radius:7px;font-size:11px;padding:8px 13px;}
+.ycc-config-form .o_form_sheet_bg>.o_form_sheet,.ycc-contact-wizard .o_form_sheet_bg>.o_form_sheet{background:#fff;border:1px solid #e3e9f2;border-radius:13px;box-shadow:0 3px 16px #203c6010;padding:22px!important;}
+.ycc-config-form .oe_title h1{font-size:22px;font-weight:800;color:#273b5c;}
+.ycc-config-form .o_group{background:#f9fbfe;border:1px solid #e8edf4;border-radius:9px;padding:13px;}
+.ycc-config-form .ycc-config-hint{padding:12px 14px;background:#f0f3ff;color:#4d599a;border:1px solid #dfe5ff;border-radius:9px;font-size:11px;margin:12px 0;}
+.ycc-config-form .ycc-config-hint .fa{margin-inline-end:6px;}
+.ycc-config-form .o_notebook .nav-tabs{border-bottom-color:#e4eaf2;}
+.ycc-config-form .o_notebook .nav-tabs .nav-link{font-size:11px;padding:9px 15px;}
+.ycc-config-form .o_list_view th,.ycc-config-form .o_list_view td{font-size:11px;}
+.ycc-contact-wizard .o_group{background:#f8faff;border:1px solid #e6ebf5;border-radius:10px;padding:15px;}
+.ycc-contact-wizard .o_form_sheet .o_field_widget{font-size:12px;}
+.ycc-appointment-form .ycc-appointment-sheet{border:1px solid #e3e9f2;border-radius:12px;box-shadow:0 4px 18px #2636520d;}
+.ycc-appointment-form .ycc-notes-panel{background:#f8faff;}
+@media(max-width:1050px){.ycc-board .ycc-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.ycc-board .ycc-grid-wrap{max-height:60vh;}.ycc-board .ycc-date-control{order:3;flex-basis:100%;}}
+@media(max-width:640px){.ycc-board{padding:10px;}.ycc-board .ycc-head h1{font-size:18px;}.ycc-board .ycc-head-title{gap:8px;}.ycc-board .ycc-title-icon{width:34px;height:34px;}.ycc-board .ycc-kpis{gap:7px;}.ycc-board .ycc-kpis>div{padding:10px;min-height:77px;}.ycc-board .ycc-kpis strong{font-size:22px;}.ycc-board .ycc-section-chip{display:none;}.ycc-board .ycc-section-heading small{display:block;margin:2px 0;}.ycc-board .ycc-date-caption{min-width:0;flex:1;padding:6px;}.ycc-board .ycc-date-main{font-size:10px;}.ycc-board .ycc-grid .ycc-day-heading{width:116px;min-width:116px;}}
 
 /* V4.2 — tighter KPIs and occupied slot cards with no wasted side space */
-.ycc-board .ycc-kpis{gap:9px;margin-bottom:10px}
-.ycc-board .ycc-kpis>div{min-height:70px;padding:10px 13px;border-radius:10px}
-.ycc-board .ycc-kpis small{font-size:10px;line-height:1.15}
-.ycc-board .ycc-kpis strong{font-size:23px;line-height:1.15;margin-top:2px}
-.ycc-board .ycc-kpis em{font-size:9px}
-.ycc-board .ycc-kpi-icon{width:27px;height:27px;top:12px;inset-inline-end:12px;font-size:13px;border-radius:7px}
-.ycc-board .ycc-grid td{padding:3px;height:68px}
+.ycc-board .ycc-kpis{gap:9px;margin-bottom:10px;}
+.ycc-board .ycc-kpis>div{min-height:70px;padding:10px 13px;border-radius:10px;}
+.ycc-board .ycc-kpis small{font-size:10px;line-height:1.15;}
+.ycc-board .ycc-kpis strong{font-size:23px;line-height:1.15;margin-top:2px;}
+.ycc-board .ycc-kpis em{font-size:9px;}
+.ycc-board .ycc-kpi-icon{width:27px;height:27px;top:12px;inset-inline-end:12px;font-size:13px;border-radius:7px;}
+.ycc-board .ycc-grid td{padding:3px;height:68px;}
 .ycc-board .ycc-cell{
     width:100%;min-height:60px;padding:5px 7px;gap:2px;
     display:flex;flex-direction:column;align-items:stretch;justify-content:center;
     overflow:hidden;text-align:center
-}
-.ycc-board .ycc-cell strong{font-size:13px}
-.ycc-board .ycc-cell small{font-size:9px}
+;}
+.ycc-board .ycc-cell strong{font-size:13px;}
+.ycc-board .ycc-cell small{font-size:9px;}
 .ycc-board .ycc-cell .ycc-booking-details{
     display:flex;align-items:center;justify-content:center;
     flex-wrap:nowrap;gap:4px;width:100%;min-width:0;
@@ -344,36 +344,36 @@
 }
 .ycc-board .ycc-cell .ycc-booking-details .ycc-mini-booking{
     max-width:calc(100% - 92px)
-}
+;}
 .ycc-board .ycc-cell .ycc-booking-details .ycc-mini-booking:first-child:last-child{
     max-width:95%
-}
+;}
 .ycc-board .ycc-cell.partial,.ycc-board .ycc-cell.busy,.ycc-board .ycc-cell.full{
     border-width:1px;
 }
 @media(max-width:640px){
- .ycc-board .ycc-kpis>div{min-height:64px;padding:9px}
- .ycc-board .ycc-kpis strong{font-size:20px}
+ .ycc-board .ycc-kpis>div{min-height:64px;padding:9px;}
+ .ycc-board .ycc-kpis strong{font-size:20px;}
 }
 
 /* V4.3 selected design 12, occupied cards only */
-.ycc-board .ycc-cell.ycc-style-12{display:flex;flex-direction:row;align-items:center;justify-content:space-between;text-align:start;gap:7px;padding:0 7px 0 0;min-height:60px;height:60px;background:#fff;border:1px solid #cbd9fb;border-radius:10px;box-shadow:0 2px 7px rgba(39,81,169,.10);color:#173b83;overflow:hidden;direction:inherit}
-.ycc-board[dir="rtl"] .ycc-cell.ycc-style-12{padding:0 0 0 7px}
-.ycc-board .ycc-cell.ycc-style-12.busy{border-color:#efd39c}
-.ycc-board .ycc-cell.ycc-style-12.full{border-color:#efb6bd}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-12-icon{flex:0 0 48px;align-self:stretch;display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,#326bff,#2550d7);color:white;font-size:20px;border-radius:8px 0 0 8px;order:0}
-.ycc-board[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-icon{border-radius:0 8px 8px 0}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy{flex:0 0 51px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;order:1}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{font-size:17px;line-height:1.1;font-weight:800;color:#173d91}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy small{font-size:9px;color:#8093b5;white-space:nowrap}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-12-people{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex:1 1 auto;min-width:0;order:2}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-12-people-top{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;min-width:0}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-mini-booking{min-width:0;max-width:calc(100% - 27px);background:#e8eeff;border:1px solid #d5e0ff;color:#3453b3;border-radius:7px;font-size:10px;font-weight:650;padding:3px 6px}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-12-extra{background:#f3f6ff;border:1px solid #d9e3ff;border-radius:6px;padding:2px 5px;font-size:10px;font-weight:700;white-space:nowrap}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-12-sub{color:#6a56bd;font-size:9px;white-space:nowrap}
-.ycc-board .ycc-cell.ycc-style-12 .ycc-12-menu{order:3;flex:0 0 10px;font-size:13px;color:#6685d1;text-align:center}
-.ycc-board .ycc-cell.ycc-style-12:hover{border-color:#7499f5;box-shadow:0 4px 12px rgba(39,81,169,.18)}
-@media(max-width:1100px){.ycc-board .ycc-cell.ycc-style-12{gap:4px;padding-inline-end:5px}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-icon{flex-basis:36px;font-size:16px}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy{flex-basis:43px}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{font-size:14px}.ycc-board .ycc-cell.ycc-style-12 .ycc-mini-booking{font-size:9px;padding:2px 4px}}
+.ycc-board .ycc-cell.ycc-style-12{display:flex;flex-direction:row;align-items:center;justify-content:space-between;text-align:start;gap:7px;padding:0 7px 0 0;min-height:60px;height:60px;background:#fff;border:1px solid #cbd9fb;border-radius:10px;box-shadow:0 2px 7px rgba(39,81,169,.10);color:#173b83;overflow:hidden;}
+
+.ycc-board .ycc-cell.ycc-style-12.busy{border-color:#efd39c;}
+.ycc-board .ycc-cell.ycc-style-12.full{border-color:#efb6bd;}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-icon{flex:0 0 48px;align-self:stretch;display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,#326bff,#2550d7);color:white;font-size:20px;border-radius:8px 0 0 8px;order:0;}
+
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy{flex:0 0 51px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;order:1;}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{font-size:17px;line-height:1.1;font-weight:800;color:#173d91;}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy small{font-size:9px;color:#8093b5;white-space:nowrap;}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-people{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;flex:1 1 auto;min-width:0;order:2;}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-people-top{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;min-width:0;}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-mini-booking{min-width:0;max-width:calc(100% - 27px);background:#e8eeff;border:1px solid #d5e0ff;color:#3453b3;border-radius:7px;font-size:10px;font-weight:650;padding:3px 6px;}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-extra{background:#f3f6ff;border:1px solid #d9e3ff;border-radius:6px;padding:2px 5px;font-size:10px;font-weight:700;white-space:nowrap;}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-sub{color:#6a56bd;font-size:9px;white-space:nowrap;}
+.ycc-board .ycc-cell.ycc-style-12 .ycc-12-menu{order:3;flex:0 0 10px;font-size:13px;color:#6685d1;text-align:center;}
+.ycc-board .ycc-cell.ycc-style-12:hover{border-color:#7499f5;box-shadow:0 4px 12px rgba(39,81,169,.18);}
+@media(max-width:1100px){.ycc-board .ycc-cell.ycc-style-12{gap:4px;padding-inline-end:5px;}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-icon{flex-basis:36px;font-size:16px;}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy{flex-basis:43px;}.ycc-board .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{font-size:14px;}.ycc-board .ycc-cell.ycc-style-12 .ycc-mini-booking{font-size:9px;padding:2px 4px;}}
 
 /* V4.5: approved arrived / past / removed-from-occupancy policies */
 .ycc-board .ycc-cell.ycc-style-12.ycc-has-arrived{
@@ -382,7 +382,7 @@
 .ycc-board .ycc-cell.ycc-style-12.ycc-has-arrived .ycc-12-icon{
   background:linear-gradient(145deg,#8c69d7,#6045b5);
 }
-.ycc-board .ycc-cell.ycc-style-12.ycc-has-arrived .ycc-12-occupancy strong{color:#6045b5}
+.ycc-board .ycc-cell.ycc-style-12.ycc-has-arrived .ycc-12-occupancy strong{color:#6045b5;}
 .ycc-board .ycc-arrived-chip{
   display:inline-flex;align-items:center;gap:3px;margin-inline-end:4px;
   background:#f0e9ff;color:#6845a9;border-radius:5px;
@@ -401,31 +401,31 @@
   opacity:0.88;
 }
 
-.ycc-forecast-list{margin-top:12px;max-height:280px;overflow-y:auto;display:grid;gap:6px}.ycc-forecast-line{background:#fff;border:1px solid #d9e1ef;border-radius:8px;padding:7px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px}.ycc-forecast-line strong{color:#26447a}.ycc-forecast-line span{color:#586b85}.ycc-forecast-line small{color:#8359a3}
+.ycc-forecast-list{margin-top:12px;max-height:280px;overflow-y:auto;display:grid;gap:6px;}.ycc-forecast-line{background:#fff;border:1px solid #d9e1ef;border-radius:8px;padding:7px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:5px 12px;}.ycc-forecast-line strong{color:#26447a;}.ycc-forecast-line span{color:#586b85;}.ycc-forecast-line small{color:#8359a3;}
 
 /* V5: frequently used forecast action and compact date-scoped results */
-.ycc-dialog .ycc-forecast-period{background:#2866e9!important;border-color:#2866e9!important;color:#fff!important;font-weight:800!important;padding:10px 19px!important;border-radius:9px!important;box-shadow:0 3px 10px rgba(40,102,233,.25)}
-.ycc-dialog .ycc-forecast-period:hover{background:#174ec5!important;box-shadow:0 4px 14px rgba(40,102,233,.35)}
-.ycc-forecast-result{background:#f8faff;border:1px solid #dce6fa;border-radius:10px;padding:12px;margin-bottom:12px;color:#24405e}
-.ycc-forecast-summary{font-size:12px;line-height:1.8}
-.ycc-forecast-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
-.ycc-forecast-stat{background:white;border:1px solid #dce6fa;border-radius:8px;text-align:center;padding:8px 3px;display:flex;flex-direction:column;gap:3px}
-.ycc-forecast-stat strong{font-size:20px;color:#2555bc}.ycc-forecast-stat small{font-size:10px;color:#667d9c}
-.ycc-forecast-title{font-size:13px;font-weight:750;margin:12px 0 8px}
-.ycc-forecast-empty{background:white;border-radius:8px;padding:12px;color:#6c7d94}
-.ycc-forecast-warnings{margin-top:12px;background:#fff9ed;border:1px solid #efd6a6;border-radius:8px;padding:9px}
-.ycc-forecast-warnings summary{cursor:pointer;font-size:12px;color:#96610c;font-weight:700}
-.ycc-forecast-warnings .ycc-forecast-list{max-height:190px}
-@media(max-width:700px){.ycc-forecast-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ycc-dialog .ycc-forecast-period{background:#2866e9!important;border-color:#2866e9!important;color:#fff!important;font-weight:800!important;padding:10px 19px!important;border-radius:9px!important;box-shadow:0 3px 10px rgba(40,102,233,.25);}
+.ycc-dialog .ycc-forecast-period:hover{background:#174ec5!important;box-shadow:0 4px 14px rgba(40,102,233,.35);}
+.ycc-forecast-result{background:#f8faff;border:1px solid #dce6fa;border-radius:10px;padding:12px;margin-bottom:12px;color:#24405e;}
+.ycc-forecast-summary{font-size:12px;line-height:1.8;}
+.ycc-forecast-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0;}
+.ycc-forecast-stat{background:white;border:1px solid #dce6fa;border-radius:8px;text-align:center;padding:8px 3px;display:flex;flex-direction:column;gap:3px;}
+.ycc-forecast-stat strong{font-size:20px;color:#2555bc;}.ycc-forecast-stat small{font-size:10px;color:#667d9c;}
+.ycc-forecast-title{font-size:13px;font-weight:750;margin:12px 0 8px;}
+.ycc-forecast-empty{background:white;border-radius:8px;padding:12px;color:#6c7d94;}
+.ycc-forecast-warnings{margin-top:12px;background:#fff9ed;border:1px solid #efd6a6;border-radius:8px;padding:9px;}
+.ycc-forecast-warnings summary{cursor:pointer;font-size:12px;color:#96610c;font-weight:700;}
+.ycc-forecast-warnings .ycc-forecast-list{max-height:190px;}
+@media(max-width:700px){.ycc-forecast-stats{grid-template-columns:repeat(2,minmax(0,1fr));}}
 
 /* V5.1: emphasize selected-day delivery and collapse future delivery dates. */
-.ycc-forecast-result{background:#eaf5ff!important;border:2px solid #438ee7!important;box-shadow:0 5px 18px rgba(29,98,191,.15)!important}
-.ycc-forecast-today{background:#d9eeff;border:2px solid #3d89e1;border-radius:10px;padding:12px;margin-top:12px}
-.ycc-forecast-today .ycc-forecast-title{color:#1252a4;font-weight:800;margin:0 0 8px}
-.ycc-forecast-today .ycc-forecast-line{border-color:#b8d8fc}
-.ycc-forecast-later{margin-top:12px;background:#f3f6fd;border:1px solid #a9c7ed;border-radius:8px;padding:10px}
-.ycc-forecast-later summary{cursor:pointer;font-size:12px;color:#245eaa;font-weight:800}
-.ycc-forecast-later .ycc-forecast-list{max-height:190px}
+.ycc-forecast-result{background:#eaf5ff!important;border:2px solid #438ee7!important;box-shadow:0 5px 18px rgba(29,98,191,.15)!important;}
+.ycc-forecast-today{background:#d9eeff;border:2px solid #3d89e1;border-radius:10px;padding:12px;margin-top:12px;}
+.ycc-forecast-today .ycc-forecast-title{color:#1252a4;font-weight:800;margin:0 0 8px;}
+.ycc-forecast-today .ycc-forecast-line{border-color:#b8d8fc;}
+.ycc-forecast-later{margin-top:12px;background:#f3f6fd;border:1px solid #a9c7ed;border-radius:8px;padding:10px;}
+.ycc-forecast-later summary{cursor:pointer;font-size:12px;color:#245eaa;font-weight:800;}
+.ycc-forecast-later .ycc-forecast-list{max-height:190px;}
 
 /* V5.2: subdued result card and due-today outline; no overdue section. */
 .ycc-forecast-result{
@@ -438,63 +438,43 @@
   border:1px solid #c8dff7!important;
   box-shadow:none!important;
 }
-.ycc-forecast-today .ycc-forecast-line{border-color:#dae6f4!important}
+.ycc-forecast-today .ycc-forecast-line{border-color:#dae6f4!important;}
 
 /* V5.3 — Arabic appointment calendar is always right-to-left, regardless
    of the logged-in user's Odoo language setting. */
-.ycc-board[dir="rtl"]{direction:rtl!important;text-align:right!important}
-.ycc-board[dir="rtl"] .ycc-head,
-.ycc-board[dir="rtl"] .ycc-toolbar,
-.ycc-board[dir="rtl"] .ycc-legend{direction:rtl}
-.ycc-board[dir="rtl"] .ycc-grid-wrap{direction:rtl}
-.ycc-board[dir="rtl"] .ycc-grid{direction:rtl}
-.ycc-board[dir="rtl"] .ycc-grid .ycc-day-heading{
-  right:0!important;left:auto!important;text-align:right!important
-}
-.ycc-board[dir="rtl"] .ycc-grid thead th:first-child{right:0;left:auto}
-.ycc-board[dir="rtl"] .ycc-kpis{direction:rtl}
-.ycc-board[dir="rtl"] .ycc-cell.ycc-style-12{direction:rtl;text-align:right}
-.ycc-board[dir="rtl"] .ycc-date-control{direction:rtl}
+
+
+
+
+
+
+
+
+
 
 /* V5.4: enforce RTL on native table, not just parent layout. */
-.ycc-board .ycc-grid-wrap[dir="rtl"],
-.ycc-board .ycc-grid[dir="rtl"],
-.ycc-board .ycc-grid[dir="rtl"] thead,
-.ycc-board .ycc-grid[dir="rtl"] tbody,
-.ycc-board .ycc-grid[dir="rtl"] tr{direction:rtl!important}
-.ycc-board .ycc-grid[dir="rtl"] th,
-.ycc-board .ycc-grid[dir="rtl"] td{direction:rtl;text-align:center}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-day-heading{
-  position:sticky!important;right:0!important;left:auto!important;
-  text-align:right!important;z-index:4;
-}
-.ycc-board .ycc-grid[dir="rtl"] thead .ycc-day-heading{z-index:7}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12{
-  height:58px;min-height:58px;gap:4px;padding-left:6px;
-  justify-content:flex-start;
-}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-icon{
-  flex:0 0 34px;font-size:15px;
-}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-occupancy{
-  flex:0 0 39px;
-}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{
-  font-size:13px;
-}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-people{
-  align-items:stretch;gap:3px;min-width:0;
-}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-people-top{
-  justify-content:flex-start;
-}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-mini-booking{
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  max-width:100%;font-size:10px;padding:2px 4px;
-}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-sub{
-  text-align:right;overflow:hidden;text-overflow:ellipsis;
-}
-.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-extra{
-  flex-shrink:0;font-size:9px;padding:1px 3px;
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* V5.5: native Odoo UI direction; compact card 12 without language-specific overrides. */
+.ycc-board .ycc-grid .ycc-cell.ycc-style-12{height:58px;min-height:58px;gap:4px;padding-inline-end:6px;justify-content:flex-start}
+.ycc-board .ycc-grid .ycc-cell.ycc-style-12 .ycc-12-icon{flex:0 0 34px;font-size:15px;border-radius:8px 0 0 8px}
+.ycc-board .ycc-grid .ycc-cell.ycc-style-12 .ycc-12-occupancy{flex:0 0 39px}
+.ycc-board .ycc-grid .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{font-size:13px}
+.ycc-board .ycc-grid .ycc-cell.ycc-style-12 .ycc-12-people{align-items:stretch;gap:3px;min-width:0}
+.ycc-board .ycc-grid .ycc-cell.ycc-style-12 .ycc-12-people-top{justify-content:flex-start}
+.ycc-board .ycc-grid .ycc-cell.ycc-style-12 .ycc-mini-booking{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;font-size:10px;padding:2px 4px}
+.ycc-board .ycc-grid .ycc-cell.ycc-style-12 .ycc-12-sub{text-align:start;overflow:hidden;text-overflow:ellipsis}
+.ycc-board .ycc-grid .ycc-cell.ycc-style-12 .ycc-12-extra{flex-shrink:0;font-size:9px;padding:1px 3px}
+.ycc-board .ycc-grid tbody th,.ycc-board .ycc-grid thead th:first-child{position:sticky;inset-inline-start:0;z-index:4}
