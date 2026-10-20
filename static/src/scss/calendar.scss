@@ -455,3 +455,46 @@
 .ycc-board[dir="rtl"] .ycc-kpis{direction:rtl}
 .ycc-board[dir="rtl"] .ycc-cell.ycc-style-12{direction:rtl;text-align:right}
 .ycc-board[dir="rtl"] .ycc-date-control{direction:rtl}
+
+/* V5.4: enforce RTL on native table, not just parent layout. */
+.ycc-board .ycc-grid-wrap[dir="rtl"],
+.ycc-board .ycc-grid[dir="rtl"],
+.ycc-board .ycc-grid[dir="rtl"] thead,
+.ycc-board .ycc-grid[dir="rtl"] tbody,
+.ycc-board .ycc-grid[dir="rtl"] tr{direction:rtl!important}
+.ycc-board .ycc-grid[dir="rtl"] th,
+.ycc-board .ycc-grid[dir="rtl"] td{direction:rtl;text-align:center}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-day-heading{
+  position:sticky!important;right:0!important;left:auto!important;
+  text-align:right!important;z-index:4;
+}
+.ycc-board .ycc-grid[dir="rtl"] thead .ycc-day-heading{z-index:7}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12{
+  height:58px;min-height:58px;gap:4px;padding-left:6px;
+  justify-content:flex-start;
+}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-icon{
+  flex:0 0 34px;font-size:15px;
+}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-occupancy{
+  flex:0 0 39px;
+}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-occupancy strong{
+  font-size:13px;
+}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-people{
+  align-items:stretch;gap:3px;min-width:0;
+}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-people-top{
+  justify-content:flex-start;
+}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-mini-booking{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:100%;font-size:10px;padding:2px 4px;
+}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-sub{
+  text-align:right;overflow:hidden;text-overflow:ellipsis;
+}
+.ycc-board .ycc-grid[dir="rtl"] .ycc-cell.ycc-style-12 .ycc-12-extra{
+  flex-shrink:0;font-size:9px;padding:1px 3px;
+}
