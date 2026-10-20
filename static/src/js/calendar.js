@@ -113,7 +113,7 @@ var Calendar=AbstractAction.extend({
            (items||[]).forEach(function(item){
              $list.append($('<div class="ycc-forecast-line"/>').append(
                $('<strong/>').text(item.customer),
-               $('<span/>').text(item.order+' · التسليم: '+item.delivery_date),
+               $('<span/>').text(item.order+' · التسليم: '+item.delivery_date+' · الفترة: '+(item.delivery_period||'غير محددة')),
                $('<small/>').text(item.status+(item.matched_appointment?' · له حجز وصول بالاسم':''))));
            });
            if(!items||!items.length){$list.append($('<div class="ycc-forecast-empty"/>').text(emptyText));}

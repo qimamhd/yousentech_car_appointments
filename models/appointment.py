@@ -295,7 +295,7 @@ class YCCAppointment(models.Model):
         if model_name not in self.env:
             return {'status': 'unconfigured', 'message': 'موديول أوامر التركيب غير متاح في قاعدة البيانات.'}
         Order = self.env[model_name]
-        needed = ('delivery_date', 'order_date', 'state', 'branch_id', 'partner_id')
+        needed = ('delivery_date', 'delivery_period', 'order_date', 'state', 'branch_id', 'partner_id')
         if any(field not in Order._fields for field in needed):
             return {'status': 'unconfigured', 'message': 'حقول أوامر التركيب في النسخة المثبتة غير متوافقة.'}
         active_states = ['confirm', 'under_checking', 'work_order', 'execute_request',
@@ -320,6 +320,7 @@ class YCCAppointment(models.Model):
             delivery = fields.Date.to_string(order.delivery_date) if order.delivery_date else False
             return {'customer': order.partner_id.name if order.partner_id else 'عميل غير محدد',
                     'order': order.display_name, 'delivery_date': delivery or 'غير محدد',
+                    'delivery_period': order.delivery_period.display_name if order.delivery_period else 'غير محددة',
                     'status': status, 'matched_appointment': bool(key and key in arrived_by_customer)}
 
         today_orders = current_orders.filtered(lambda o: fields.Date.to_string(o.delivery_date) == day)
@@ -354,9 +355,10 @@ class YCCAppointment(models.Model):
             return str(escape(str(value or '')))
         def rows(items):
             return ''.join('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (
-                safe(item['customer']), safe(item['order']), safe(item['delivery_date']),
+                safe(item['customer']), safe(item['order']),
+                safe(item['delivery_date']) + ' · ' + safe(item['delivery_period']),
                 safe(item['status'])) for item in items)
-        table_head = '<table class="table table-sm table-striped"><thead><tr><th>العميل</th><th>أمر التركيب</th><th>التسليم</th><th>الحالة</th></tr></thead><tbody>'
+        table_head = '<table class="table table-sm table-striped"><thead><tr><th>العميل</th><th>أمر التركيب</th><th>موعد التسليم · فترة التسليم</th><th>الحالة</th></tr></thead><tbody>'
         body = '<div dir="rtl" style="line-height:1.9"><p>%s</p>' % safe(result.get('message'))
         if result.get('status') == 'ok':
             body += '<div style="background:#f0f7ff;border:1px solid #c9dcf5;border-radius:10px;padding:12px"><h4>موعد التسليم في اليوم المحدد (%s)</h4>' % result['today_count']
