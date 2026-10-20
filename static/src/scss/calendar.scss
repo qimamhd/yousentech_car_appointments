@@ -439,3 +439,19 @@
   box-shadow:none!important;
 }
 .ycc-forecast-today .ycc-forecast-line{border-color:#dae6f4!important}
+
+/* V5.3 — Arabic appointment calendar is always right-to-left, regardless
+   of the logged-in user's Odoo language setting. */
+.ycc-board[dir="rtl"]{direction:rtl!important;text-align:right!important}
+.ycc-board[dir="rtl"] .ycc-head,
+.ycc-board[dir="rtl"] .ycc-toolbar,
+.ycc-board[dir="rtl"] .ycc-legend{direction:rtl}
+.ycc-board[dir="rtl"] .ycc-grid-wrap{direction:rtl}
+.ycc-board[dir="rtl"] .ycc-grid{direction:rtl}
+.ycc-board[dir="rtl"] .ycc-grid .ycc-day-heading{
+  right:0!important;left:auto!important;text-align:right!important
+}
+.ycc-board[dir="rtl"] .ycc-grid thead th:first-child{right:0;left:auto}
+.ycc-board[dir="rtl"] .ycc-kpis{direction:rtl}
+.ycc-board[dir="rtl"] .ycc-cell.ycc-style-12{direction:rtl;text-align:right}
+.ycc-board[dir="rtl"] .ycc-date-control{direction:rtl}

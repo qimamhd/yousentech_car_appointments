@@ -52,7 +52,7 @@ var Calendar=AbstractAction.extend({
     });
     return this._loading;
  },
- _render:function(){var r=this._range(),data=this.payload,slots=data.slots||[],bookings=data.appointments||[],lang=(data.lang||'en_US').replace('_','-'),rtl=/^(ar|fa|ur|he)(-|$)/i.test(lang),days=[];
+ _render:function(){var r=this._range(),data=this.payload,slots=data.slots||[],bookings=data.appointments||[],lang=(data.lang||'en_US').replace('_','-'),rtl=true,days=[];
  for(var d=r[0];d<r[1];d=add(d,1)){days.push({date:iso(d),weekday:d.getDay(),label:fmt(d,{weekday:'long',day:'numeric',month:'short'},'gregory',lang),hijri:fmt(d,{day:'numeric',month:'short'},'islamic-umalqura',lang)});}
  var today=data.today||iso(new Date());
  var rows=days.map(function(d){return {date:d.date,label:d.label,hijri:d.hijri,cells:slots.map(function(s){var active=!s.days.length||s.days.indexOf((d.weekday+6)%7)!==-1,closed=(data.exceptions||[]).some(function(e){return e.date===d.date&&(!e.slot_id||e.slot_id===s.id);}),list=bookings.filter(function(b){return (b.periods||[]).some(function(p){return p.date===d.date&&p.slot_id===s.id;});}),count=list.length,arrivedCount=list.filter(function(b){return b.state==='done';}).length,open=active&&!closed,past=d.date<today,css=!open?'closed':past?'past':count>=s.capacity?'full':count>=s.capacity*.75?'busy':count?'partial':'free';return {date:d.date,slot_id:s.id,capacity:s.capacity,count:count,open:open,remaining:Math.max(0,s.capacity-count),css:css,bookings:list,arrivedCount:arrivedCount,hasArrived:arrivedCount>0,spanCount:list.filter(function(b){return (b.periods||[]).length>1;}).length,hasSpan:list.some(function(b){return (b.periods||[]).length>1;})};})};});
