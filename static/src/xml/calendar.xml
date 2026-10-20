@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <templates xml:space="preserve">
 <t t-name="ycc.Calendar">
-<div class="ycc-board">
+<div class="ycc-board" t-att-dir="calendarDir">
  <div class="ycc-head"><div class="ycc-head-title"><div class="ycc-title-icon"><i class="fa fa-calendar-check-o"/></div><div><div class="ycc-eyebrow">العناية بالسيارات <i class="fa fa-angle-left"/> العمليات</div><h1>تقويم المواعيد</h1><p>نظرة موحدة على حجوزات الفروع وفترات استقبال السيارات</p></div></div><button class="ycc-new btn btn-primary"><i class="fa fa-plus"/> حجز مبدئي جديد</button></div>
  <div class="ycc-toolbar"><label><i class="fa fa-map-marker"/> الفرع<select class="ycc-branch form-control"><t t-foreach="branches" t-as="b"><option t-att-value="b.id" t-att-selected="b.id === branchId ? 'selected' : undefined"><t t-esc="b.name"/></option></t></select></label><div class="ycc-date-control" role="group" aria-label="التنقل بين التواريخ">
    <button type="button" class="ycc-date-arrow ycc-prev" title="الفترة السابقة" aria-label="الفترة السابقة"><i class="fa fa-chevron-right"/></button>
