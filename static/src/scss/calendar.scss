@@ -488,3 +488,14 @@
 .ycc-board[dir="ltr"] .ycc-grid thead th:first-child,.ycc-board[dir="ltr"] .ycc-grid tbody .ycc-day-heading{left:0;right:auto}
 .ycc-board .ycc-head,.ycc-board .ycc-toolbar,.ycc-board .ycc-legend,.ycc-board .ycc-kpis{direction:inherit}
 .ycc-board .ycc-grid .ycc-day-heading{text-align:start}
+
+/* Installation order header: consistent with appointment cards */
+.ycc-installation-header-form .modal-content{border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;}
+.ycc-installation-header-form .o_form_sheet_bg{background:#f6f8fe;}
+.ycc-installation-header-form .o_form_sheet{border:1px solid #e3e9f7;border-radius:12px;box-shadow:0 8px 24px rgba(40,55,110,.06);padding:20px 24px;}
+.ycc-installation-header-form .ycc-installation-head{display:flex;align-items:center;gap:14px;background:#eef2ff;border:1px solid #dce5ff;border-radius:12px;padding:16px;margin-bottom:18px;color:#243b70;}
+.ycc-installation-header-form .ycc-installation-head>.fa{background:#6058d5;color:white;border-radius:10px;padding:13px;font-size:22px;}
+.ycc-installation-header-form .ycc-installation-head h2{font-weight:700;font-size:20px;margin:0 0 4px;}
+.ycc-installation-header-form .ycc-installation-head p{margin:0;color:#687ba4;font-size:12px;}
+.ycc-installation-header-form .ycc-installation-save{background:#6058d5;border-color:#6058d5;border-radius:8px;font-weight:700;}
+.ycc-appointment-form .oe_button_box .oe_stat_button{border-radius:9px;border:1px solid #ddd9ff;background:#f6f4ff;color:#5148b9;}

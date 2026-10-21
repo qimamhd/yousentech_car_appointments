@@ -247,8 +247,23 @@ class YCCAppointment(models.Model):
                 if occupied.get((day, slot.id), 0) >= rec.branch_id.capacity:
                     raise ValidationError(_('القدرة الاستيعابية مكتملة في %s، الفترة %s.') % (day, slot.name))
 
+    def _ycc_manager(self):
+        return (self.env.user.has_group('yousentech_car_appointments.group_ycc_manager')
+                or self.env.user.has_group('base.group_system'))
+
+    def _ycc_arrival_only_user(self):
+        return (not self._ycc_manager()
+                and self.env.user.has_group('yousentech_car_appointments.group_ycc_sales_arrival'))
+
+    def _ycc_can_book(self):
+        return self._ycc_manager() or (not self._ycc_arrival_only_user()
+            and self.env.user.has_group('yousentech_car_appointments.group_ycc_booking'))
+
+
     @api.model
     def create(self, vals):
+        if not self._ycc_can_book():
+            raise UserError(_('ليس لديك صلاحية إنشاء حجوزات جديدة.'))
         vals = dict(vals)
         vals['name'] = self.env['ir.sequence'].next_by_code('ycc.appointment') or 'New'
         if vals.get('state','provisional') in ('provisional','contacting') and vals.get('branch_id'):
@@ -260,6 +275,18 @@ class YCCAppointment(models.Model):
 
     def write(self, vals):
         vals = dict(vals)
+        if not self._ycc_can_book() and not self._ycc_arrival_only_user():
+            raise UserError(_('المواعيد للقراءة فقط؛ لا تملك صلاحية التعديل.'))
+        if self._ycc_arrival_only_user():
+            # This group can only mark an existing confirmed booking as arrived.
+            # Linking the new installation order is handled by the order create hook.
+            allowed_arrival = (set(vals) == {'state'} and vals['state'] == 'done'
+                               and all(r.state == 'confirmed' for r in self))
+            allowed_link = (set(vals) == {'installation_order_id'}
+                            and all(r.state == 'done' and not r.installation_order_id for r in self)
+                            and self.env.context.get('ycc_source_appointment_id'))
+            if not (allowed_arrival or allowed_link):
+                raise UserError(_('صلاحيتك تقتصر على وصول السيارة وإنشاء أمر تركيب.'))
         if 'hold_until' in vals and not self.env.user.has_group('base.group_system'):
             raise UserError(_('Only administrators may edit hold expiry.'))
         if vals.get('state') in ('provisional','contacting') and 'hold_until' not in vals:
@@ -274,6 +301,11 @@ class YCCAppointment(models.Model):
         if set(vals) & {'branch_id','slot_id','end_slot_id','date','end_date','state','hold_until'}:
             self._check_capacity()
         return result
+
+    def unlink(self):
+        if not self._ycc_manager():
+            raise UserError(_('حذف الحجوزات متاح لمدير المواعيد فقط.'))
+        return super().unlink()
 
     @api.model
     def forecast_delivery_load(self, branch_id, target_date):
@@ -351,6 +383,8 @@ class YCCAppointment(models.Model):
 
     def action_open_installation_wizard(self):
         self.ensure_one()
+        if not (self._ycc_can_book() or self._ycc_arrival_only_user()):
+            raise UserError(_('لا تملك صلاحية إنشاء أمر تركيب.'))
         if self.state != 'done':
             raise UserError(_('يجب تسجيل وصول السيارة أولاً.'))
         if self.installation_order_id:
@@ -394,6 +428,8 @@ class YCCAppointment(models.Model):
         }
 
     def action_forecast_delivery_load(self):
+        if self._ycc_arrival_only_user():
+            raise UserError(_('هذا الإجراء غير متاح لمندوب الوصول.'))
         self.ensure_one()
         result = self.forecast_delivery_load(self.branch_id.id, self.date)
         from markupsafe import escape
@@ -420,6 +456,8 @@ class YCCAppointment(models.Model):
                 'view_mode': 'form', 'views': [(False, 'form')], 'target': 'new'}
 
     def action_open_contact_wizard(self):
+        if self._ycc_arrival_only_user():
+            raise UserError(_('هذا الإجراء غير متاح لمندوب الوصول.'))
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
@@ -433,6 +471,8 @@ class YCCAppointment(models.Model):
 
     def action_contacting(self): self.write({'state':'contacting'})
     def action_confirm(self):
+        if self._ycc_arrival_only_user():
+            raise UserError(_('هذا الإجراء غير متاح لمندوب الوصول.'))
         for rec in self:
             if rec.state not in ('provisional','contacting') or not rec._occupies():
                 raise UserError(_('Only active provisional bookings can be confirmed.'))

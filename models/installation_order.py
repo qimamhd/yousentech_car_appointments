@@ -33,10 +33,17 @@ class YCCInstallationOrder(models.Model):
         vals = dict(vals, branch_id=branch_id, seq=self.env.cr.fetchone()[0],
                     ycc_appointment_id=appt.id, state='draft')
         order = super(YCCInstallationOrder, self).create(vals)
-        appt.write({'installation_order_id': order.id})
+        appt.with_context(ycc_source_appointment_id=appt.id).write({'installation_order_id': order.id})
         if appt.notes:
             order.message_post(body=_('ملاحظات الحجز: %s') % appt.notes)
         return order
+
+    def write(self, vals):
+        if (self.env.user.has_group('yousentech_car_appointments.group_ycc_sales_arrival')
+                and not (self.env.user.has_group('base.group_system') or self.env.user.has_group('yousentech_car_appointments.group_ycc_manager'))
+                and any(r.ycc_appointment_id for r in self)):
+            raise UserError(_('مندوب الوصول لا يمكنه تعديل أمر التركيب بعد إنشائه.'))
+        return super(YCCInstallationOrder, self).write(vals)
 
     def action_ycc_open_full_order(self):
         self.ensure_one()
