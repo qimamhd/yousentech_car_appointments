@@ -150,6 +150,8 @@ class YCCAppointment(models.Model):
     contact_ids = fields.One2many('ycc.contact','appointment_id',string='سجل التواصل')
     next_contact_at = fields.Datetime(string='موعد المتابعة القادم')
     company_id = fields.Many2one('res.company',related='branch_id.company_id',store=True,readonly=True)
+    installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب المرتبط', readonly=True, copy=False, tracking=True)
+
 
     def _occupies(self, now=None):
         self.ensure_one()
@@ -346,6 +348,36 @@ class YCCAppointment(models.Model):
                 'multiple_customers': multiple_customers, 'orders': items,
                 'later_orders': later_items, 'today_count': len(items),
                 'later_count': len(later_items), 'message': summary}
+
+    def action_open_installation_wizard(self):
+        self.ensure_one()
+        if self.state != 'done':
+            raise UserError(_('يجب تسجيل وصول السيارة أولاً.'))
+        if self.installation_order_id:
+            return self.action_open_installation_order()
+        if not self.branch_id or not self.branch_id.branch_id:
+            raise UserError(_('يجب تحديد الفرع قبل إنشاء أمر التركيب.'))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('إنشاء أمر تركيب من الحجز'),
+            'res_model': 'ycc.installation.wizard',
+            'view_mode': 'form',
+            'views': [(self.env.ref('yousentech_car_appointments.view_ycc_installation_wizard_form').id, 'form')],
+            'target': 'new',
+            'context': {'default_appointment_id': self.id},
+        }
+
+    def action_open_installation_order(self):
+        self.ensure_one()
+        if not self.installation_order_id:
+            raise UserError(_('لم يتم إنشاء أمر تركيب لهذا الحجز بعد.'))
+        return {
+            'type': 'ir.actions.act_window', 'name': _('أمر التركيب'),
+            'res_model': 'wo.installation.order.mst',
+            'res_id': self.installation_order_id.id,
+            'views': [(self.env.ref('qimamhd_wo_v3.wo_installation_order_view').id, 'form')],
+            'view_mode': 'form', 'target': 'current',
+        }
 
     def action_forecast_delivery_load(self):
         self.ensure_one()

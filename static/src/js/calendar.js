@@ -88,6 +88,17 @@ var Calendar=AbstractAction.extend({
      });
      $modal.modal('hide');
  }
+ $modal.on('click','.ycc-open-installation',function(e){
+     e.preventDefault();e.stopPropagation();
+     var id=parseInt($(this).attr('data-id'),10),$btn=$(this);
+     if(!id||$btn.prop('disabled'))return;
+     $btn.prop('disabled',true);
+     rpc.query({route:'/ycc/calendar/installation_action',params:{appointment_id:id}}).then(function(action){
+         if(action.error){$btn.prop('disabled',false);alert(action.error);return;}
+         $modal.one('hidden.bs.modal.yccInstall',function(){$modal.remove();self.do_action(action);});
+         $modal.modal('hide');
+     }).catch(function(){$btn.prop('disabled',false);});
+ });
  $modal.on('click','.ycc-booking',openBooking);
  $modal.on('keydown','.ycc-booking',function(e){
      if(e.key==='Enter'||e.key===' '||e.which===13||e.which===32)openBooking.call(this,e);

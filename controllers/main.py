@@ -4,6 +4,13 @@ from odoo import http, fields
 from odoo.http import request
 
 class YCCCalendar(http.Controller):
+    @http.route('/ycc/calendar/installation_action', type='json', auth='user')
+    def installation_action(self, appointment_id=None):
+        appointment = request.env['ycc.appointment'].browse(int(appointment_id or 0)).exists()
+        if not appointment:
+            return {'error': 'الحجز غير موجود'}
+        return appointment.action_open_installation_wizard()
+
     @http.route('/ycc/calendar/forecast', type='json', auth='user')
     def forecast(self, branch_id=None, date=None):
         return request.env['ycc.appointment'].forecast_delivery_load(branch_id, date)
