@@ -55,8 +55,27 @@ var Calendar=AbstractAction.extend({
  _render:function(){var r=this._range(),data=this.payload,slots=data.slots||[],bookings=data.appointments||[],lang=(data.lang||'en_US').replace('_','-'),isRtl=/^(ar|fa|ur|he)(-|$)/i.test(lang),days=[];
  for(var d=r[0];d<r[1];d=add(d,1)){days.push({date:iso(d),weekday:d.getDay(),label:fmt(d,{weekday:'long',day:'numeric',month:'short'},'gregory',lang),hijri:fmt(d,{day:'numeric',month:'short'},'islamic-umalqura',lang)});}
  var today=data.today||iso(new Date());
- var rows=days.map(function(d){return {date:d.date,label:d.label,hijri:d.hijri,cells:slots.map(function(s){var active=!s.days.length||s.days.indexOf((d.weekday+6)%7)!==-1,closed=(data.exceptions||[]).some(function(e){return e.date===d.date&&(!e.slot_id||e.slot_id===s.id);}),list=bookings.filter(function(b){return (b.periods||[]).some(function(p){return p.date===d.date&&p.slot_id===s.id;});}),count=list.length,arrivedCount=list.filter(function(b){return b.state==='done';}).length,open=active&&!closed,past=d.date<today,css=!open?'closed':past?'past':count>=s.capacity?'full':count>=s.capacity*.75?'busy':count?'partial':'free';return {date:d.date,slot_id:s.id,capacity:s.capacity,count:count,open:open,remaining:Math.max(0,s.capacity-count),css:css,bookings:list,arrivedCount:arrivedCount,hasArrived:arrivedCount>0,spanCount:list.filter(function(b){return (b.periods||[]).length>1;}).length,hasSpan:list.some(function(b){return (b.periods||[]).length>1;})};})};});
- var capacity=0,occupied=0;rows.forEach(function(row){row.cells.forEach(function(c){if(c.open){capacity+=c.capacity;occupied+=c.count;}});});
+ // Daily capacity: count each appointment once per day, not once per slot.
+ var daily={};
+ days.forEach(function(d){
+   var seen={};bookings.forEach(function(b){
+     if((b.periods||[]).some(function(p){return p.date===d.date;})){seen[b.id]=true;}
+   });
+   daily[d.date]={count:Object.keys(seen).length,capacity:data.daily_capacity||0};
+ });
+ var rows=days.map(function(d){var dailyInfo=daily[d.date]||{count:0,capacity:0};return {date:d.date,label:d.label,hijri:d.hijri,dailyCount:dailyInfo.count,dailyCapacity:dailyInfo.capacity,cells:slots.map(function(s){
+   var active=!s.days.length||s.days.indexOf((d.weekday+6)%7)!==-1,
+       closed=(data.exceptions||[]).some(function(e){return e.date===d.date&&(!e.slot_id||e.slot_id===s.id);}),
+       list=bookings.filter(function(b){return (b.periods||[]).some(function(p){return p.date===d.date&&p.slot_id===s.id;});}),
+       count=list.length,arrivedCount=list.filter(function(b){return b.state==='done';}).length,
+       open=active&&!closed,past=d.date<today,
+       css=!open?'closed':past?'past':dailyInfo.count>=dailyInfo.capacity?'full':dailyInfo.count>=dailyInfo.capacity*.75?'busy':dailyInfo.count?'partial':'free';
+   return {date:d.date,slot_id:s.id,capacity:dailyInfo.capacity,count:count,dailyCount:dailyInfo.count,open:open,
+     remaining:Math.max(0,dailyInfo.capacity-dailyInfo.count),css:css,bookings:list,
+     arrivedCount:arrivedCount,hasArrived:arrivedCount>0,
+     spanCount:list.filter(function(b){return (b.periods||[]).length>1;}).length,
+     hasSpan:list.some(function(b){return (b.periods||[]).length>1;})};})};});
+ var capacity=days.length*(data.daily_capacity||0),occupied=days.reduce(function(total,d){return total+(daily[d.date]||{count:0}).count;},0);
  var unique={};bookings.forEach(function(b){unique[b.id]=b;});var all=Object.keys(unique).map(function(k){return unique[k];});
  this.$el.html(qweb.render('ycc.Calendar',{branches:data.branches||[],branchId:this.branchId,days:days,slots:slots,rows:rows,mode:this.mode,arrivalOnly:!!data.arrival_only,canCreate:!!data.can_create,calendarDir:isRtl?'rtl':'ltr',periodLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'gregory',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'gregory',lang),hijriLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang),summary:{capacity:capacity,occupied:occupied,confirmed:all.filter(function(b){return b.state==='confirmed';}).length,provisional:all.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length}}));},
  _prev:function(){this.anchor=this.mode==='month'?new Date(this.anchor.getFullYear(),this.anchor.getMonth()-1,1,12):add(this.anchor,-7);return this._load();},
@@ -68,7 +87,7 @@ var Calendar=AbstractAction.extend({
  _new:function(){if(!this.payload.can_create){return;}this.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',views:[[false,'form']],target:'current'});},
  _period:function(e){var date=e.currentTarget.getAttribute('data-date'),slotId=parseInt(e.currentTarget.getAttribute('data-slot'),10),slot=(this.payload.slots||[]).filter(function(s){return s.id===slotId;})[0];if(!slot)return;
  var bookings=(this.payload.appointments||[]).filter(function(b){return (b.periods||[]).some(function(p){return p.date===date&&p.slot_id===slotId;});}),branch=(this.payload.branches||[]).filter(function(b){return b.id===this.branchId;},this)[0],self=this;
- var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slot.name,branchName:branch?branch.name:'',capacity:slot.capacity,bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed';}).length,arrived:bookings.filter(function(b){return b.state==='done';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length,canCreate:!!this.payload.can_create,canInstall:!!this.payload.can_create||!!this.payload.arrival_only});
+ var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slot.name,branchName:branch?branch.name:'',capacity:this.payload.daily_capacity||slot.capacity,dailyCount:(function(){var seen={};(self.payload.appointments||[]).forEach(function(b){if((b.periods||[]).some(function(p){return p.date===date;})){seen[b.id]=true;}});return Object.keys(seen).length;})(),bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed';}).length,arrived:bookings.filter(function(b){return b.state==='done';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length,canCreate:!!this.payload.can_create,canInstall:!!this.payload.can_create||!!this.payload.arrival_only});
  var $modal=$('<div class="modal fade ycc-modal" tabindex="-1" role="dialog"/>').html(html);$('body').append($modal);
  $modal.on('click','.ycc-close',function(){$modal.modal('hide');});
  // Open the actual appointment when clicking anywhere on its card.

@@ -499,3 +499,16 @@
 .ycc-installation-header-form .ycc-installation-head p{margin:0;color:#687ba4;font-size:12px;}
 .ycc-installation-header-form .ycc-installation-save{background:#6058d5;border-color:#6058d5;border-radius:8px;font-weight:700;}
 .ycc-appointment-form .oe_button_box .oe_stat_button{border-radius:9px;border:1px solid #ddd9ff;background:#f6f4ff;color:#5148b9;}
+
+/* V6.3: daily car capacity with slot-level appointment detail */
+.ycc-day-occupancy{display:block;margin-top:5px;padding:3px 5px;border-radius:6px;background:#e8f3ff;color:#1955a0;font-size:10px;font-weight:800;white-space:nowrap}
+.ycc-day-occupancy.is-full{background:#ffe8e7;color:#a53232}
+.ycc-daily-legend,.ycc-daily-explainer{margin:8px 12px;padding:9px 12px;border-radius:9px;background:#eaf3ff;border:1px solid #d6e6ff;color:#285c9e;font-size:12px;line-height:1.6}
+.ycc-daily-explainer{margin:8px 0 12px}
+.ycc-12-sub small{font-size:9px;font-weight:600}
+
+.ycc-appointment-form .ycc-daily-form-panel{margin:12px 0 18px;padding:14px 18px;background:#edf5ff;border:1px solid #c8dcfa;border-radius:12px;color:#184c94}
+.ycc-appointment-form .ycc-daily-form-title{font-size:14px;font-weight:800;margin-bottom:8px}
+.ycc-appointment-form .ycc-daily-form-title small{font-weight:400;color:#6986ae;margin-inline-start:12px}
+.ycc-appointment-form .ycc-daily-form-hint{font-size:11px;color:#5a789c;margin-top:6px}
+.ycc-config-form .ycc-config-hint{background:#eef6ff;border:1px solid #d4e5ff;border-radius:9px;padding:12px;color:#235c9f}

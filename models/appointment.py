@@ -11,7 +11,7 @@ class YCCBranch(models.Model):
     branch_id = fields.Many2one('custom.branches', string='الفرع', required=True, ondelete='cascade', index=True)
     company_id = fields.Many2one('res.company', string='الشركة', default=lambda self: self.env.company)
     active = fields.Boolean(default=True)
-    capacity = fields.Integer(string='القدرة الاستيعابية للفرع', default=4, required=True)
+    capacity = fields.Integer(string='القدرة الاستيعابية اليومية للفرع (سيارات)', default=4, required=True)
     provisional_minutes = fields.Integer(string='صلاحية الحجز المبدئي بالدقائق', default=120, required=True)
     slot_ids = fields.One2many('ycc.slot', 'branch_id', string='فترات الحجز')
     exception_ids = fields.One2many('ycc.exception', 'branch_id', string='الاستثناءات')
@@ -32,11 +32,11 @@ class YCCBranch(models.Model):
                     occupied = {}
                     for booking in appointments:
                         if booking._occupies() and booking.slot_id and booking.date:
-                            for day, slot in booking._covered_periods():
-                                key = (day, slot.id)
-                                occupied[key] = occupied.get(key, 0) + 1
-                                if occupied[key] > new_capacity:
-                                    raise ValidationError(_('لا يمكن خفض السعة: توجد فترات بها حجوزات تتجاوز السعة الجديدة.'))
+                            # Each vehicle consumes one daily place even across many slots.
+                            for day in set(day for day, _slot in booking._covered_periods()):
+                                occupied[day] = occupied.get(day, 0) + 1
+                                if occupied[day] > new_capacity:
+                                    raise ValidationError(_('لا يمكن خفض السعة اليومية: حجوزات يوم %s تتجاوز السعة الجديدة.') % day)
         return super().write(vals)
 
     @api.constrains('provisional_minutes', 'capacity')
@@ -62,7 +62,7 @@ class YCCSlot(models.Model):
     name = fields.Char(compute='_compute_name',store=True)
     start_hour = fields.Float(string='من الساعة',required=True)
     end_hour = fields.Float(string='إلى الساعة',required=True)
-    capacity = fields.Integer(string='القدرة الاستيعابية', related='branch_id.capacity', readonly=True)
+    capacity = fields.Integer(string='السعة اليومية للفرع (للعرض فقط)', related='branch_id.capacity', readonly=True)
     active = fields.Boolean(default=True)
     weekday_ids = fields.Many2many('ycc.weekday',string='أيام العمل')
 
@@ -152,6 +152,31 @@ class YCCAppointment(models.Model):
     company_id = fields.Many2one('res.company',related='branch_id.company_id',store=True,readonly=True)
     installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب المرتبط', readonly=True, copy=False, tracking=True)
 
+    daily_capacity_view = fields.Integer(string='سعة اليوم', compute='_compute_daily_availability')
+    daily_booked_view = fields.Integer(string='المحجوز اليوم', compute='_compute_daily_availability')
+    daily_remaining_view = fields.Integer(string='المتبقي اليوم', compute='_compute_daily_availability')
+
+    @api.depends('branch_id', 'date', 'end_date', 'slot_id', 'end_slot_id', 'state')
+    def _compute_daily_availability(self):
+        now = fields.Datetime.now()
+        for rec in self:
+            rec.daily_capacity_view = rec.branch_id.capacity or 0
+            rec.daily_booked_view = 0
+            rec.daily_remaining_view = rec.daily_capacity_view
+            if not rec.branch_id or not rec.date:
+                continue
+            selected_day = fields.Date.to_string(rec.date)
+            existing = self.search([
+                ('branch_id', '=', rec.branch_id.id),
+                ('date', '<=', selected_day),
+                '|', ('end_date', '=', False), ('end_date', '>=', selected_day),
+                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done']),
+            ])
+            # A record can be present in several slots; only its id is counted.
+            count = len(existing.filtered(lambda a: a.slot_id and a._occupies(now)))
+            rec.daily_booked_view = count
+            rec.daily_remaining_view = max(0, rec.daily_capacity_view - count)
+
 
     def _occupies(self, now=None):
         self.ensure_one()
@@ -233,10 +258,9 @@ class YCCAppointment(models.Model):
             now = fields.Datetime.now()
             occupied = {}
             for other in others:
-                if other._occupies(now):
-                    for day, slot in other._covered_periods():
-                        key = (day, slot.id)
-                        occupied[key] = occupied.get(key, 0) + 1
+                if other._occupies(now) and other.slot_id and other.date:
+                    for day in set(day for day, _slot in other._covered_periods()):
+                        occupied[day] = occupied.get(day, 0) + 1
             for day, slot in periods:
                 if self.env['ycc.exception'].search_count([
                     ('branch_id', '=', rec.branch_id.id), ('date', '<=', day),
@@ -244,8 +268,9 @@ class YCCAppointment(models.Model):
                     '|', ('slot_id', '=', False), ('slot_id', '=', slot.id)
                 ]):
                     raise ValidationError(_('إحدى الفترات المحددة مغلقة بسبب استثناء أو إجازة.'))
-                if occupied.get((day, slot.id), 0) >= rec.branch_id.capacity:
-                    raise ValidationError(_('القدرة الاستيعابية مكتملة في %s، الفترة %s.') % (day, slot.name))
+            for day in set(day for day, _slot in periods):
+                if occupied.get(day, 0) >= rec.branch_id.capacity:
+                    raise ValidationError(_('اكتملت القدرة الاستيعابية اليومية في %s: الحد الأقصى %s سيارات، بغض النظر عن عدد الفترات.') % (day, rec.branch_id.capacity))
 
     def _ycc_manager(self):
         return (self.env.user.has_group('yousentech_car_appointments.group_ycc_manager')
