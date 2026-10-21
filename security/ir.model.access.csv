@@ -8,4 +8,3 @@ access_ycc_appointment,ycc.appointment,model_ycc_appointment,base.group_user,1,1
 access_ycc_contact,ycc.contact,model_ycc_contact,base.group_user,1,1,1,0
 access_ycc_contact_wizard_user,ycc.contact.wizard.user,model_ycc_contact_wizard,base.group_user,1,1,1,1
 access_ycc_forecast_wizard,ycc.forecast.wizard,model_ycc_forecast_wizard,base.group_user,1,1,1,0
-access_ycc_installation_wizard,access.ycc.installation.wizard,model_ycc_installation_wizard,base.group_user,1,1,1,1
