@@ -53,6 +53,29 @@
 <button name="action_save_contact" string="حفظ سجل التواصل" type="object" class="btn-primary"/>
 <button string="إلغاء" special="cancel" class="btn-secondary"/>
 </footer></form></field></record>
+<record id="view_ycc_native_installation_header" model="ir.ui.view">
+<field name="name">ycc.wo.installation.native.header.form</field>
+<field name="model">wo.installation.order.mst</field>
+<field name="arch" type="xml">
+<form string="إنشاء أمر تركيب — بيانات الهيدر" create="1" edit="1">
+<sheet><div class="oe_title"><h2>بيانات أمر التركيب</h2><p>تُنقل بيانات الحجز تلقائيًا. أكمل الهيدر ثم احفظ للانتقال إلى أمر التركيب.</p></div>
+<group><group string="العميل والفرع">
+<field name="partner_id" required="1"/><field name="partner_mobile"/>
+<field name="branch_id" readonly="1" force_save="1"/>
+<field name="order_date" required="1"/>
+</group><group string="السيارة والتسليم">
+<field name="car_manuf_id"/><field name="car_type_id"/>
+<field name="car_size_id" required="1"/><field name="car_panel_no"/>
+<field name="delivery_date"/><field name="delivery_period"/>
+</group></group>
+<field name="seq" invisible="1"/><field name="state" invisible="1"/>
+<field name="ycc_appointment_id" invisible="1"/>
+</sheet>
+<footer>
+<button name="action_ycc_open_full_order" type="object" string="حفظ وفتح أمر التركيب" class="btn-primary"/>
+<button string="إلغاء" special="cancel" class="btn-secondary"/>
+</footer></form>
+</field></record>
 <record id="view_ycc_installation_wizard_form" model="ir.ui.view">
 <field name="name">ycc.installation.wizard.form</field>
 <field name="model">ycc.installation.wizard</field>

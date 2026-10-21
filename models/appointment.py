@@ -357,14 +357,28 @@ class YCCAppointment(models.Model):
             return self.action_open_installation_order()
         if not self.branch_id or not self.branch_id.branch_id:
             raise UserError(_('يجب تحديد الفرع قبل إنشاء أمر التركيب.'))
+        # Use the real installation order model and its own native fields.
+        # No duplicate transient wizard/header is maintained.
+        branch = self.branch_id.branch_id
         return {
             'type': 'ir.actions.act_window',
-            'name': _('إنشاء أمر تركيب من الحجز'),
-            'res_model': 'ycc.installation.wizard',
+            'name': _('إنشاء أمر تركيب — بيانات الهيدر'),
+            'res_model': 'wo.installation.order.mst',
             'view_mode': 'form',
-            'views': [(self.env.ref('yousentech_car_appointments.view_ycc_installation_wizard_form').id, 'form')],
+            'views': [(self.env.ref('yousentech_car_appointments.view_ycc_native_installation_header').id, 'form')],
             'target': 'new',
-            'context': {'default_appointment_id': self.id},
+            'context': dict(self.env.context,
+                ycc_source_appointment_id=self.id,
+                default_partner_id=self.partner_id.id,
+                default_partner_mobile=self.phone or self.partner_id.mobile or '',
+                default_branch_id=branch.id,
+                default_company_id=self.company_id.id or self.env.company.id,
+                default_order_date=fields.Date.context_today(self),
+                default_car_manuf_id=self.car_manuf_id.id or False,
+                default_car_type_id=self.car_type_id.id or False,
+                default_car_panel_no=self.vehicle_plate or False,
+                default_delivery_date=self.end_date or self.date or False,
+                default_state='draft'),
         }
 
     def action_open_installation_order(self):
