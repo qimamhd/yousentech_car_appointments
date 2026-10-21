@@ -63,7 +63,7 @@ var Calendar=AbstractAction.extend({
    });
    daily[d.date]={count:Object.keys(seen).length,capacity:data.daily_capacity||0};
  });
- var rows=days.map(function(d){var dailyInfo=daily[d.date]||{count:0,capacity:0};return {date:d.date,label:d.label,hijri:d.hijri,dailyCount:dailyInfo.count,dailyCapacity:dailyInfo.capacity,cells:slots.map(function(s){
+ var rows=days.map(function(d){var dailyInfo=daily[d.date]||{count:0,capacity:0};return {date:d.date,label:d.label,hijri:d.hijri,dailyCount:dailyInfo.count,dailyCapacity:dailyInfo.capacity,dailyPercent:dailyInfo.capacity?Math.min(100,Math.round(dailyInfo.count*100/dailyInfo.capacity)):0,cells:slots.map(function(s){
    var active=!s.days.length||s.days.indexOf((d.weekday+6)%7)!==-1,
        closed=(data.exceptions||[]).some(function(e){return e.date===d.date&&(!e.slot_id||e.slot_id===s.id);}),
        list=bookings.filter(function(b){return (b.periods||[]).some(function(p){return p.date===d.date&&p.slot_id===s.id;});}),
@@ -71,13 +71,15 @@ var Calendar=AbstractAction.extend({
        open=active&&!closed,past=d.date<today,
        css=!open?'closed':past?'past':dailyInfo.count>=dailyInfo.capacity?'full':dailyInfo.count>=dailyInfo.capacity*.75?'busy':dailyInfo.count?'partial':'free';
    return {date:d.date,slot_id:s.id,capacity:dailyInfo.capacity,count:count,dailyCount:dailyInfo.count,open:open,
-     remaining:Math.max(0,dailyInfo.capacity-dailyInfo.count),css:css,bookings:list,
+     remaining:Math.max(0,dailyInfo.capacity-dailyInfo.count),css:css,bookings:list,past:past,firstClient:list.length?list[0].client:'',bookingStatus:list.length?(arrivedCount?'وصلت السيارة':list[0].state==='confirmed'?'مؤكد':'مبدئي'):'',
      arrivedCount:arrivedCount,hasArrived:arrivedCount>0,
      spanCount:list.filter(function(b){return (b.periods||[]).length>1;}).length,
      hasSpan:list.some(function(b){return (b.periods||[]).length>1;})};})};});
  var capacity=days.length*(data.daily_capacity||0),occupied=days.reduce(function(total,d){return total+(daily[d.date]||{count:0}).count;},0);
  var unique={};bookings.forEach(function(b){unique[b.id]=b;});var all=Object.keys(unique).map(function(k){return unique[k];});
- this.$el.html(qweb.render('ycc.Calendar',{branches:data.branches||[],branchId:this.branchId,days:days,slots:slots,rows:rows,mode:this.mode,arrivalOnly:!!data.arrival_only,canCreate:!!data.can_create,calendarDir:isRtl?'rtl':'ltr',periodLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'gregory',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'gregory',lang),hijriLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang),summary:{capacity:capacity,occupied:occupied,confirmed:all.filter(function(b){return b.state==='confirmed';}).length,provisional:all.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length}}));},
+ var timeRows=slots.map(function(s,index){return {name:s.name,cells:rows.map(function(row){return row.cells[index];})};});
+ var fullDays=rows.filter(function(row){return row.dailyCapacity>0 && row.dailyCount>=row.dailyCapacity;}).length;
+ this.$el.html(qweb.render('ycc.Calendar',{branches:data.branches||[],branchId:this.branchId,days:days,slots:slots,rows:rows,timeRows:timeRows,mode:this.mode,arrivalOnly:!!data.arrival_only,canCreate:!!data.can_create,calendarDir:isRtl?'rtl':'ltr',periodLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'gregory',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'gregory',lang),hijriLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang),summary:{dailyCapacity:data.daily_capacity||0,averagePct:capacity?Math.round(occupied*100/capacity):0,fullDays:fullDays,capacity:capacity,occupied:occupied,confirmed:all.filter(function(b){return b.state==='confirmed';}).length,provisional:all.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length}}));},
  _prev:function(){this.anchor=this.mode==='month'?new Date(this.anchor.getFullYear(),this.anchor.getMonth()-1,1,12):add(this.anchor,-7);return this._load();},
  _next:function(){this.anchor=this.mode==='month'?new Date(this.anchor.getFullYear(),this.anchor.getMonth()+1,1,12):add(this.anchor,7);return this._load();},
  _today:function(){this.anchor=day(iso(new Date()));return this._load();},

@@ -512,3 +512,46 @@
 .ycc-appointment-form .ycc-daily-form-title small{font-weight:400;color:#6986ae;margin-inline-start:12px}
 .ycc-appointment-form .ycc-daily-form-hint{font-size:11px;color:#5a789c;margin-top:6px}
 .ycc-config-form .ycc-config-hint{background:#eef6ff;border:1px solid #d4e5ff;border-radius:9px;padding:12px;color:#235c9f}
+
+/* V6.4 — approved reference: day columns with a single daily occupancy meter. */
+.ycc-board .ycc-grid-wrap-v64{max-height:calc(100vh - 350px);min-height:320px;border:1px solid #e4e9f3;border-radius:12px;overflow:auto}
+.ycc-board .ycc-week-grid{min-width:1020px;table-layout:fixed;border-spacing:0;width:100%}
+.ycc-board .ycc-week-grid thead th{vertical-align:top;padding:10px 7px 7px;background:#f8faff;height:122px;white-space:normal}
+.ycc-board .ycc-week-grid th.ycc-time-heading{width:112px;min-width:112px;position:sticky;inset-inline-start:0;z-index:8;background:#f9fbff;color:#32476d;font-size:11px;font-weight:800;white-space:nowrap;text-align:center}
+.ycc-board .ycc-week-grid thead th.ycc-time-heading{z-index:12;height:122px}
+.ycc-board .ycc-week-grid th.ycc-week-day{min-width:125px;white-space:normal}
+.ycc-board .ycc-week-grid th.ycc-week-day>strong{font-size:12px;color:#1d2e51}
+.ycc-board .ycc-week-grid th.ycc-week-day>small{font-size:9px;color:#8193b0}
+.ycc-board .ycc-week-grid th.ycc-week-day.ycc-day-full{background:#fff0f1;border:1px solid #f3afb7}
+.ycc-board .ycc-day-meter{background:#eef7f3;border-radius:8px;padding:7px;margin-top:10px;text-align:start}
+.ycc-board .ycc-day-meter .ycc-meter-numbers{display:flex;justify-content:space-between;align-items:center;gap:5px;color:#16805a;font-size:11px}
+.ycc-board .ycc-day-meter .ycc-meter-numbers span{background:#d6f5e6;border-radius:6px;padding:1px 5px}
+.ycc-board .ycc-day-meter.is-full{background:#ffe5e7}
+.ycc-board .ycc-day-meter.is-full .ycc-meter-numbers{color:#bc3444}
+.ycc-board .ycc-day-meter.is-full .ycc-meter-numbers span{background:#ffd2d6}
+.ycc-board .ycc-meter-track{height:6px;background:#dce5e8;border-radius:20px;overflow:hidden;margin-top:6px}
+.ycc-board .ycc-meter-track span{display:block;height:100%;background:#21b887;border-radius:20px}
+.ycc-board .ycc-day-meter.is-full .ycc-meter-track span{background:#e95b6b}
+.ycc-board .ycc-day-meter>small{color:#b63745;font-size:9px;font-weight:700;margin-top:3px}
+.ycc-board .ycc-week-grid td{height:51px;padding:3px;border-color:#eaf0f8}
+.ycc-board .ycc-week-grid .ycc-visual-cell{width:100%;height:42px;min-height:42px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:5px;padding:3px 5px;border:1px dashed #dce6f3;border-radius:8px;background:#fbfcff;box-shadow:none;overflow:hidden}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-visual-booked{justify-content:flex-start;border:1px solid #cbd8fa;background:#eaf2ff;color:#244a88}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-visual-booked:has(.ycc-visual-info small){text-align:start}
+.ycc-board .ycc-week-grid .ycc-visual-icon{height:32px;width:30px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:6px;background:#3974ee;color:white;font-size:14px}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-visual-arrived{background:#e7f8f0;border-color:#a6e4ca;color:#137b58}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-visual-arrived .ycc-visual-icon{background:#16b78a}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-visual-booked.full:not(.ycc-visual-arrived){background:#f5ebff;border-color:#d7c6ff}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-visual-booked.full:not(.ycc-visual-arrived) .ycc-visual-icon{background:#7455c9}
+.ycc-board .ycc-week-grid .ycc-visual-info{display:flex;flex-direction:column;min-width:0;flex:1;align-items:flex-start;gap:2px}
+.ycc-board .ycc-week-grid .ycc-visual-name{font-size:10px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;direction:inherit}
+.ycc-board .ycc-week-grid .ycc-visual-info small{font-size:9px;color:#7387a5;white-space:nowrap}
+.ycc-board .ycc-week-grid .ycc-visual-more{background:#5c84f4;color:white;border-radius:5px;font-size:10px;padding:2px 4px}
+.ycc-board .ycc-week-grid .ycc-visual-available{color:#119967;font-size:10px;font-weight:750}
+.ycc-board .ycc-week-grid .ycc-visual-unavailable{color:#a2afc0;font-size:10px}
+.ycc-board .ycc-week-grid .ycc-visual-cell:not(.ycc-visual-booked).free{background:#f1fcf7;border-color:#a8e5cb}
+.ycc-board .ycc-week-grid .ycc-visual-cell:not(.ycc-visual-booked).full{background:#f8f5f6;border-color:#e4dfe3}
+.ycc-board .ycc-week-grid .ycc-visual-cell:not(.ycc-visual-booked).past,.ycc-board .ycc-week-grid .ycc-visual-cell:not(.ycc-visual-booked).closed{background:#f5f6f8;border-color:#e5e9ef}
+.ycc-board .ycc-kpis-v64 .stat-booked{background:#e6f9f2;color:#137957;border-color:#cbefe0}
+.ycc-board .ycc-kpis-v64 .stat-confirmed{background:#eeebff;color:#5845bd;border-color:#ded8fc}
+.ycc-board .ycc-kpis-v64 .stat-hold{background:#fff3e3;color:#ac691a;border-color:#f7e4c8}
+@media(max-width:900px){.ycc-board .ycc-week-grid{min-width:1000px}.ycc-board .ycc-grid-wrap-v64{max-height:60vh}}
