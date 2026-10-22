@@ -40,6 +40,8 @@ class YCCCalendar(http.Controller):
         # Active installation orders spanning the selected day (not appointments).
         # Order date and delivery date are inclusive; finished/cancelled orders
         # are excluded by the explicit active-state allowlist.
+        # An installation order disappears as soon as an invoice is created,
+        # regardless of whether the invoice is draft or posted.
         installation_by_day = {}
         Order = request.env['wo.installation.order.mst']
         required = ('order_date', 'delivery_date', 'state', 'branch_id', 'partner_id')
@@ -49,6 +51,7 @@ class YCCCalendar(http.Controller):
             orders = Order.search([
                 ('branch_id', '=', branch.branch_id.id),
                 ('state', 'in', active_states),
+                ('create_invoice_id', '=', False),
                 ('order_date', '<', fields.Date.to_string(last)),
                 ('delivery_date', '>=', fields.Date.to_string(first)),
             ], order='order_date asc, id asc')
