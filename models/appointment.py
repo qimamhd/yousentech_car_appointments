@@ -164,7 +164,8 @@ class YCCAppointment(models.Model):
         active holds/confirmed/arrived bookings with a covered (date, slot).
         Each appointment is returned only once, irrespective of slot count.
         """
-        selected_day = fields.Date.to_string(selected_day)
+        # Odoo 13 Date fields can already be strings; normalize both inputs safely.
+        selected_day = fields.Date.to_string(fields.Date.from_string(selected_day))
         now = now or fields.Datetime.now()
         candidates = self.search([
             ('branch_id', '=', branch_id),
@@ -188,7 +189,7 @@ class YCCAppointment(models.Model):
             rec.daily_remaining_view = rec.daily_capacity_view
             if not rec.branch_id or not rec.date:
                 continue
-            selected_day = fields.Date.to_string(rec.date)
+            selected_day = fields.Date.to_string(fields.Date.from_string(rec.date))
             key = (rec.branch_id.id, selected_day)
             if key not in counts:
                 counts[key] = len(self._daily_occupied_appointments(
