@@ -555,3 +555,10 @@
 .ycc-board .ycc-kpis-v64 .stat-confirmed{background:#eeebff;color:#5845bd;border-color:#ded8fc}
 .ycc-board .ycc-kpis-v64 .stat-hold{background:#fff3e3;color:#ac691a;border-color:#f7e4c8}
 @media(max-width:900px){.ycc-board .ycc-week-grid{min-width:1000px}.ycc-board .ycc-grid-wrap-v64{max-height:60vh}}
+
+/* Daily active bookings drill-down: independent of the period cells. */
+.ycc-board .ycc-day-bookings{display:inline-flex;align-items:center;justify-content:center;gap:5px;margin-top:6px;padding:3px 7px;border:1px solid #cbdcf4;border-radius:6px;background:#fff;color:#2555a0;font-size:10px;line-height:1.3;cursor:pointer;max-width:100%;white-space:normal}
+.ycc-board .ycc-day-bookings:hover,.ycc-board .ycc-day-bookings:focus{background:#eaf2ff;border-color:#709ae0;outline:0}
+.ycc-board .ycc-day-bookings b{background:#e4eeff;border-radius:5px;padding:0 5px;font-size:11px}
+.ycc-day-modal .ycc-day-modal-caption{background:#eef5ff;border:1px solid #dbe7fa;color:#41628d;border-radius:8px;padding:9px 12px;margin:12px 0;font-size:12px}
+.ycc-day-modal .ycc-booking{margin:8px 0}
