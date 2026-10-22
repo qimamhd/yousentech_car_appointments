@@ -156,9 +156,32 @@ class YCCAppointment(models.Model):
     daily_booked_view = fields.Integer(string='المحجوز اليوم', compute='_compute_daily_availability')
     daily_remaining_view = fields.Integer(string='المتبقي اليوم', compute='_compute_daily_availability')
 
+    @api.model
+    def _daily_occupied_appointments(self, branch_id, selected_day, now=None):
+        """Bookings covering a real operating slot on the selected day.
+
+        This is the same occupancy definition used by the calendar endpoint:
+        active holds/confirmed/arrived bookings with a covered (date, slot).
+        Each appointment is returned only once, irrespective of slot count.
+        """
+        selected_day = fields.Date.to_string(selected_day)
+        now = now or fields.Datetime.now()
+        candidates = self.search([
+            ('branch_id', '=', branch_id),
+            ('date', '<=', selected_day),
+            '|', '&', ('end_date', '=', False), ('date', '>=', selected_day),
+                 ('end_date', '>=', selected_day),
+            ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done']),
+        ])
+        return candidates.filtered(
+            lambda booking: booking.slot_id and booking._occupies(now)
+            and any(day == selected_day for day, _slot in booking._covered_periods())
+        )
+
     @api.depends('branch_id', 'date', 'end_date', 'slot_id', 'end_slot_id', 'state')
     def _compute_daily_availability(self):
         now = fields.Datetime.now()
+        counts = {}
         for rec in self:
             rec.daily_capacity_view = rec.branch_id.capacity or 0
             rec.daily_booked_view = 0
@@ -166,16 +189,12 @@ class YCCAppointment(models.Model):
             if not rec.branch_id or not rec.date:
                 continue
             selected_day = fields.Date.to_string(rec.date)
-            existing = self.search([
-                ('branch_id', '=', rec.branch_id.id),
-                ('date', '<=', selected_day),
-                '|', ('end_date', '=', False), ('end_date', '>=', selected_day),
-                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done']),
-            ])
-            # A record can be present in several slots; only its id is counted.
-            count = len(existing.filtered(lambda a: a.slot_id and a._occupies(now)))
-            rec.daily_booked_view = count
-            rec.daily_remaining_view = max(0, rec.daily_capacity_view - count)
+            key = (rec.branch_id.id, selected_day)
+            if key not in counts:
+                counts[key] = len(self._daily_occupied_appointments(
+                    rec.branch_id.id, selected_day, now=now))
+            rec.daily_booked_view = counts[key]
+            rec.daily_remaining_view = max(0, rec.daily_capacity_view - counts[key])
 
 
     def _occupies(self, now=None):
