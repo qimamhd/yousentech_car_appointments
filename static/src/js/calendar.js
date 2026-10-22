@@ -9,7 +9,7 @@ function day(s){return new Date(s+'T12:00:00');}
 function add(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n,12);}
 function fmt(d,opts,cal,lang){try{return new Intl.DateTimeFormat(lang+(cal?'-u-ca-'+cal:''),opts).format(d);}catch(e){return iso(d);}}
 var Calendar=AbstractAction.extend({
- events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-day-bookings':'_dayBookings','click .ycc-new':'_new'},
+ events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-new':'_new','click .ycc-installation-count':'_installationDay'},
  init:function(){this._super.apply(this,arguments);this.mode='week';this.anchor=day(iso(new Date()));this.branchId=null;this.payload={branches:[],slots:[],appointments:[],exceptions:[]};},
  start:function(){
     var self=this;
@@ -63,7 +63,7 @@ var Calendar=AbstractAction.extend({
    });
    daily[d.date]={count:Object.keys(seen).length,capacity:data.daily_capacity||0};
  });
- var rows=days.map(function(d){var dailyInfo=daily[d.date]||{count:0,capacity:0};return {date:d.date,label:d.label,hijri:d.hijri,dailyCount:dailyInfo.count,dailyCapacity:dailyInfo.capacity,dailyPercent:dailyInfo.capacity?Math.min(100,Math.round(dailyInfo.count*100/dailyInfo.capacity)):0,cells:slots.map(function(s){
+ var rows=days.map(function(d){var dailyInfo=daily[d.date]||{count:0,capacity:0};return {date:d.date,label:d.label,hijri:d.hijri,dailyCount:dailyInfo.count,dailyCapacity:dailyInfo.capacity,dailyPercent:dailyInfo.capacity?Math.min(100,Math.round(dailyInfo.count*100/dailyInfo.capacity)):0,installationCount:((data.installation_by_day||{})[d.date]||[]).length,cells:slots.map(function(s){
    var active=!s.days.length||s.days.indexOf((d.weekday+6)%7)!==-1,
        closed=(data.exceptions||[]).some(function(e){return e.date===d.date&&(!e.slot_id||e.slot_id===s.id);}),
        list=bookings.filter(function(b){return (b.periods||[]).some(function(p){return p.date===d.date&&p.slot_id===s.id;});}),
@@ -80,6 +80,22 @@ var Calendar=AbstractAction.extend({
  var timeRows=slots.map(function(s,index){return {name:s.name,cells:rows.map(function(row){return row.cells[index];})};});
  var fullDays=rows.filter(function(row){return row.dailyCapacity>0 && row.dailyCount>=row.dailyCapacity;}).length;
  this.$el.html(qweb.render('ycc.Calendar',{branches:data.branches||[],branchId:this.branchId,days:days,slots:slots,rows:rows,timeRows:timeRows,mode:this.mode,arrivalOnly:!!data.arrival_only,canCreate:!!data.can_create,calendarDir:isRtl?'rtl':'ltr',periodLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'gregory',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'gregory',lang),hijriLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang),summary:{dailyCapacity:data.daily_capacity||0,averagePct:capacity?Math.round(occupied*100/capacity):0,fullDays:fullDays,capacity:capacity,occupied:occupied,confirmed:all.filter(function(b){return b.state==='confirmed';}).length,provisional:all.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length}}));},
+ _installationDay:function(e){
+   e.preventDefault();e.stopPropagation();
+   var selected=e.currentTarget.getAttribute('data-date'),orders=((this.payload.installation_by_day||{})[selected]||[]),self=this;
+   var html=qweb.render('ycc.InstallationDayModal',{date:selected,orders:orders});
+   var $modal=$('<div class="modal fade ycc-modal" tabindex="-1" role="dialog"/>').html(html);
+   $('body').append($modal);
+   $modal.on('click','.ycc-close',function(){$modal.modal('hide');});
+   $modal.on('click','.ycc-open-order',function(ev){
+      ev.preventDefault();var id=parseInt($(this).attr('data-id'),10);
+      if(!id)return;
+      $modal.one('hidden.bs.modal',function(){self.do_action({type:'ir.actions.act_window',res_model:'wo.installation.order.mst',res_id:id,views:[[false,'form']],view_mode:'form',target:'current'});});
+      $modal.modal('hide');
+   });
+   $modal.on('hidden.bs.modal',function(){$modal.remove();});
+   $modal.modal('show');
+ },
  _prev:function(){this.anchor=this.mode==='month'?new Date(this.anchor.getFullYear(),this.anchor.getMonth()-1,1,12):add(this.anchor,-7);return this._load();},
  _next:function(){this.anchor=this.mode==='month'?new Date(this.anchor.getFullYear(),this.anchor.getMonth()+1,1,12):add(this.anchor,7);return this._load();},
  _today:function(){this.anchor=day(iso(new Date()));return this._load();},
@@ -87,34 +103,6 @@ var Calendar=AbstractAction.extend({
  _month:function(){this.mode='month';return this._load();},
  _branch:function(e){this.branchId=parseInt(e.currentTarget.value,10);return this._load();},
  _new:function(){if(!this.payload.can_create){return;}this.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',views:[[false,'form']],target:'current'});},
- _dayBookings:function(e){
-   e.preventDefault();e.stopPropagation();
-   var date=$(e.currentTarget).attr('data-date'),self=this;
-   var seen={},bookings=[];
-   (this.payload.appointments||[]).forEach(function(b){
-      if(!seen[b.id] && (b.periods||[]).some(function(p){return p.date===date;})){
-         seen[b.id]=true;bookings.push(b);
-      }
-   });
-   var branch=(this.payload.branches||[]).filter(function(b){return b.id===self.branchId;})[0];
-   var html=qweb.render('ycc.DayBookingsModal',{
-      date:date,branchName:branch?branch.name:'',bookings:bookings,
-      dailyCount:bookings.length,capacity:this.payload.daily_capacity||0
-   });
-   var $modal=$('<div class="modal fade ycc-modal ycc-day-modal" tabindex="-1" role="dialog"/>').html(html);
-   $('body').append($modal);
-   $modal.on('click','.ycc-close',function(){$modal.modal('hide');});
-   var navigating=false;
-   $modal.on('click','.ycc-day-open-booking',function(e){
-      e.preventDefault();e.stopPropagation();
-      var id=parseInt($(this).attr('data-id'),10);if(!id||navigating)return;
-      navigating=true;
-      $modal.one('hidden.bs.modal',function(){self.do_action({type:'ir.actions.act_window',name:'تفاصيل الحجز',res_model:'ycc.appointment',res_id:id,views:[[false,'form']],view_mode:'form',target:'current'});});
-      $modal.modal('hide');
-   });
-   $modal.on('hidden.bs.modal',function(){$modal.remove();});
-   $modal.modal('show');
- },
  _period:function(e){var date=e.currentTarget.getAttribute('data-date'),slotId=parseInt(e.currentTarget.getAttribute('data-slot'),10),slot=(this.payload.slots||[]).filter(function(s){return s.id===slotId;})[0];if(!slot)return;
  var bookings=(this.payload.appointments||[]).filter(function(b){return (b.periods||[]).some(function(p){return p.date===date&&p.slot_id===slotId;});}),branch=(this.payload.branches||[]).filter(function(b){return b.id===this.branchId;},this)[0],self=this;
  var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slot.name,branchName:branch?branch.name:'',capacity:this.payload.daily_capacity||slot.capacity,dailyCount:(function(){var seen={};(self.payload.appointments||[]).forEach(function(b){if((b.periods||[]).some(function(p){return p.date===date;})){seen[b.id]=true;}});return Object.keys(seen).length;})(),bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed';}).length,arrived:bookings.filter(function(b){return b.state==='done';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length,canCreate:!!this.payload.can_create,canInstall:!!this.payload.can_create||!!this.payload.arrival_only});
