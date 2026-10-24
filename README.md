@@ -130,3 +130,5 @@ V5.1: Highlight selected-day delivery orders, collapse later-delivery orders in 
 - Selected-day delivery stays visible with a subtle one-pixel border.
 - Future delivery orders remain collapsed.
 - Forecast summary and counters now describe only selected-day/future deliveries and arrivals.
+
+V6.12: Installation orders created from appointments always use appointment start date as order_date (popup default and server-side create). Existing installation orders are not modified.

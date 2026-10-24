@@ -150,6 +150,7 @@ class YCCAppointment(models.Model):
     contact_ids = fields.One2many('ycc.contact','appointment_id',string='سجل التواصل')
     next_contact_at = fields.Datetime(string='موعد المتابعة القادم')
     company_id = fields.Many2one('res.company',related='branch_id.company_id',store=True,readonly=True)
+    actual_arrival_at = fields.Datetime(string='تاريخ ووقت وصول السيارة الفعلي', readonly=True, copy=False, tracking=True)
     installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب المرتبط', readonly=True, copy=False, tracking=True)
 
     daily_capacity_view = fields.Integer(string='سعة اليوم', compute='_compute_daily_availability')
@@ -325,7 +326,7 @@ class YCCAppointment(models.Model):
         if self._ycc_arrival_only_user():
             # This group can only mark an existing confirmed booking as arrived.
             # Linking the new installation order is handled by the order create hook.
-            allowed_arrival = (set(vals) == {'state'} and vals['state'] == 'done'
+            allowed_arrival = (set(vals) in ({'state'}, {'state', 'actual_arrival_at'}) and vals.get('state') == 'done'
                                and all(r.state == 'confirmed' for r in self))
             allowed_link = (set(vals) == {'installation_order_id', 'state'} and vals.get('state') == 'installation_created'
                             and all(r.state == 'done' and not r.installation_order_id for r in self)
@@ -453,6 +454,7 @@ class YCCAppointment(models.Model):
                 default_branch_id=branch.id,
                 default_company_id=self.company_id.id or self.env.company.id,
                 default_order_date=fields.Date.context_today(self),
+                default_ycc_appointment_id=self.id,
                 default_car_manuf_id=self.car_manuf_id.id or False,
                 default_car_type_id=self.car_type_id.id or False,
                 default_car_panel_no=self.vehicle_plate or False,
@@ -523,7 +525,13 @@ class YCCAppointment(models.Model):
                 raise UserError(_('Only active provisional bookings can be confirmed.'))
             rec.write({'state':'confirmed'})
     def action_cancel(self): self.write({'state':'cancelled'})
-    def action_done(self): self.write({'state':'done'})
+    def action_done(self):
+        for rec in self:
+            if rec.state != 'confirmed':
+                raise UserError(_('يجب تأكيد الموعد قبل تسجيل وصول السيارة.'))
+            arrival = fields.Datetime.now()
+            rec.write({'state': 'done', 'actual_arrival_at': arrival})
+            rec.message_post(body=_('تم تسجيل وصول السيارة الفعلي في %s بواسطة %s. تاريخ الحجز المخطط: %s.') % (arrival, self.env.user.name, rec.date or '-'))
     def action_no_show(self): self.write({'state':'no_show'})
 
     @api.model

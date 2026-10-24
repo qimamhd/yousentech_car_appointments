@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
+from datetime import datetime
 from odoo.exceptions import UserError
 
 
@@ -8,6 +9,26 @@ class YCCInstallationOrder(models.Model):
 
     ycc_appointment_id = fields.Many2one('ycc.appointment', string='حجز الموعد المصدر',
                                          readonly=True, copy=False, index=True)
+
+    ycc_booking_date = fields.Date(string='تاريخ الحجز المخطط', related='ycc_appointment_id.date', readonly=True)
+    ycc_date_difference_notice = fields.Text(string='ملاحظة اختلاف التواريخ', compute='_compute_ycc_date_difference_notice')
+
+    @api.depends('order_date', 'ycc_appointment_id', 'ycc_appointment_id.date')
+    def _compute_ycc_date_difference_notice(self):
+        for order in self:
+            appt = order.ycc_appointment_id
+            if not appt or not appt.date or not order.order_date:
+                order.ycc_date_difference_notice = False
+                continue
+            booking = fields.Date.from_string(appt.date)
+            request = fields.Date.from_string(order.order_date)
+            days = (request - booking).days
+            if days > 0:
+                order.ycc_date_difference_notice = _('تنبيه: أمر التركيب بعد موعد الحجز بـ %s يوم. تحقق هل تأخرت السيارة أم تأخر تسجيل الأمر. سيُوثّق الفرق في سجل الحجز وأمر التركيب.') % days
+            elif days < 0:
+                order.ycc_date_difference_notice = _('تنبيه: أمر التركيب قبل موعد الحجز بـ %s يوم. تأكد من موعد الاستقبال. سيُوثّق الفرق في سجل الحجز وأمر التركيب.') % abs(days)
+            else:
+                order.ycc_date_difference_notice = False
 
     @api.model
     def create(self, vals):
@@ -30,10 +51,29 @@ class YCCInstallationOrder(models.Model):
         # Lock the actual branch row and allocate the next number there.
         self.env.cr.execute('SELECT id FROM custom_branches WHERE id = %s FOR UPDATE', (branch_id,))
         self.env.cr.execute('SELECT COALESCE(MAX(seq), 0) + 1 FROM wo_installation_order_mst WHERE branch_id = %s', (branch_id,))
+        # Order request date is the real date of order creation; booking date is
+        # kept separately. Never backdate the request to the appointment.
+        if not appt.date:
+            raise UserError(_('يجب تحديد تاريخ بداية الحجز قبل إنشاء أمر التركيب.'))
+        actual_request_date = fields.Date.context_today(self)
         vals = dict(vals, branch_id=branch_id, seq=self.env.cr.fetchone()[0],
-                    ycc_appointment_id=appt.id, state='draft')
+                    order_date=actual_request_date, ycc_appointment_id=appt.id, state='draft')
         order = super(YCCInstallationOrder, self).create(vals)
         appt.with_context(ycc_source_appointment_id=appt.id).write({'installation_order_id': order.id, 'state': 'installation_created'})
+        booking_date = fields.Date.from_string(appt.date)
+        request_date = fields.Date.from_string(actual_request_date)
+        difference = (request_date - booking_date).days
+        if difference > 0:
+            explanation = _('أُنشئ أمر التركيب بعد تاريخ الحجز بـ %s يوم. يرجى مراجعة ما إذا كان السبب تأخر وصول السيارة أو تأخر تسجيل الأمر.') % difference
+        elif difference < 0:
+            explanation = _('أُنشئ أمر التركيب قبل تاريخ الحجز بـ %s يوم؛ يرجى مراجعة موعد الاستقبال.') % abs(difference)
+        else:
+            explanation = _('تاريخ طلب أمر التركيب مطابق لتاريخ الحجز.')
+        audit = _('مرجع تواريخ الحجز/التركيب: الحجز %s؛ تاريخ الحجز المخطط %s؛ تاريخ ووقت الوصول المسجل %s؛ تاريخ طلب أمر التركيب الفعلي %s؛ أنشأه %s. %s') % (
+            appt.name, appt.date, appt.actual_arrival_at or _('غير مسجل'),
+            actual_request_date, self.env.user.name, explanation)
+        appt.message_post(body=audit)
+        order.message_post(body=audit)
         if appt.notes:
             order.message_post(body=_('ملاحظات الحجز: %s') % appt.notes)
         return order
