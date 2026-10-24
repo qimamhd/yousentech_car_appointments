@@ -571,3 +571,13 @@
 .ycc-appointment-form .ycc-arrival-audit-title i{margin-inline-end:7px}
 .ycc-appointment-form .ycc-arrival-audit-help{color:#52677e;font-size:12px;line-height:1.8;margin-bottom:10px}
 .ycc-appointment-form .ycc-arrival-audit-panel .o_group{margin-bottom:0}
+
+/* V6.16 — daily occupancy severity (75% warning, 100% full). */
+.ycc-board .ycc-week-grid th.ycc-week-day.ycc-day-warning{background:#fff8ec;border-color:#f4d49e}
+.ycc-board .ycc-day-meter.is-warning{background:#fff2dd}
+.ycc-board .ycc-day-meter.is-warning .ycc-meter-numbers{color:#a9610b}
+.ycc-board .ycc-day-meter.is-warning .ycc-meter-numbers span{background:#ffe0ac;color:#965408}
+.ycc-board .ycc-day-meter.is-warning .ycc-meter-track span{background:#ee9b23}
+.ycc-modal .ycc-progress.is-warning span{background:#ee9b23}
+.ycc-modal .ycc-progress.is-full span{background:#e95b6b}
+.ycc-modal .ycc-progress.is-free span{background:#21b887}
