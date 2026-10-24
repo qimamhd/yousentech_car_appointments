@@ -564,3 +564,10 @@
 .ycc-installation-order-card { display:flex; justify-content:space-between; align-items:center; gap:12px; border:1px solid #e1e6f1; border-radius:10px; padding:12px; margin-bottom:8px; }
 .ycc-installation-order-card>div { display:flex; flex-direction:column; gap:5px; }
 .ycc-installation-order-card small { color:#65738d; }
+
+/* V6.14 — date audit is visually distinct from editable booking fields. */
+.ycc-appointment-form .ycc-arrival-audit-panel{margin:16px 0;padding:14px 18px;border:1px solid #dce6f2;border-radius:12px;background:#f8fbff}
+.ycc-appointment-form .ycc-arrival-audit-title{color:#264c78;font-size:15px;font-weight:700;margin-bottom:6px}
+.ycc-appointment-form .ycc-arrival-audit-title i{margin-inline-end:7px}
+.ycc-appointment-form .ycc-arrival-audit-help{color:#52677e;font-size:12px;line-height:1.8;margin-bottom:10px}
+.ycc-appointment-form .ycc-arrival-audit-panel .o_group{margin-bottom:0}
