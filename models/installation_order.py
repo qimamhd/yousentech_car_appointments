@@ -33,7 +33,7 @@ class YCCInstallationOrder(models.Model):
         vals = dict(vals, branch_id=branch_id, seq=self.env.cr.fetchone()[0],
                     ycc_appointment_id=appt.id, state='draft')
         order = super(YCCInstallationOrder, self).create(vals)
-        appt.with_context(ycc_source_appointment_id=appt.id).write({'installation_order_id': order.id})
+        appt.with_context(ycc_source_appointment_id=appt.id).write({'installation_order_id': order.id, 'state': 'installation_created'})
         if appt.notes:
             order.message_post(body=_('ملاحظات الحجز: %s') % appt.notes)
         return order

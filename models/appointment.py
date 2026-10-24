@@ -27,7 +27,7 @@ class YCCBranch(models.Model):
                     self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', ['ycc:branch:%s' % rec.id])
                     appointments = self.env['ycc.appointment'].search([
                         ('branch_id', '=', rec.id),
-                        ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done'])
+                        ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created'])
                     ])
                     occupied = {}
                     for booking in appointments:
@@ -145,7 +145,7 @@ class YCCAppointment(models.Model):
     service_id = fields.Many2one('ycc.service',string='الخدمة')
     agent_id = fields.Many2one('res.users',string='المندوب',default=lambda self:self.env.user)
     notes = fields.Text(string='الملاحظات')
-    state = fields.Selection([('provisional','مبدئي'),('contacting','جاري التواصل'),('confirmed','مؤكد'),('expired','منتهي'),('cancelled','ملغي'),('done','وصلت السيارة'),('no_show','لم يحضر')],string='الحالة',default='provisional',required=True,tracking=True)
+    state = fields.Selection([('provisional','مبدئي'),('contacting','جاري التواصل'),('confirmed','مؤكد'),('expired','منتهي'),('cancelled','ملغي'),('done','وصلت السيارة'),('installation_created','تم إنشاء أمر تركيب'),('no_show','لم يحضر')],string='الحالة',default='provisional',required=True,tracking=True)
     hold_until = fields.Datetime(string='انتهاء الحجز المبدئي',readonly=True,copy=False)
     contact_ids = fields.One2many('ycc.contact','appointment_id',string='سجل التواصل')
     next_contact_at = fields.Datetime(string='موعد المتابعة القادم')
@@ -172,7 +172,7 @@ class YCCAppointment(models.Model):
             ('date', '<=', selected_day),
             '|', '&', ('end_date', '=', False), ('date', '>=', selected_day),
                  ('end_date', '>=', selected_day),
-            ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done']),
+            ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created']),
         ])
         return candidates.filtered(
             lambda booking: booking.slot_id and booking._occupies(now)
@@ -201,7 +201,7 @@ class YCCAppointment(models.Model):
     def _occupies(self, now=None):
         self.ensure_one()
         now = fields.Datetime.from_string(now or fields.Datetime.now())
-        return self.state in ('confirmed','done') or (self.state in ('provisional','contacting') and self.hold_until and fields.Datetime.from_string(self.hold_until) > now)
+        return self.state in ('confirmed','done','installation_created') or (self.state in ('provisional','contacting') and self.hold_until and fields.Datetime.from_string(self.hold_until) > now)
 
     def _booking_dates(self):
         self.ensure_one()
@@ -273,7 +273,7 @@ class YCCAppointment(models.Model):
                 ('branch_id', '=', rec.branch_id.id), ('id', '!=', rec.id),
                 ('date', '<=', fields.Date.to_string(last)),
                 '|', '&', ('end_date', '=', False), ('date', '>=', fields.Date.to_string(first)), ('end_date', '>=', fields.Date.to_string(first)),
-                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done'])
+                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created'])
             ])
             now = fields.Datetime.now()
             occupied = {}
@@ -327,7 +327,7 @@ class YCCAppointment(models.Model):
             # Linking the new installation order is handled by the order create hook.
             allowed_arrival = (set(vals) == {'state'} and vals['state'] == 'done'
                                and all(r.state == 'confirmed' for r in self))
-            allowed_link = (set(vals) == {'installation_order_id'}
+            allowed_link = (set(vals) == {'installation_order_id', 'state'} and vals.get('state') == 'installation_created'
                             and all(r.state == 'done' and not r.installation_order_id for r in self)
                             and self.env.context.get('ycc_source_appointment_id'))
             if not (allowed_arrival or allowed_link):
@@ -338,7 +338,7 @@ class YCCAppointment(models.Model):
             for rec in self:
                 if rec.state not in ('provisional','contacting') or not rec._occupies():
                     raise UserError(_('Expired holds cannot be reopened. Create a new booking.'))
-        if 'state' in vals and vals['state'] in ('confirmed', 'done'):
+        if 'state' in vals and vals['state'] in ('confirmed', 'done', 'installation_created'):
             for rec in self:
                 if rec.state in ('expired', 'cancelled', 'no_show'):
                     raise UserError(_('Closed appointments cannot be reopened.'))
@@ -367,7 +367,7 @@ class YCCAppointment(models.Model):
         day = fields.Date.to_string(fields.Date.from_string(target_date))
         existing = self.search([('branch_id', '=', branch.id), ('date', '<=', day),
                                 '|', '&', ('end_date', '=', False), ('date', '=', day),
-                                ('end_date', '>=', day), ('state', '=', 'done')])
+                                ('end_date', '>=', day), ('state', 'in', ['done', 'installation_created'])])
         arrived = existing.filtered(lambda rec: rec.slot_id and rec._occupies() and
                                     any(d == day for d, slot in rec._covered_periods()))
         model_name = 'wo.installation.order.mst'
