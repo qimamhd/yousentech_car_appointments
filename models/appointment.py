@@ -152,6 +152,23 @@ class YCCAppointment(models.Model):
     company_id = fields.Many2one('res.company',related='branch_id.company_id',store=True,readonly=True)
     actual_arrival_at = fields.Datetime(string='تاريخ ووقت وصول السيارة الفعلي', readonly=True, copy=False, tracking=True)
     installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب المرتبط', readonly=True, copy=False, tracking=True)
+    installation_order_date = fields.Date(string='تاريخ طلب أمر التركيب', related='installation_order_id.order_date', readonly=True, store=False)
+    installation_date_notice = fields.Char(string='ملاحظة فرق التواريخ', compute='_compute_installation_date_notice', readonly=True)
+
+    @api.depends('date', 'installation_order_id', 'installation_order_id.order_date')
+    def _compute_installation_date_notice(self):
+        for rec in self:
+            if not rec.date or not rec.installation_order_date:
+                rec.installation_date_notice = False
+                continue
+            days = (fields.Date.from_string(rec.installation_order_date) - fields.Date.from_string(rec.date)).days
+            if days > 0:
+                rec.installation_date_notice = _('أُنشئ أمر التركيب بعد موعد الحجز بـ %s يوم.') % days
+            elif days < 0:
+                rec.installation_date_notice = _('أُنشئ أمر التركيب قبل موعد الحجز بـ %s يوم.') % abs(days)
+            else:
+                rec.installation_date_notice = _('تاريخ طلب أمر التركيب مطابق لتاريخ الحجز.')
+
 
     daily_capacity_view = fields.Integer(string='سعة اليوم', compute='_compute_daily_availability')
     daily_booked_view = fields.Integer(string='المحجوز اليوم', compute='_compute_daily_availability')
