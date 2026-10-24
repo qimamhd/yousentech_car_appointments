@@ -605,3 +605,11 @@
 .ycc-peer-track.is-closed span{background:#a7b1bd}
 .ycc-peer-bottom{font-size:11px;color:#52677e;flex-wrap:wrap}
 .ycc-peer-bottom button{white-space:normal}
+
+/* V6.19: inline comparison action before daily occupancy state; no extra row. */
+.ycc-board .ycc-day-meter .ycc-meter-numbers{gap:3px;min-width:0;flex-wrap:nowrap}
+.ycc-board .ycc-day-meter .ycc-meter-numbers>b{flex:0 0 auto;white-space:nowrap;font-size:10px}
+.ycc-board .ycc-day-meter .ycc-meter-numbers>span{flex:0 0 auto;white-space:nowrap;font-size:9px;padding:2px 4px}
+.ycc-board .ycc-day-meter .ycc-meter-numbers>.ycc-peer-branches{flex:1 1 auto;min-width:0;width:auto;margin:0;padding:3px 2px;font-size:9px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:6px}
+.ycc-board .ycc-day-meter .ycc-meter-numbers>.ycc-peer-branches i{flex-shrink:0}
+@media(max-width:1200px){.ycc-board .ycc-day-meter .ycc-meter-numbers>.ycc-peer-branches{font-size:8px;letter-spacing:-.2px}}
