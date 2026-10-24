@@ -69,7 +69,7 @@ var Calendar=AbstractAction.extend({
        list=bookings.filter(function(b){return (b.periods||[]).some(function(p){return p.date===d.date&&p.slot_id===s.id;});}),
        count=list.length,arrivedCount=list.filter(function(b){return b.state==='done'||b.state==='installation_created';}).length,
        open=active&&!closed,past=d.date<today,
-       css=!open?'closed':past?'past':dailyInfo.count>=dailyInfo.capacity?'full':dailyInfo.count>=dailyInfo.capacity*.75?'busy':dailyInfo.count?'partial':'free';
+       css=!open?'closed':past?'past':dailyInfo.count>=dailyInfo.capacity?'full':dailyInfo.count>=dailyInfo.capacity*.70?'busy':dailyInfo.count?'partial':'free';
    return {date:d.date,slot_id:s.id,capacity:dailyInfo.capacity,count:count,dailyCount:dailyInfo.count,open:open,
      remaining:Math.max(0,dailyInfo.capacity-dailyInfo.count),css:css,bookings:list,past:past,firstClient:list.length?list[0].client:'',bookingStatus:list.length?(list.some(function(b){return b.state==='installation_created';})?'تم إنشاء أمر تركيب':arrivedCount?'وصلت السيارة':list[0].state==='confirmed'?'مؤكد':'مبدئي'):'',
      arrivedCount:arrivedCount,hasArrived:arrivedCount>0,
