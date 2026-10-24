@@ -581,3 +581,27 @@
 .ycc-modal .ycc-progress.is-warning span{background:#ee9b23}
 .ycc-modal .ycc-progress.is-full span{background:#e95b6b}
 .ycc-modal .ycc-progress.is-free span{background:#21b887}
+
+/* V6.18: same-day peer branch comparison */
+.ycc-board .ycc-peer-branches{display:inline-flex;align-items:center;justify-content:center;gap:4px;width:100%;margin-top:6px;padding:3px 5px;border:1px solid #cbd7ef;border-radius:7px;background:#f7f9ff;color:#4b5fa4;font-size:10px;font-weight:700;cursor:pointer;white-space:normal}
+.ycc-board .ycc-peer-branches:hover{background:#e9efff;border-color:#8da5e7}
+.ycc-peer-explainer{background:#f5f8ff;border:1px solid #e3eaf7;border-radius:10px;padding:12px 14px;color:#53647f;line-height:1.8}
+.ycc-peer-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:15px 0}
+.ycc-peer-card{padding:14px;border:1px solid #dce5ee;border-radius:12px;background:#fff;min-width:0}
+.ycc-peer-card.is-current{border-color:#8296dc;background:#f7f8ff}
+.ycc-peer-card.is-closed{opacity:.7;background:#f8f9fa}
+.ycc-peer-top,.ycc-peer-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ycc-peer-top strong{font-size:13px;color:#22314b;display:block}
+.ycc-peer-top small{display:block;color:#697c94;font-size:10px;margin-top:3px}
+.ycc-peer-pill{font-size:12px;font-weight:800;border-radius:8px;padding:4px 7px;white-space:nowrap}
+.ycc-peer-pill.is-free{color:#087d57;background:#dff7ee}
+.ycc-peer-pill.is-warning{color:#9b5a09;background:#fff0d7}
+.ycc-peer-pill.is-full{color:#b52f42;background:#ffe4e8}
+.ycc-peer-pill.is-closed{color:#667085;background:#e9edf1}
+.ycc-peer-track{height:7px;border-radius:20px;background:#e8edf2;overflow:hidden;margin:12px 0}
+.ycc-peer-track span{display:block;height:100%;border-radius:20px;background:#17ae7f}
+.ycc-peer-track.is-warning span{background:#ee9b23}
+.ycc-peer-track.is-full span{background:#e95b6b}
+.ycc-peer-track.is-closed span{background:#a7b1bd}
+.ycc-peer-bottom{font-size:11px;color:#52677e;flex-wrap:wrap}
+.ycc-peer-bottom button{white-space:normal}

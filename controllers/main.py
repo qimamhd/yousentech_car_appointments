@@ -93,8 +93,59 @@ class YCCCalendar(http.Controller):
                                  if isinstance(Order._fields['state'].selection, (list, tuple)) else order.state,
                     })
                     current += timedelta(days=1)
+        # Cross-branch comparison: same day, same occupancy definition as the
+        # calendar (one appointment per day, even for multi-slot bookings).
+        # Read through the requesting user's normal ACLs / record rules.
+        comparison = {}
+        visible_configs = configurations.filtered(lambda c: c.branch_id)
+        if len(visible_configs) > 1:
+            peer_bookings = request.env['ycc.appointment'].search([
+                ('branch_id', 'in', visible_configs.ids),
+                ('date', '<', fields.Date.to_string(last)),
+                '|', '&', ('end_date', '=', False), ('date', '>=', fields.Date.to_string(first)),
+                ('end_date', '>=', fields.Date.to_string(first)),
+                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created']),
+            ])
+            peer_counts = {}
+            for appt in peer_bookings:
+                if not appt.slot_id or not appt.date or not appt._occupies():
+                    continue
+                covered_dates = set()
+                for covered_date, _slot in appt._covered_periods():
+                    if first <= fields.Date.from_string(covered_date) < last:
+                        covered_dates.add(covered_date)
+                for covered_date in covered_dates:
+                    key = (appt.branch_id.id, covered_date)
+                    peer_counts[key] = peer_counts.get(key, 0) + 1
+            peer_slots = request.env['ycc.slot'].search([
+                ('branch_id', 'in', visible_configs.ids), ('active', '=', True)])
+            peer_exceptions = request.env['ycc.exception'].search([
+                ('branch_id', 'in', visible_configs.ids),
+                ('date', '>=', fields.Date.to_string(first)),
+                ('date', '<', fields.Date.to_string(last)),
+                ('slot_id', '=', False),
+            ])
+            blocked = {(ex.branch_id.id, fields.Date.to_string(ex.date)) for ex in peer_exceptions}
+            for offset in range((last-first).days):
+                current_day = first + timedelta(days=offset)
+                date_key = fields.Date.to_string(current_day)
+                items = []
+                for config in visible_configs:
+                    count = peer_counts.get((config.id, date_key), 0)
+                    cap = config.capacity or 0
+                    available_slots = peer_slots.filtered(lambda sl: sl.branch_id.id == config.id and (
+                        not sl.weekday_ids or str(current_day.weekday()) in sl.weekday_ids.mapped('code')))
+                    is_open = bool(cap > 0 and available_slots and (config.id, date_key) not in blocked)
+                    items.append({'id': config.id, 'name': config.branch_id.display_name,
+                                  'count': count, 'capacity': cap,
+                                  'remaining': max(0, cap-count) if is_open else 0,
+                                  'percent': min(100, round(count*100.0/cap)) if cap else 0,
+                                  'open': is_open})
+                items.sort(key=lambda x: (not x['open'], x['percent'] if x['open'] else 999,
+                                          -x['remaining'], x['name']))
+                comparison[date_key] = items
         now = fields.Datetime.now()
-        return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,
+        return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'branch_comparison':comparison,
             'slots':[{'id':s.id,'name':s.name,'start_hour':s.start_hour,'end_hour':s.end_hour,'capacity':branch.capacity,'days':[int(x) for x in s.weekday_ids.mapped('code')]} for s in slots],
             'exceptions':[{'date':fields.Date.to_string(e.date),'slot_id':e.slot_id.id or False,'reason':e.reason} for e in exceptions],
             'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':a._covered_slots().ids if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in a._covered_periods() if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or ''} for a in appointments if a._occupies(now)]}
