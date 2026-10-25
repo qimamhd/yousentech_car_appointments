@@ -36,7 +36,7 @@ class YCCCalendar(http.Controller):
         if last <= first or (last-first).days > 42: return {'error':'Invalid date range'}
         slots = request.env['ycc.slot'].search([('branch_id','=',branch.id),('active','=',True)])
         exceptions = request.env['ycc.exception'].search([('branch_id','=',branch.id),('date','>=',first),('date','<',last)])
-        appointments = request.env['ycc.appointment'].search([('branch_id','=',branch.id),('date','<',last),'|','&',('end_date','=',False),('date','>=',first),('end_date','>=',first),('state','in',['provisional','contacting','confirmed','done','installation_created'])])
+        appointments = request.env['ycc.appointment'].search([('branch_id','=',branch.id),('date','<',last),'|','&',('end_date','=',False),('date','>=',first),('end_date','>=',first),('state','in',['provisional','contacting','confirmed','done','installation_created','postponed','no_show'])])
         # Active installation orders spanning the selected day (not appointments).
         # Order date and delivery date are inclusive; finished/cancelled orders
         # are excluded by the explicit active-state allowlist.
@@ -104,7 +104,7 @@ class YCCCalendar(http.Controller):
                 ('date', '<', fields.Date.to_string(last)),
                 '|', '&', ('end_date', '=', False), ('date', '>=', fields.Date.to_string(first)),
                 ('end_date', '>=', fields.Date.to_string(first)),
-                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created']),
+                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created','postponed']),
             ])
             peer_counts = {}
             for appt in peer_bookings:
@@ -148,4 +148,4 @@ class YCCCalendar(http.Controller):
         return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'branch_comparison':comparison,
             'slots':[{'id':s.id,'name':s.name,'start_hour':s.start_hour,'end_hour':s.end_hour,'capacity':branch.capacity,'days':[int(x) for x in s.weekday_ids.mapped('code')]} for s in slots],
             'exceptions':[{'date':fields.Date.to_string(e.date),'slot_id':e.slot_id.id or False,'reason':e.reason} for e in exceptions],
-            'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':a._covered_slots().ids if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in a._covered_periods() if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or ''} for a in appointments if a._occupies(now)]}
+            'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':a._covered_slots().ids if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in a._covered_periods() if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'occupies':a._occupies(now),'service_stage':a.service_stage,'was_postponed':a.was_postponed,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or ''} for a in appointments if a._occupies(now) or a.state == 'no_show']}

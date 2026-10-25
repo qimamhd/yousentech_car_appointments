@@ -59,7 +59,7 @@ var Calendar=AbstractAction.extend({
  var daily={};
  days.forEach(function(d){
    var seen={};bookings.forEach(function(b){
-     if((b.periods||[]).some(function(p){return p.date===d.date;})){seen[b.id]=true;}
+     if(b.occupies && (b.periods||[]).some(function(p){return p.date===d.date;})){seen[b.id]=true;}
    });
    daily[d.date]={count:Object.keys(seen).length,capacity:data.daily_capacity||0};
  });
@@ -71,7 +71,7 @@ var Calendar=AbstractAction.extend({
        open=active&&!closed,past=d.date<today,
        css=!open?'closed':past?'past':dailyInfo.count>=dailyInfo.capacity?'full':dailyInfo.count>=dailyInfo.capacity*.70?'busy':dailyInfo.count?'partial':'free';
    return {date:d.date,slot_id:s.id,capacity:dailyInfo.capacity,count:count,dailyCount:dailyInfo.count,open:open,
-     remaining:Math.max(0,dailyInfo.capacity-dailyInfo.count),css:css,bookings:list,past:past,firstClient:list.length?list[0].client:'',bookingStatus:list.length?(list.some(function(b){return b.state==='installation_created';})?'تم إنشاء أمر تركيب':arrivedCount?'وصلت السيارة':list[0].state==='confirmed'?'مؤكد':'مبدئي'):'',
+     remaining:Math.max(0,dailyInfo.capacity-dailyInfo.count),css:css,bookings:list,past:past,firstClient:list.length?list[0].client:'',bookingStatus:list.length?({provisional:'حجز مبدئي',contacting:'جاري التواصل',confirmed:'حجز مؤكد',done:'وصلت السيارة',installation_created:'تم إنشاء أمر تركيب',completed:'تم الإنجاز',invoice_closed:'إقفال الفاتورة',postponed:'تأجيل الموعد',no_show:'لم يحضر'}[list[0].service_stage]||'حجز'):'',bookingStage:list.length?list[0].service_stage:'',
      arrivedCount:arrivedCount,hasArrived:arrivedCount>0,
      spanCount:list.filter(function(b){return (b.periods||[]).length>1;}).length,
      hasSpan:list.some(function(b){return (b.periods||[]).length>1;})};})};});
@@ -123,7 +123,7 @@ var Calendar=AbstractAction.extend({
  _new:function(){if(!this.payload.can_create){return;}this.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',views:[[false,'form']],target:'current'});},
  _period:function(e){var date=e.currentTarget.getAttribute('data-date'),slotId=parseInt(e.currentTarget.getAttribute('data-slot'),10),slot=(this.payload.slots||[]).filter(function(s){return s.id===slotId;})[0];if(!slot)return;
  var bookings=(this.payload.appointments||[]).filter(function(b){return (b.periods||[]).some(function(p){return p.date===date&&p.slot_id===slotId;});}),branch=(this.payload.branches||[]).filter(function(b){return b.id===this.branchId;},this)[0],self=this;
- var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slot.name,branchName:branch?branch.name:'',capacity:this.payload.daily_capacity||slot.capacity,dailyCount:(function(){var seen={};(self.payload.appointments||[]).forEach(function(b){if((b.periods||[]).some(function(p){return p.date===date;})){seen[b.id]=true;}});return Object.keys(seen).length;})(),bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed';}).length,arrived:bookings.filter(function(b){return b.state==='done'||b.state==='installation_created';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length,canCreate:!!this.payload.can_create,canInstall:!!this.payload.can_create||!!this.payload.arrival_only});
+ var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slot.name,branchName:branch?branch.name:'',capacity:this.payload.daily_capacity||slot.capacity,dailyCount:(function(){var seen={};(self.payload.appointments||[]).forEach(function(b){if(b.occupies && (b.periods||[]).some(function(p){return p.date===date;})){seen[b.id]=true;}});return Object.keys(seen).length;})(),bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed';}).length,arrived:bookings.filter(function(b){return b.state==='done'||b.state==='installation_created';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length,canCreate:!!this.payload.can_create,canInstall:!!this.payload.can_create||!!this.payload.arrival_only});
  var $modal=$('<div class="modal fade ycc-modal" tabindex="-1" role="dialog"/>').html(html);$('body').append($modal);
  $modal.on('click','.ycc-close',function(){$modal.modal('hide');});
  // Open the actual appointment when clicking anywhere on its card.

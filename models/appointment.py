@@ -27,7 +27,7 @@ class YCCBranch(models.Model):
                     self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', ['ycc:branch:%s' % rec.id])
                     appointments = self.env['ycc.appointment'].search([
                         ('branch_id', '=', rec.id),
-                        ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created'])
+                        ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created', 'postponed'])
                     ])
                     occupied = {}
                     for booking in appointments:
@@ -146,13 +146,38 @@ class YCCAppointment(models.Model):
     service_id = fields.Many2one('ycc.service',string='الخدمة')
     agent_id = fields.Many2one('res.users',string='المندوب',default=lambda self:self.env.user)
     notes = fields.Text(string='الملاحظات')
-    state = fields.Selection([('provisional','مبدئي'),('contacting','جاري التواصل'),('confirmed','مؤكد'),('expired','منتهي'),('cancelled','ملغي'),('done','وصلت السيارة'),('installation_created','تم إنشاء أمر تركيب'),('no_show','لم يحضر')],string='الحالة',default='provisional',required=True,tracking=True)
+    state = fields.Selection([('provisional','مبدئي'),('contacting','جاري التواصل'),('confirmed','مؤكد'),('expired','منتهي'),('cancelled','ملغي'),('done','وصلت السيارة'),('installation_created','تم إنشاء أمر تركيب'),('no_show','لم يحضر'),('postponed','تم تأجيل الموعد')],string='الحالة',default='provisional',required=True,tracking=True)
     hold_until = fields.Datetime(string='انتهاء الحجز المبدئي',readonly=True,copy=False)
+    was_postponed = fields.Boolean(string='تم تأجيله سابقًا', default=False, readonly=True, copy=False, tracking=True)
+    postponement_count = fields.Integer(string='عدد مرات التأجيل', default=0, readonly=True, copy=False)
     contact_ids = fields.One2many('ycc.contact','appointment_id',string='سجل التواصل')
     next_contact_at = fields.Datetime(string='موعد المتابعة القادم')
     company_id = fields.Many2one('res.company',related='branch_id.company_id',store=True,readonly=True)
     actual_arrival_at = fields.Datetime(string='تاريخ ووقت وصول السيارة الفعلي', readonly=True, copy=False, tracking=True)
     installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب المرتبط', readonly=True, copy=False, tracking=True)
+    service_stage = fields.Selection([
+        ('provisional','حجز مبدئي'),('contacting','جاري التواصل'),('confirmed','حجز مؤكد'),
+        ('done','وصلت السيارة'),('installation_created','تم إنشاء أمر تركيب'),
+        ('completed','تم الإنجاز'),('invoice_closed','تم إقفال الفاتورة'),
+        ('postponed','تم تأجيل الموعد'),('no_show','لم يحضر'),
+        ('cancelled','ملغي'),('expired','منتهي')],
+        string='مؤشر خدمة العملاء', compute='_compute_service_stage', readonly=True)
+
+    @api.depends('state', 'installation_order_id', 'installation_order_id.state',
+                 'installation_order_id.create_invoice_id',
+                 'installation_order_id.create_invoice_id.state')
+    def _compute_service_stage(self):
+        for rec in self:
+            stage = rec.state
+            order = rec.installation_order_id
+            if order and stage == 'installation_created':
+                invoice = order.create_invoice_id
+                if invoice and invoice.state == 'posted':
+                    stage = 'invoice_closed'
+                elif order.state in ('execute_completed', 'complete_work'):
+                    stage = 'completed'
+            rec.service_stage = stage
+
     installation_order_date = fields.Date(string='تاريخ طلب أمر التركيب', related='installation_order_id.order_date', readonly=True, store=False)
     installation_date_notice = fields.Char(string='ملاحظة فرق التواريخ', compute='_compute_installation_date_notice', readonly=True)
 
@@ -191,7 +216,7 @@ class YCCAppointment(models.Model):
             ('date', '<=', selected_day),
             '|', '&', ('end_date', '=', False), ('date', '>=', selected_day),
                  ('end_date', '>=', selected_day),
-            ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created']),
+            ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created', 'postponed']),
         ])
         return candidates.filtered(
             lambda booking: booking.slot_id and booking._occupies(now)
@@ -220,7 +245,7 @@ class YCCAppointment(models.Model):
     def _occupies(self, now=None):
         self.ensure_one()
         now = fields.Datetime.from_string(now or fields.Datetime.now())
-        return self.state in ('confirmed','done','installation_created') or (self.state in ('provisional','contacting') and self.hold_until and fields.Datetime.from_string(self.hold_until) > now)
+        return self.state in ('confirmed','done','installation_created','postponed') or (self.state in ('provisional','contacting') and self.hold_until and fields.Datetime.from_string(self.hold_until) > now)
 
     def _booking_dates(self):
         self.ensure_one()
@@ -292,7 +317,7 @@ class YCCAppointment(models.Model):
                 ('branch_id', '=', rec.branch_id.id), ('id', '!=', rec.id),
                 ('date', '<=', fields.Date.to_string(last)),
                 '|', '&', ('end_date', '=', False), ('date', '>=', fields.Date.to_string(first)), ('end_date', '>=', fields.Date.to_string(first)),
-                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created'])
+                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created', 'postponed'])
             ])
             now = fields.Datetime.now()
             occupied = {}
@@ -351,11 +376,11 @@ class YCCAppointment(models.Model):
                             and self.env.context.get('ycc_source_appointment_id'))
             if not (allowed_arrival or allowed_link):
                 raise UserError(_('صلاحيتك تقتصر على وصول السيارة وإنشاء أمر تركيب.'))
-        if 'hold_until' in vals and not self.env.user.has_group('base.group_system'):
+        if 'hold_until' in vals and not (self.env.user.has_group('base.group_system') or self.env.context.get('ycc_internal_postpone')):
             raise UserError(_('Only administrators may edit hold expiry.'))
         if vals.get('state') in ('provisional','contacting') and 'hold_until' not in vals:
             for rec in self:
-                if rec.state not in ('provisional','contacting') or not rec._occupies():
+                if rec.state not in ('provisional','contacting','postponed') or not rec._occupies():
                     raise UserError(_('Expired holds cannot be reopened. Create a new booking.'))
         if 'state' in vals and vals['state'] in ('confirmed', 'done', 'installation_created'):
             for rec in self:
@@ -540,7 +565,7 @@ class YCCAppointment(models.Model):
         if self._ycc_arrival_only_user():
             raise UserError(_('هذا الإجراء غير متاح لمندوب الوصول.'))
         for rec in self:
-            if rec.state not in ('provisional','contacting') or not rec._occupies():
+            if rec.state not in ('provisional','contacting','postponed') or not rec._occupies():
                 raise UserError(_('Only active provisional bookings can be confirmed.'))
             rec.write({'state':'confirmed'})
     def action_cancel(self): self.write({'state':'cancelled'})
@@ -551,6 +576,16 @@ class YCCAppointment(models.Model):
             arrival = fields.Datetime.now()
             rec.write({'state': 'done', 'actual_arrival_at': arrival})
             rec.message_post(body=_('تم تسجيل وصول السيارة الفعلي في %s بواسطة %s. تاريخ الحجز المخطط: %s.') % (arrival, self.env.user.name, rec.date or '-'))
+    def action_open_postpone(self):
+        self.ensure_one()
+        if self.state not in ('provisional','contacting','confirmed','postponed'):
+            raise UserError(_('لا يمكن تأجيل هذا الحجز بعد وصول السيارة أو إغلاقه.'))
+        return {'type':'ir.actions.act_window', 'name':_('تأجيل الموعد'),
+                'res_model':'ycc.postpone.wizard', 'view_mode':'form', 'target':'new',
+                'context':dict(self.env.context, default_appointment_id=self.id,
+                               default_new_date=self.date, default_new_end_date=self.end_date or self.date,
+                               default_new_slot_id=self.slot_id.id)}
+
     def action_no_show(self): self.write({'state':'no_show'})
 
     @api.model
@@ -604,3 +639,48 @@ class YCCForecastWizard(models.TransientModel):
     _name = 'ycc.forecast.wizard'
     _description = 'ملخص التحقق من السيارات الموجودة'
     details = fields.Html(string='ملخص الإشغال', readonly=True, sanitize=True)
+
+
+class YCCPostponeWizard(models.TransientModel):
+    _name = 'ycc.postpone.wizard'
+    _description = 'تأجيل موعد حجز السيارة'
+    appointment_id = fields.Many2one('ycc.appointment', required=True, readonly=True)
+    new_date = fields.Date(string='تاريخ الحجز الجديد', required=True)
+    new_end_date = fields.Date(string='تاريخ نهاية الحجز الجديد', required=True)
+    new_slot_id = fields.Many2one('ycc.slot', string='الفترة الجديدة', required=True)
+    reason = fields.Text(string='سبب التأجيل', required=True)
+
+    def action_apply(self):
+        self.ensure_one()
+        rec = self.appointment_id
+        if not rec._ycc_can_book():
+            raise UserError(_('ليس لديك صلاحية تأجيل الحجوزات.'))
+        if rec.state not in ('provisional','contacting','confirmed','postponed'):
+            raise UserError(_('لا يمكن تأجيل حجز وصل بالفعل أو أُغلق.'))
+        if self.new_slot_id.branch_id != rec.branch_id:
+            raise ValidationError(_('الفترة المختارة لا تتبع فرع الحجز.'))
+        if self.new_end_date < self.new_date:
+            raise ValidationError(_('تاريخ النهاية يجب ألا يسبق البداية.'))
+        if (self.new_date == rec.date and self.new_end_date == (rec.end_date or rec.date)
+                and self.new_slot_id == rec.slot_id):
+            raise ValidationError(_('يجب اختيار تاريخ أو فترة مختلفة عن الموعد الحالي.'))
+        old_date = rec.date
+        old_end = rec.end_date or rec.date
+        old_slot = rec.slot_id.display_name
+        # A postponed appointment is a NEW provisional booking, not a separate
+        # operational state. Renew its hold so the booking can be confirmed.
+        expiry = fields.Datetime.to_string(
+            fields.Datetime.from_string(fields.Datetime.now()) +
+            timedelta(minutes=rec.branch_id.provisional_minutes or 120))
+        rec.with_context(ycc_internal_postpone=True).write({
+            'date': self.new_date, 'end_date': self.new_end_date,
+            'slot_id': self.new_slot_id.id, 'end_slot_id': False,
+            'state': 'provisional', 'hold_until': expiry,
+            'was_postponed': True, 'postponement_count': rec.postponement_count + 1,
+        })
+        rec.message_post(body=_(
+            'تأجيل موعد الحجز: من %s إلى %s (نهاية الموعد السابق: %s، الفترة السابقة: %s، '
+            'الفترة الجديدة: %s). السبب: %s. بواسطة: %s. الحالة الجديدة: حجز مبدئي بانتظار التأكيد.') %
+            (old_date, self.new_date, old_end, old_slot,
+             self.new_slot_id.display_name, self.reason, self.env.user.name))
+        return {'type':'ir.actions.act_window_close'}

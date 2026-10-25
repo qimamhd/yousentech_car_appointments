@@ -629,3 +629,28 @@
 .ycc-board .ycc-day-meter .ycc-meter-actions .ycc-peer-branches{flex:0 1 auto;width:auto;max-width:100%;min-width:0;margin:0;padding:2px 5px;font-size:9px;line-height:1.35;white-space:nowrap;}
 .ycc-board .ycc-day-meter .ycc-meter-actions .ycc-peer-branches:only-child{margin-inline-start:auto;}
 @media(max-width:1150px){.ycc-board .ycc-day-meter .ycc-meter-actions{gap:3px}.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-peer-branches,.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-installation-count{font-size:8px;padding:2px 3px;}}
+
+/* V6.23: service status is derived from linked order/invoice and distinct from capacity. */
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-provisional{background:#edfafd;border-color:#a5e7f0;color:#087b94}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-provisional .ycc-visual-icon{background:#08afc8}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-contacting{background:#fff8eb;border-color:#f5cf87;color:#8b600b}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-contacting .ycc-visual-icon{background:#e8a72c}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-confirmed{background:#eff5ff;border-color:#a9c8fa;color:#1756b7}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-confirmed .ycc-visual-icon{background:#1768e9}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-done{background:#effbf4;border-color:#a8e2c0;color:#087744}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-done .ycc-visual-icon{background:#0aa25a}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-installation_created{background:#fff9e9;border-color:#eed68e;color:#916000}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-installation_created .ycc-visual-icon{background:#d79700}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-completed{background:#f7f0ff;border-color:#d7b7fc;color:#6633b6}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-completed .ycc-visual-icon{background:#7837e9}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-invoice_closed{background:#f1f4f8;border-color:#bbc6d3;color:#455469}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-invoice_closed .ycc-visual-icon{background:#455469}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-postponed{background:#fff6ed;border-color:#f5c69b;color:#aa540d}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-postponed .ycc-visual-icon{background:#ed7b13}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-no_show{background:#fff1f2;border-color:#f1b1b8;color:#a3202b}
+.ycc-board .ycc-week-grid .ycc-visual-cell.ycc-stage-no_show .ycc-visual-icon{background:#e32030}
+
+/* V6.24: postponement is an audit badge, not the active booking state. */
+.ycc-postponed-flag{display:inline-flex;align-items:center;max-width:100%;padding:1px 6px;border-radius:6px;background:#fff0d9;color:#a9580b;border:1px solid #f3c48d;font-size:10px;font-weight:700;white-space:nowrap}
+.ycc-visual-cell .ycc-postponed-flag{margin-inline-start:3px;font-size:9px;padding:0 4px}
+.ycc-postponed-note{font-size:12px;color:#8a5c25;line-height:1.7;margin-top:6px}
