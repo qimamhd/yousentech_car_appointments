@@ -57,6 +57,7 @@ class YCCInstallationOrder(models.Model):
             raise UserError(_('يجب تحديد تاريخ بداية الحجز قبل إنشاء أمر التركيب.'))
         actual_request_date = fields.Date.context_today(self)
         vals = dict(vals, branch_id=branch_id, seq=self.env.cr.fetchone()[0],
+                    agency_id=appt.agency_id.id or False,
                     order_date=actual_request_date, ycc_appointment_id=appt.id, state='draft')
         order = super(YCCInstallationOrder, self).create(vals)
         appt.with_context(ycc_source_appointment_id=appt.id).write({'installation_order_id': order.id, 'state': 'installation_created'})

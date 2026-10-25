@@ -132,7 +132,8 @@ class YCCAppointment(models.Model):
     vehicle_plate = fields.Char(string='لوحة السيارة')
     # Original free-text value retained for existing appointments and integrations.
     vehicle_model = fields.Char(string='وصف السيارة السابق', copy=False)
-    car_manuf_id = fields.Many2one('wo.car.manufactory', string='الشركة المصنعة', tracking=True)
+    car_manuf_id = fields.Many2one('wo.car.manufactory', string='الشركة المصنعة (قديم)', tracking=True)
+    agency_id = fields.Many2one('wo.agency', string='الوكالة', tracking=True)
     # All vehicle types must remain selectable, including legacy types without a manufacturer.
     # New types inherit the selected manufacturer via the form context only.
     car_type_id = fields.Many2one('wo.car.types', string='نوع السيارة', tracking=True)
@@ -140,7 +141,7 @@ class YCCAppointment(models.Model):
     def _validate_vehicle_selection(self):
         for rec in self:
             if not rec.car_type_id and not rec.vehicle_model:
-                raise ValidationError(_('يرجى تحديد الشركة المصنعة ونوع السيارة.'))
+                raise ValidationError(_('يرجى تحديد نوع السيارة.'))
 
     service_id = fields.Many2one('ycc.service',string='الخدمة')
     agent_id = fields.Many2one('res.users',string='المندوب',default=lambda self:self.env.user)
@@ -473,6 +474,7 @@ class YCCAppointment(models.Model):
                 default_order_date=fields.Date.context_today(self),
                 default_ycc_appointment_id=self.id,
                 default_car_manuf_id=self.car_manuf_id.id or False,
+                default_agency_id=self.agency_id.id or False,
                 default_car_type_id=self.car_type_id.id or False,
                 default_car_panel_no=self.vehicle_plate or False,
                 default_delivery_date=self.end_date or self.date or False,
