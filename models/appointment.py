@@ -293,7 +293,7 @@ class YCCAppointment(models.Model):
             raise ValidationError(_('فترة البداية أو النهاية غير متاحة في اليوم المحدد.'))
         # In a single day, preserve the old requirement for consecutive slots.
         if first == last:
-            for (_, previous), (_, following) in zip(result[:-1], result[1:]):
+            for (previous_day, previous), (following_day, following) in zip(result[:-1], result[1:]):
                 if abs(previous.end_hour - following.start_hour) > 0.0001:
                     raise ValidationError(_('فترات الحجز في اليوم الواحد يجب أن تكون متتالية.'))
         return result

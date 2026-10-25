@@ -2,8 +2,24 @@
 from datetime import date, timedelta
 from odoo import http, fields
 from odoo.http import request
+from odoo.exceptions import ValidationError
 
 class YCCCalendar(http.Controller):
+    @staticmethod
+    def _calendar_periods(appointment):
+        """Keep historical bookings visible if old slot settings no longer match.
+
+        Booking create/write validation remains strict in the appointment model.
+        """
+        if not appointment.slot_id or not appointment.date:
+            return []
+        try:
+            return appointment._covered_periods()
+        except ValidationError:
+            # A pre-existing booking may have non-contiguous/disabled slots.
+            # Do not make the whole calendar unavailable because of one record.
+            return [(fields.Date.to_string(appointment.date), appointment.slot_id)]
+
     @http.route('/ycc/calendar/installation_action', type='json', auth='user')
     def installation_action(self, appointment_id=None):
         appointment = request.env['ycc.appointment'].browse(int(appointment_id or 0)).exists()
@@ -68,7 +84,7 @@ class YCCCalendar(http.Controller):
             excluded_order_days = set()
             for booking in linked_appointments:
                 if booking.slot_id and booking.date and booking._occupies():
-                    for covered_day, _slot in booking._covered_periods():
+                    for covered_day, _slot in self._calendar_periods(booking):
                         if first <= fields.Date.from_string(covered_day) < last:
                             excluded_order_days.add((booking.installation_order_id.id, covered_day))
             for order in orders:
@@ -111,7 +127,7 @@ class YCCCalendar(http.Controller):
                 if not appt.slot_id or not appt.date or not appt._occupies():
                     continue
                 covered_dates = set()
-                for covered_date, _slot in appt._covered_periods():
+                for covered_date, _slot in self._calendar_periods(appt):
                     if first <= fields.Date.from_string(covered_date) < last:
                         covered_dates.add(covered_date)
                 for covered_date in covered_dates:
@@ -148,4 +164,4 @@ class YCCCalendar(http.Controller):
         return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'branch_comparison':comparison,
             'slots':[{'id':s.id,'name':s.name,'start_hour':s.start_hour,'end_hour':s.end_hour,'capacity':branch.capacity,'days':[int(x) for x in s.weekday_ids.mapped('code')]} for s in slots],
             'exceptions':[{'date':fields.Date.to_string(e.date),'slot_id':e.slot_id.id or False,'reason':e.reason} for e in exceptions],
-            'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':a._covered_slots().ids if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in a._covered_periods() if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'occupies':a._occupies(now),'service_stage':a.service_stage,'was_postponed':a.was_postponed,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or ''} for a in appointments if a._occupies(now) or a.state == 'no_show']}
+            'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':list(dict.fromkeys(slot.id for _, slot in self._calendar_periods(a))) if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in self._calendar_periods(a) if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'occupies':a._occupies(now),'service_stage':a.service_stage,'was_postponed':a.was_postponed,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or ''} for a in appointments if a._occupies(now) or a.state == 'no_show']}
