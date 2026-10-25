@@ -175,10 +175,12 @@ class YCCAppointment(models.Model):
             # to provisional). Never write back to the installation order.
             if order:
                 invoice = order.create_invoice_id
-                if invoice and invoice.state == 'posted':
-                    stage = 'invoice_closed'
-                elif order.state in ('execute_completed', 'complete_work'):
+                # Completion is the final customer-service stage and must
+                # override a previously posted invoice (not vice versa).
+                if order.state in ('execute_completed', 'complete_work'):
                     stage = 'completed'
+                elif invoice and invoice.state == 'posted':
+                    stage = 'invoice_closed'
                 elif order.state != 'cancel_order' and stage in ('provisional', 'contacting', 'confirmed', 'done', 'postponed'):
                     stage = 'installation_created'
             rec.service_stage = stage
