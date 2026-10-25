@@ -654,3 +654,8 @@
 .ycc-postponed-flag{display:inline-flex;align-items:center;max-width:100%;padding:1px 6px;border-radius:6px;background:#fff0d9;color:#a9580b;border:1px solid #f3c48d;font-size:10px;font-weight:700;white-space:nowrap}
 .ycc-visual-cell .ycc-postponed-flag{margin-inline-start:3px;font-size:9px;padding:0 4px}
 .ycc-postponed-note{font-size:12px;color:#8a5c25;line-height:1.7;margin-top:6px}
+
+/* V6.28: status and postponed badge on the same line in compact calendar cards. */
+.ycc-board .ycc-week-grid .ycc-visual-status-row{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:4px;max-width:100%;min-width:0;white-space:nowrap}
+.ycc-board .ycc-week-grid .ycc-visual-status-row > small{display:inline-flex;align-items:center;white-space:nowrap;flex:0 0 auto}
+.ycc-board .ycc-week-grid .ycc-visual-status-row .ycc-postponed-flag{margin:0;color:#a9580b;font-size:9px;line-height:1.35}

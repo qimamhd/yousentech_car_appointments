@@ -170,12 +170,17 @@ class YCCAppointment(models.Model):
         for rec in self:
             stage = rec.state
             order = rec.installation_order_id
-            if order and stage == 'installation_created':
+            # Installation order progress takes precedence over the booking's
+            # historical state (e.g. a booking that was postponed and returned
+            # to provisional). Never write back to the installation order.
+            if order:
                 invoice = order.create_invoice_id
                 if invoice and invoice.state == 'posted':
                     stage = 'invoice_closed'
                 elif order.state in ('execute_completed', 'complete_work'):
                     stage = 'completed'
+                elif order.state != 'cancel_order' and stage in ('provisional', 'contacting', 'confirmed', 'done', 'postponed'):
+                    stage = 'installation_created'
             rec.service_stage = stage
 
     installation_order_date = fields.Date(string='تاريخ طلب أمر التركيب', related='installation_order_id.order_date', readonly=True, store=False)
@@ -583,7 +588,7 @@ class YCCAppointment(models.Model):
         return {'type':'ir.actions.act_window', 'name':_('تأجيل الموعد'),
                 'res_model':'ycc.postpone.wizard', 'view_mode':'form', 'target':'new',
                 'context':dict(self.env.context, default_appointment_id=self.id,
-                               default_new_date=self.date, default_new_end_date=self.end_date or self.date,
+                               default_new_date=self.date,
                                default_new_slot_id=self.slot_id.id)}
 
     def action_no_show(self): self.write({'state':'no_show'})
@@ -646,7 +651,7 @@ class YCCPostponeWizard(models.TransientModel):
     _description = 'تأجيل موعد حجز السيارة'
     appointment_id = fields.Many2one('ycc.appointment', required=True, readonly=True)
     new_date = fields.Date(string='تاريخ الحجز الجديد', required=True)
-    new_end_date = fields.Date(string='تاريخ نهاية الحجز الجديد', required=True)
+    new_end_date = fields.Date(string='تاريخ نهاية الحجز الجديد')
     new_slot_id = fields.Many2one('ycc.slot', string='الفترة الجديدة', required=True)
     reason = fields.Text(string='سبب التأجيل', required=True)
 
@@ -659,9 +664,9 @@ class YCCPostponeWizard(models.TransientModel):
             raise UserError(_('لا يمكن تأجيل حجز وصل بالفعل أو أُغلق.'))
         if self.new_slot_id.branch_id != rec.branch_id:
             raise ValidationError(_('الفترة المختارة لا تتبع فرع الحجز.'))
-        if self.new_end_date < self.new_date:
-            raise ValidationError(_('تاريخ النهاية يجب ألا يسبق البداية.'))
-        if (self.new_date == rec.date and self.new_end_date == (rec.end_date or rec.date)
+        # Postponement selects one new day; the end date is automatically the same day.
+        new_end_date = self.new_date
+        if (self.new_date == rec.date and new_end_date == (rec.end_date or rec.date)
                 and self.new_slot_id == rec.slot_id):
             raise ValidationError(_('يجب اختيار تاريخ أو فترة مختلفة عن الموعد الحالي.'))
         old_date = rec.date
@@ -673,7 +678,7 @@ class YCCPostponeWizard(models.TransientModel):
             fields.Datetime.from_string(fields.Datetime.now()) +
             timedelta(minutes=rec.branch_id.provisional_minutes or 120))
         rec.with_context(ycc_internal_postpone=True).write({
-            'date': self.new_date, 'end_date': self.new_end_date,
+            'date': self.new_date, 'end_date': new_end_date,
             'slot_id': self.new_slot_id.id, 'end_slot_id': False,
             'state': 'provisional', 'hold_until': expiry,
             'was_postponed': True, 'postponement_count': rec.postponement_count + 1,
