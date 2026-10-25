@@ -621,3 +621,11 @@
 .ycc-board .ycc-day-meter .ycc-meter-bottom .ycc-peer-branches{flex:0 1 auto;width:auto;max-width:72%;margin:0;padding:2px 6px;font-size:9px;line-height:1.35;white-space:nowrap;border-radius:6px;min-width:0}
 .ycc-board .ycc-day-meter .ycc-meter-bottom .ycc-peer-branches i{flex-shrink:0}
 @media(max-width:1100px){.ycc-board .ycc-day-meter .ycc-meter-bottom{gap:4px}.ycc-board .ycc-day-meter .ycc-meter-bottom .ycc-peer-branches{font-size:8px;padding:2px 3px}}
+
+/* V6.22: branch comparison beside installation-order indicator, below the progress bar. */
+.ycc-board .ycc-day-meter .ycc-meter-bottom .ycc-meter-track{flex:1 1 100%;}
+.ycc-board .ycc-day-meter .ycc-meter-actions{display:flex;align-items:center;justify-content:space-between;gap:5px;min-width:0;margin-top:5px;}
+.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-installation-count{flex:0 1 auto;min-width:0;margin:0;padding:2px 5px;font-size:9px;white-space:nowrap;}
+.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-peer-branches{flex:0 1 auto;width:auto;max-width:100%;min-width:0;margin:0;padding:2px 5px;font-size:9px;line-height:1.35;white-space:nowrap;}
+.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-peer-branches:only-child{margin-inline-start:auto;}
+@media(max-width:1150px){.ycc-board .ycc-day-meter .ycc-meter-actions{gap:3px}.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-peer-branches,.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-installation-count{font-size:8px;padding:2px 3px;}}
