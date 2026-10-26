@@ -9,7 +9,7 @@ function day(s){return new Date(s+'T12:00:00');}
 function add(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n,12);}
 function fmt(d,opts,cal,lang){try{return new Intl.DateTimeFormat(lang+(cal?'-u-ca-'+cal:''),opts).format(d);}catch(e){return iso(d);}}
 var Calendar=AbstractAction.extend({
- events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-new':'_new','click .ycc-installation-count':'_installationDay','click .ycc-peer-branches':'_peerBranches'},
+ events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-new':'_new','click .ycc-installation-count':'_installationDay','click .ycc-check-count':'_checkDay','click .ycc-peer-branches':'_peerBranches'},
  init:function(){this._super.apply(this,arguments);this.mode='week';this.anchor=day(iso(new Date()));this.branchId=null;this.payload={branches:[],slots:[],appointments:[],exceptions:[]};},
  start:function(){
     var self=this;
@@ -63,7 +63,7 @@ var Calendar=AbstractAction.extend({
    });
    daily[d.date]={count:Object.keys(seen).length,capacity:data.daily_capacity||0};
  });
- var rows=days.map(function(d){var dailyInfo=daily[d.date]||{count:0,capacity:0};return {date:d.date,label:d.label,hijri:d.hijri,dailyCount:dailyInfo.count,dailyCapacity:dailyInfo.capacity,dailyPercent:dailyInfo.capacity?Math.min(100,Math.round(dailyInfo.count*100/dailyInfo.capacity)):0,installationCount:((data.installation_by_day||{})[d.date]||[]).length,peerBranches:(data.branch_comparison||{})[d.date]||[],cells:slots.map(function(s){
+ var rows=days.map(function(d){var dailyInfo=daily[d.date]||{count:0,capacity:0};return {date:d.date,label:d.label,hijri:d.hijri,dailyCount:dailyInfo.count,dailyCapacity:dailyInfo.capacity,dailyPercent:dailyInfo.capacity?Math.min(100,Math.round(dailyInfo.count*100/dailyInfo.capacity)):0,installationCount:((data.installation_by_day||{})[d.date]||[]).length,checkCount:((data.check_by_day||{})[d.date]||[]).length,checkCapacity:data.check_capacity||0,peerBranches:(data.branch_comparison||{})[d.date]||[],cells:slots.map(function(s){
    var active=!s.days.length||s.days.indexOf((d.weekday+6)%7)!==-1,
        closed=(data.exceptions||[]).some(function(e){return e.date===d.date&&(!e.slot_id||e.slot_id===s.id);}),
        list=bookings.filter(function(b){return (b.periods||[]).some(function(p){return p.date===d.date&&p.slot_id===s.id;});}),
@@ -94,6 +94,28 @@ var Calendar=AbstractAction.extend({
      if(!id)return;
      $modal.one('hidden.bs.modal',function(){self.branchId=id;self.anchor=day(date);self._load();});
      $modal.modal('hide');
+   });
+   $modal.on('hidden.bs.modal',function(){$modal.remove();});
+   $modal.modal('show');
+ },
+ _checkDay:function(e){
+   e.preventDefault();e.stopPropagation();
+   var selected=e.currentTarget.getAttribute('data-date'),orders=((this.payload.check_by_day||{})[selected]||[]),self=this;
+   var html=qweb.render('ycc.CheckDayModal',{date:selected,orders:orders,capacity:this.payload.check_capacity||0});
+   var $modal=$('<div class="modal fade ycc-modal" tabindex="-1" role="dialog"/>').html(html);
+   $('body').append($modal);
+   $modal.on('click','.ycc-close',function(){$modal.modal('hide');});
+   $modal.on('click','.ycc-open-check-booking',function(ev){
+      ev.preventDefault();var id=parseInt($(this).attr('data-id'),10);
+      if(!id)return;
+      $modal.one('hidden.bs.modal',function(){self.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',res_id:id,views:[[false,'form']],view_mode:'form',target:'current'});});
+      $modal.modal('hide');
+   });
+   $modal.on('click','.ycc-open-order',function(ev){
+      ev.preventDefault();var id=parseInt($(this).attr('data-id'),10);
+      if(!id)return;
+      $modal.one('hidden.bs.modal',function(){self.do_action({type:'ir.actions.act_window',res_model:'wo.installation.order.mst',res_id:id,views:[[false,'form']],view_mode:'form',target:'current'});});
+      $modal.modal('hide');
    });
    $modal.on('hidden.bs.modal',function(){$modal.remove();});
    $modal.modal('show');

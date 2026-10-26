@@ -109,6 +109,27 @@ class YCCCalendar(http.Controller):
                                  if isinstance(Order._fields['state'].selection, (list, tuple)) else order.state,
                     })
                     current += timedelta(days=1)
+        # Independent daily check-up capacity. Original appointment dates are never modified.
+        check_by_day = {}
+        if 'check_date' in Order._fields:
+            check_orders = Order.search([
+                ('branch_id', '=', branch.branch_id.id),
+                ('check_date', '>=', fields.Date.to_string(first)),
+                ('check_date', '<', fields.Date.to_string(last)),
+            ], order='check_date asc, id asc')
+            for order in check_orders:
+                linked = order.ycc_appointment_id if 'ycc_appointment_id' in Order._fields else False
+                if not linked:
+                    linked = request.env['ycc.appointment'].search([('installation_order_id', '=', order.id)], limit=1)
+                key = fields.Date.to_string(order.check_date)
+                check_by_day.setdefault(key, []).append({
+                    'id': order.id, 'name': order.display_name,
+                    'customer': order.partner_id.name or '',
+                    'vehicle': (linked.vehicle_plate or '') if linked else '',
+                    'booking_name': linked.name if linked else '',
+                    'booking_date': fields.Date.to_string(linked.date) if linked and linked.date else '',
+                    'check_date': key,
+                })
         # Cross-branch comparison: same day, same occupancy definition as the
         # calendar (one appointment per day, even for multi-slot bookings).
         # Read through the requesting user's normal ACLs / record rules.
@@ -161,7 +182,7 @@ class YCCCalendar(http.Controller):
                                           -x['remaining'], x['name']))
                 comparison[date_key] = items
         now = fields.Datetime.now()
-        return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'branch_comparison':comparison,
+        return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'check_by_day':check_by_day,'check_capacity':branch.check_capacity,'branch_comparison':comparison,
             'slots':[{'id':s.id,'name':s.name,'start_hour':s.start_hour,'end_hour':s.end_hour,'capacity':branch.capacity,'days':[int(x) for x in s.weekday_ids.mapped('code')]} for s in slots],
             'exceptions':[{'date':fields.Date.to_string(e.date),'slot_id':e.slot_id.id or False,'reason':e.reason} for e in exceptions],
             'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':list(dict.fromkeys(slot.id for _, slot in self._calendar_periods(a))) if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in self._calendar_periods(a) if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'occupies':a._occupies(now),'service_stage':a.service_stage,'was_postponed':a.was_postponed,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or ''} for a in appointments if a._occupies(now) or a.state == 'no_show']}

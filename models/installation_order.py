@@ -7,6 +7,22 @@ from odoo.exceptions import UserError
 class YCCInstallationOrder(models.Model):
     _inherit = 'wo.installation.order.mst'
 
+    check_date = fields.Date(string='تاريخ موعد التشييك', tracking=True, copy=False, index=True)
+
+    @api.constrains('check_date', 'branch_id')
+    def _check_daily_check_capacity(self):
+        for order in self:
+            if not order.check_date or not order.branch_id:
+                continue
+            config = self.env['ycc.branch'].search([('branch_id', '=', order.branch_id.id), ('active', '=', True)], limit=1)
+            if not config:
+                continue
+            self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', ['ycc:check:%s' % order.branch_id.id])
+            self.env.cr.execute('SELECT COUNT(*) FROM wo_installation_order_mst WHERE branch_id = %s AND check_date = %s', (order.branch_id.id, order.check_date))
+            count = self.env.cr.fetchone()[0]
+            if count > config.check_capacity:
+                raise UserError(_('اكتملت سعة التشييك ليوم %s في هذا الفرع (%s سيارات). اختر تاريخًا آخر.') % (order.check_date, config.check_capacity))
+
     ycc_appointment_id = fields.Many2one('ycc.appointment', string='حجز الموعد المصدر',
                                          readonly=True, copy=False, index=True)
 

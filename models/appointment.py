@@ -12,6 +12,7 @@ class YCCBranch(models.Model):
     company_id = fields.Many2one('res.company', string='الشركة', default=lambda self: self.env.company)
     active = fields.Boolean(default=True)
     capacity = fields.Integer(string='القدرة الاستيعابية اليومية للفرع (سيارات)', default=4, required=True)
+    check_capacity = fields.Integer(string='العدد المسموح لمواعيد التشييك يوميًا', default=5, required=True)
     provisional_minutes = fields.Integer(string='صلاحية الحجز المبدئي بالدقائق', default=120, required=True)
     slot_ids = fields.One2many('ycc.slot', 'branch_id', string='فترات الحجز')
     exception_ids = fields.One2many('ycc.exception', 'branch_id', string='الاستثناءات')
@@ -38,6 +39,19 @@ class YCCBranch(models.Model):
                                 if occupied[day] > new_capacity:
                                     raise ValidationError(_('لا يمكن خفض السعة اليومية: حجوزات يوم %s تتجاوز السعة الجديدة.') % day)
         return super().write(vals)
+
+    @api.constrains('check_capacity')
+    def _check_check_capacity(self):
+        for rec in self:
+            if rec.check_capacity < 1:
+                raise ValidationError(_('سعة التشييك اليومية يجب أن تكون أكبر من صفر.'))
+            Order = self.env['wo.installation.order.mst']
+            if 'check_date' in Order._fields:
+                self.env.cr.execute('SELECT pg_advisory_xact_lock(hashtext(%s))', ['ycc:check:%s' % rec.branch_id.id])
+                self.env.cr.execute('SELECT check_date, COUNT(*) FROM wo_installation_order_mst WHERE branch_id = %s AND check_date IS NOT NULL GROUP BY check_date HAVING COUNT(*) > %s LIMIT 1', (rec.branch_id.id, rec.check_capacity))
+                row = self.env.cr.fetchone()
+                if row:
+                    raise ValidationError(_('لا يمكن تقليل سعة التشييك: يوجد %s سيارة بتاريخ %s.') % (row[1], row[0]))
 
     @api.constrains('provisional_minutes', 'capacity')
     def _check_minutes(self):
@@ -184,6 +198,8 @@ class YCCAppointment(models.Model):
                 elif order.state != 'cancel_order' and stage in ('provisional', 'contacting', 'confirmed', 'done', 'postponed'):
                     stage = 'installation_created'
             rec.service_stage = stage
+
+    check_date = fields.Date(string='تاريخ موعد التشييك', related='installation_order_id.check_date', readonly=True, store=True)
 
     installation_order_date = fields.Date(string='تاريخ طلب أمر التركيب', related='installation_order_id.order_date', readonly=True, store=False)
     installation_date_notice = fields.Char(string='ملاحظة فرق التواريخ', compute='_compute_installation_date_notice', readonly=True)
