@@ -693,3 +693,50 @@
   .ycc-board .ycc-day-meter .ycc-meter-actions > button { font-size: 8px; padding: 3px 1px; }
   .ycc-board .ycc-day-meter .ycc-meter-actions > button .fa { display: none; }
 }
+
+/* V6.35: responsive calendar header indicators. Keep the existing actions and
+   capacity logic; only reflow the controls when a day column is narrow. */
+.ycc-board .ycc-day-meter {
+  box-sizing: border-box;
+  min-width: 0;
+  container-type: inline-size;
+}
+.ycc-board .ycc-day-meter .ycc-meter-actions {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-content: stretch;
+}
+.ycc-board .ycc-day-meter .ycc-meter-actions > button {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.ycc-board .ycc-day-meter .ycc-meter-actions > button .fa { flex-shrink: 0; }
+/* At small day widths use two columns, with the third control taking its own row.
+   This avoids clipped text and overlapping click targets. */
+@container (max-width: 205px) {
+  .ycc-meter-actions { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 3px !important; }
+  .ycc-meter-actions > button { font-size: 9px !important; padding: 3px 4px !important; }
+  .ycc-meter-actions > button:nth-child(3) { grid-column: 1 / -1; }
+}
+@container (max-width: 135px) {
+  .ycc-meter-actions { grid-template-columns: minmax(0, 1fr) !important; }
+  .ycc-meter-actions > button:nth-child(3) { grid-column: auto; }
+}
+/* Keep the day heading tall enough for its wrapped indicators. */
+.ycc-board .ycc-week-grid thead th.ycc-week-day,
+.ycc-board .ycc-week-grid thead th.ycc-time-heading {
+  height: auto;
+}
+.ycc-board .ycc-week-grid thead th.ycc-week-day {
+  vertical-align: top;
+}
+@media (max-width: 1150px) {
+  .ycc-board .ycc-week-grid thead th.ycc-week-day { padding: 8px 4px 6px; }
+  .ycc-board .ycc-day-meter { padding: 5px; }
+  .ycc-board .ycc-day-meter .ycc-meter-actions > button { font-size: 9px; }
+}
