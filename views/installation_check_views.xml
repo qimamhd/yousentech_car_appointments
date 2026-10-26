@@ -6,7 +6,8 @@
   <field name="inherit_id" ref="qimamhd_wo_v3.wo_installation_order_view"/>
   <field name="arch" type="xml">
    <xpath expr="//field[@name='compelete_done_date'][1]" position="after">
-    <field name="check_date" string="تاريخ موعد التشييك"/>
+    <field name="ycc_check_date_editable" invisible="1"/>
+    <field name="check_date" string="تاريخ موعد التشييك" attrs="{'readonly': [('ycc_check_date_editable', '=', False)]}"/>
    </xpath>
   </field>
  </record>

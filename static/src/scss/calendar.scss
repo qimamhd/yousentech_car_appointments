@@ -671,3 +671,25 @@
 .ycc-board .ycc-check-count.is-full{background:#9a3412;color:#fff;border-color:#9a3412}
 .ycc-board .ycc-check-count:hover,.ycc-board .ycc-check-count:focus{background:#0c4a6e;color:#fff;border-color:#0c4a6e;filter:none}
 .ycc-board .ycc-check-count.is-full:hover{background:#7c2d12;border-color:#7c2d12}
+
+/* V6.34: three compact, non-overlapping calendar day indicators. */
+.ycc-board .ycc-day-meter .ycc-meter-actions {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center; gap: 3px; min-width: 0; margin-top: 5px;
+}
+.ycc-board .ycc-day-meter .ycc-meter-actions > button,
+.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-peer-branches,
+.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-installation-count,
+.ycc-board .ycc-day-meter .ycc-meter-actions .ycc-check-count {
+  box-sizing: border-box; display: inline-flex; justify-content: center;
+  align-items: center; width: 100%; max-width: 100%; min-width: 0;
+  margin: 0; padding: 3px 2px; font-size: 9px; line-height: 1.25;
+  font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: clip;
+  border-radius: 6px; gap: 2px;
+}
+.ycc-board .ycc-day-meter .ycc-meter-actions > button .fa { flex: 0 0 auto; font-size: 9px; }
+@media (max-width: 1350px) {
+  .ycc-board .ycc-day-meter .ycc-meter-actions { gap: 2px; }
+  .ycc-board .ycc-day-meter .ycc-meter-actions > button { font-size: 8px; padding: 3px 1px; }
+  .ycc-board .ycc-day-meter .ycc-meter-actions > button .fa { display: none; }
+}

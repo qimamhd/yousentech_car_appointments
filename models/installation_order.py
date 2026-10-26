@@ -8,6 +8,27 @@ class YCCInstallationOrder(models.Model):
     _inherit = 'wo.installation.order.mst'
 
     check_date = fields.Date(string='تاريخ موعد التشييك', tracking=True, copy=False, index=True)
+    ycc_check_date_editable = fields.Boolean(
+        string='السماح بتحديد موعد التشييك', compute='_compute_ycc_check_date_editable')
+
+    @api.depends('create_invoice_id', 'create_invoice_id.state')
+    def _compute_ycc_check_date_editable(self):
+        for order in self:
+            order.ycc_check_date_editable = bool(
+                order.create_invoice_id and order.create_invoice_id.state == 'posted')
+
+    def _ycc_assert_check_date_editable(self, vals):
+        if 'check_date' not in vals:
+            return
+        for order in self:
+            if order.check_date != vals.get('check_date') and not (
+                    order.create_invoice_id and order.create_invoice_id.state == 'posted'):
+                raise UserError(_('لا يمكن تحديد أو تغيير موعد التشييك قبل ترحيل فاتورة أمر التركيب.'))
+
+    def write(self, vals):
+        self._ycc_assert_check_date_editable(vals)
+        return super(YCCInstallationOrder, self).write(vals)
+
 
     @api.constrains('check_date', 'branch_id')
     def _check_daily_check_capacity(self):
