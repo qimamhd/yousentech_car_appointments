@@ -740,3 +740,39 @@
   .ycc-board .ycc-day-meter { padding: 5px; }
   .ycc-board .ycc-day-meter .ycc-meter-actions > button { font-size: 9px; }
 }
+
+/* V6.36 — daily capacity ring with actions alongside it. Presentation only. */
+.ycc-board .ycc-day-meter-v636 {padding:7px 5px; background:#f0f8f4; container-type:normal;}
+.ycc-board .ycc-day-meter-v636.is-warning {background:#fff5e6;}
+.ycc-board .ycc-day-meter-v636.is-full {background:#fff0f0;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-inline {display:grid;grid-template-columns:minmax(66px, .8fr) minmax(0,1.2fr);align-items:center;gap:6px;min-width:0;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle-wrap {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle {--ycc-ring:#15a36b;width:clamp(62px,6.5vw,88px);height:clamp(62px,6.5vw,88px);max-width:100%;aspect-ratio:1;border-radius:50%;padding:7px;display:grid;place-items:center;background:conic-gradient(var(--ycc-ring) var(--ycc-fill),#dce5e9 0);box-sizing:border-box;}
+.ycc-board .ycc-day-meter-v636.is-warning .ycc-meter-circle {--ycc-ring:#e89a23;}
+.ycc-board .ycc-day-meter-v636.is-full .ycc-meter-circle {--ycc-ring:#ed584b;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle-center {width:100%;height:100%;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.1;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle-center b {font-size:12px;white-space:nowrap;color:#14875e;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle-center span {font-size:9px;font-weight:700;color:#14875e;white-space:nowrap;}
+.ycc-board .ycc-day-meter-v636.is-warning .ycc-meter-circle-center b,.ycc-board .ycc-day-meter-v636.is-warning .ycc-meter-circle-center span {color:#a9610b;}
+.ycc-board .ycc-day-meter-v636.is-full .ycc-meter-circle-center b,.ycc-board .ycc-day-meter-v636.is-full .ycc-meter-circle-center span {color:#bd3840;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-caption {font-size:9px;color:#586c82;white-space:nowrap;font-weight:700;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions {display:flex !important;flex-direction:column;align-items:stretch;justify-content:center;gap:4px !important;margin:0 !important;width:100%;min-width:0;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button {display:flex !important;align-items:center;justify-content:center;gap:3px;min-width:0;width:100%;max-width:100%;padding:5px 3px !important;margin:0 !important;font-size:10px !important;line-height:1.25 !important;font-weight:700;white-space:normal !important;overflow:visible !important;text-overflow:clip !important;word-break:normal;border-radius:7px;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button .fa {display:inline-block !important;font-size:10px !important;flex-shrink:0;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions .ycc-peer-branches {background:#f6f9ff;color:#435f9b;border:1px solid #cbd7ef;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions .ycc-installation-count {background:#f3edff;color:#6441a7;border:1px solid #d2bdfa;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions .ycc-check-count {background:#075985;color:white;border:1px solid #075985;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions .ycc-check-count.is-full {background:#9a3412;border-color:#9a3412;}
+/* Keep circle and actions side-by-side even in narrow day columns. */
+@media(max-width:1300px){.ycc-board .ycc-day-meter-v636 .ycc-meter-inline{grid-template-columns:minmax(54px,.75fr) minmax(0,1.25fr);gap:4px}.ycc-board .ycc-day-meter-v636 .ycc-meter-circle{width:clamp(54px,5.7vw,74px);height:clamp(54px,5.7vw,74px);padding:6px}.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button{font-size:9px !important;padding:4px 2px !important}}
+@media(max-width:900px){.ycc-board .ycc-week-grid{min-width:1120px}.ycc-board .ycc-day-meter-v636 .ycc-meter-circle{width:65px;height:65px}}
+
+/* V6.37 contextual customer-service indicators */
+.ycc-alert-icons { display:inline-flex; align-items:center; gap:5px; flex:0 0 auto; white-space:nowrap; }
+.ycc-alert-icons .fa { font-size:13px; cursor:help; }
+.ycc-alert-arrival { color:#d97706; }
+.ycc-alert-delivery { color:#dc2626; }
+.ycc-alert-note { color:#a16207; }
+.ycc-visual-cell .ycc-alert-icons { margin-inline-start:auto; padding-inline:3px; }
+.ycc-visual-cell .ycc-visual-info { min-width:0; }
+.ycc-visual-cell .ycc-visual-status-row { flex-wrap:wrap; }

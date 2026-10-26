@@ -164,6 +164,7 @@ class YCCAppointment(models.Model):
     hold_until = fields.Datetime(string='انتهاء الحجز المبدئي',readonly=True,copy=False)
     was_postponed = fields.Boolean(string='تم تأجيله سابقًا', default=False, readonly=True, copy=False, tracking=True)
     postponement_count = fields.Integer(string='عدد مرات التأجيل', default=0, readonly=True, copy=False)
+    last_postponement_reason = fields.Text(string='سبب التأجيل الأخير', readonly=True, copy=False, tracking=True)
     contact_ids = fields.One2many('ycc.contact','appointment_id',string='سجل التواصل')
     next_contact_at = fields.Datetime(string='موعد المتابعة القادم')
     company_id = fields.Many2one('res.company',related='branch_id.company_id',store=True,readonly=True)
@@ -700,6 +701,7 @@ class YCCPostponeWizard(models.TransientModel):
             'slot_id': self.new_slot_id.id, 'end_slot_id': False,
             'state': 'provisional', 'hold_until': expiry,
             'was_postponed': True, 'postponement_count': rec.postponement_count + 1,
+            'last_postponement_reason': self.reason,
         })
         rec.message_post(body=_(
             'تأجيل موعد الحجز: من %s إلى %s (نهاية الموعد السابق: %s، الفترة السابقة: %s، '
