@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<odoo>
-<record id="action_ycc_calendar" model="ir.actions.client"><field name="name">تقويم مواعيد العناية</field><field name="tag">ycc_appointment_calendar</field></record>
-<template id="assets_backend" inherit_id="web.assets_backend" name="Car Care Appointments Assets"><xpath expr="." position="inside"><link rel="stylesheet" type="text/scss" href="/yousentech_car_appointments/static/src/scss/calendar.scss"/><script type="text/javascript" src="/yousentech_car_appointments/static/src/js/calendar.js"/></xpath></template>
-</odoo>

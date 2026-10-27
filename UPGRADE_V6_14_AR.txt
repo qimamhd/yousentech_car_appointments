@@ -1,7 +1,0 @@
-V6.14 Odoo 13 upgrade
-V6.13 introduced stored ycc.appointment.actual_arrival_at. Restarting Odoo alone does not add SQL column.
-Run upgrade on the correct database:
-odoo-bin -c /actual/path/odoo.conf -d ACTUAL_DB -u yousentech_car_appointments --stop-after-init
-Then restart service. Verify:
-SELECT column_name FROM information_schema.columns WHERE table_name='ycc_appointment' AND column_name='actual_arrival_at';
-Do not manually ALTER TABLE; review first upgrade error if it fails.
