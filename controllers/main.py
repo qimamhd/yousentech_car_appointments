@@ -236,7 +236,7 @@ class YCCCalendar(http.Controller):
                 'phone': (booking.partner_id.phone or booking.partner_id.mobile or '') if booking else (order.partner_id.phone or order.partner_id.mobile or '' if order else ''),
                 'notes': (booking.notes or '') if booking and 'notes' in booking._fields else '',
                 'postponement_reason': (booking.last_postponement_reason or '') if booking and booking.was_postponed else '',
-                'branch': booking.branch_id.branch_id.display_name if booking and booking.branch_id and booking.branch_id.branch_id else '',
+                'branch': booking.branch_id.name if booking and booking.branch_id else '',
             })
 
         # The selected period is the scope for appointment-state cards.

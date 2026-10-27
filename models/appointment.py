@@ -6,7 +6,16 @@ from odoo.exceptions import ValidationError, UserError
 class YCCBranch(models.Model):
     _name = 'ycc.branch'
     _description = 'إعدادات مواعيد الفرع'
-    _rec_name = 'branch_id'
+    _rec_name = 'name'
+
+    # Odoo 13 expects a readable name when displaying a ycc.branch record.
+    # Non-stored: no database column or migration is required.
+    name = fields.Char(string='اسم الفرع', compute='_compute_branch_name')
+
+    @api.depends('branch_id')
+    def _compute_branch_name(self):
+        for rec in self:
+            rec.name = rec.branch_id.display_name if rec.branch_id else ''
 
     branch_id = fields.Many2one('custom.branches', string='الفرع', required=True, ondelete='cascade', index=True)
     company_id = fields.Many2one('res.company', string='الشركة', default=lambda self: self.env.company)
