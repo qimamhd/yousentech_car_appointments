@@ -15,6 +15,15 @@
  <div class="stat-confirmed"><span class="ycc-kpi-icon"><i class="fa fa-pie-chart"/></span><small>متوسط الإشغال اليومي</small><strong><t t-esc="summary.averagePct"/>%</strong><em>من السعة المتاحة</em></div>
  <div class="stat-hold"><span class="ycc-kpi-icon"><i class="fa fa-exclamation-triangle"/></span><small>الأيام المكتملة أو المتجاوزة</small><strong><t t-esc="summary.fullDays"/></strong><em>يوم خلال الفترة المعروضة</em></div>
  </div>
+ <div class="ycc-service-strip" role="group" aria-label="مؤشرات خدمة العملاء">
+  <t t-foreach="serviceIndicators" t-as="indicator">
+   <button type="button" t-att-class="'ycc-service-indicator ycc-service-'+indicator.key" t-att-data-indicator="indicator.key" t-att-title="indicator.title+' — '+indicator.count+' سيارة. اضغط لعرض التفاصيل'">
+    <span class="ycc-service-icon"><i t-att-class="'fa '+indicator.icon"/></span>
+    <span class="ycc-service-title"><t t-esc="indicator.title"/></span>
+    <strong class="ycc-service-number"><t t-esc="indicator.count"/></strong>
+   </button>
+  </t>
+ </div>
  <div class="ycc-board-section">
  <div class="ycc-grid-wrap ycc-grid-wrap-v64"><table class="ycc-grid ycc-week-grid"><thead><tr><th class="ycc-time-heading"><i class="fa fa-clock-o"/> الوقت</th>
  <t t-foreach="rows" t-as="row"><th t-att-class="'ycc-week-day '+(row.dailyCapacity &amp;&amp; row.dailyCount &gt;= row.dailyCapacity ? 'ycc-day-full' : row.dailyCapacity &amp;&amp; row.dailyCount * 10 &gt;= row.dailyCapacity * 7 ? 'ycc-day-warning' : '')"><strong><t t-esc="row.label"/></strong><small><t t-esc="row.hijri"/></small>
@@ -77,5 +86,24 @@
  <t t-foreach="orders" t-as="o"><div class="ycc-installation-order-card"><div><strong><t t-esc="o.customer"/></strong><small>السيارة: <t t-esc="o.vehicle || 'غير محددة'"/> · أمر التركيب: <t t-esc="o.name"/></small><small>الحجز السابق: <t t-esc="o.booking_name || 'غير مرتبط'"/> · تاريخ الحجز الأصلي: <t t-esc="o.booking_date || 'غير مرتبط'"/></small><small>تاريخ موعد التشييك: <t t-esc="o.check_date"/></small></div><button type="button" class="btn btn-outline-primary btn-sm ycc-open-order" t-att-data-id="o.id">فتح أمر التركيب</button></div></t>
  <t t-if="!orders.length"><div class="ycc-empty">لا توجد سيارات تشييك لهذا اليوم.</div></t>
  </div><div class="modal-footer"><button type="button" class="btn btn-secondary ycc-close">إغلاق</button></div></div></div>
+</t>
+<t t-name="ycc.ServiceIndicatorModal">
+ <div class="modal-dialog modal-lg ycc-dialog" role="document"><div class="modal-content">
+  <div class="modal-header"><h4 class="modal-title"><i class="fa fa-list-alt"/> متابعة: <t t-esc="title"/> (<t t-esc="items.length"/>)</h4><button type="button" class="close ycc-close" aria-label="إغلاق">×</button></div>
+  <div class="modal-body ycc-service-modal-body">
+   <t t-if="!items.length"><div class="ycc-empty">لا توجد سيارات ضمن هذا المؤشر في الفترة المعروضة.</div></t>
+   <t t-foreach="items" t-as="item"><div class="ycc-service-detail">
+    <div class="ycc-service-detail-info"><strong><t t-esc="item.customer"/></strong><small><t t-esc="item.vehicle"/> <t t-if="item.booking"> · <t t-esc="item.booking"/></t></small>
+     <small t-if="item.booking_date">تاريخ الحجز: <t t-esc="item.booking_date"/></small>
+     <small t-if="item.delivery_date">تاريخ التسليم: <t t-esc="item.delivery_date"/></small>
+     <small t-if="item.check_date">موعد التشييك: <t t-esc="item.check_date"/></small>
+     <small t-if="item.note"><t t-esc="item.note"/></small>
+    </div><div class="ycc-service-detail-actions">
+     <button t-if="item.booking_id" class="btn btn-outline-primary btn-sm ycc-service-open" data-model="ycc.appointment" t-att-data-id="item.booking_id">فتح الحجز</button>
+     <button t-if="item.order_id" class="btn btn-outline-secondary btn-sm ycc-service-open" data-model="wo.installation.order.mst" t-att-data-id="item.order_id">فتح أمر التركيب</button>
+    </div>
+   </div></t>
+  </div><div class="modal-footer"><button class="btn btn-secondary ycc-close">إغلاق</button></div>
+ </div></div>
 </t>
 </templates>

@@ -208,8 +208,82 @@ class YCCCalendar(http.Controller):
                 items.sort(key=lambda x: (not x['open'], x['percent'] if x['open'] else 999,
                                           -x['remaining'], x['name']))
                 comparison[date_key] = items
+        # Customer-service indicators use the selected branch and displayed date range.
+        # Do not mutate appointment dates, order states, or booking capacity.
+        service_items = {key: [] for key in (
+            'late_arrival', 'late_delivery', 'open_invoices', 'checks',
+            'contacting', 'provisional', 'no_show', 'postponed',
+            'completed', 'invoice_closed')}
+        seen_items = {key: set() for key in service_items}
+
+        def add_item(key, booking=None, order=None, note=''):
+            identity = ('order', order.id) if order and key in ('late_delivery', 'open_invoices', 'checks') else ('booking', booking.id) if booking else ('order', order.id)
+            if identity in seen_items[key]:
+                return
+            seen_items[key].add(identity)
+            service_items[key].append({
+                'booking_id': booking.id if booking else False,
+                'order_id': order.id if order else (booking.installation_order_id.id if booking and booking.installation_order_id else False),
+                'booking': booking.name if booking else '',
+                'customer': booking.partner_id.name if booking else (order.partner_id.name if order else ''),
+                'vehicle': booking.vehicle_plate or '' if booking else '',
+                'booking_date': fields.Date.to_string(booking.date) if booking and booking.date else '',
+                'delivery_date': fields.Date.to_string(order.delivery_date) if order and order.delivery_date else '',
+                'check_date': fields.Date.to_string(order.check_date) if order and order.check_date else '',
+                'note': note,
+            })
+
+        # The selected period is the scope for appointment-state cards.
+        # Delayed arrival is calculated from the booking's slot and local time.
+        for booking in appointments:
+            stage = booking.service_stage
+            order = booking.installation_order_id
+            arrival_note, delivery_note = warning_data(booking)
+            if arrival_note:
+                add_item('late_arrival', booking, note=arrival_note)
+            if booking.state == 'contacting':
+                add_item('contacting', booking)
+            if booking.state == 'provisional':
+                add_item('provisional', booking)
+            if booking.state == 'no_show':
+                add_item('no_show', booking)
+            if booking.was_postponed:
+                add_item('postponed', booking, note=booking.last_postponement_reason or '')
+            if stage == 'completed':
+                add_item('completed', booking)
+            if stage == 'invoice_closed':
+                add_item('invoice_closed', booking)
+
+        # Delivery and invoice follow-up must include orders whose original
+        # booking falls outside the displayed week. Limit to this branch and
+        # to due dates within the selected period (not all historical orders).
+        followup_orders = Order.search([
+            ('branch_id', '=', branch.branch_id.id),
+            ('delivery_date', '>=', fields.Date.to_string(first)),
+            ('delivery_date', '<', fields.Date.to_string(last)),
+        ], order='delivery_date asc, id asc')
+        Appointment = request.env['ycc.appointment']
+        for order in followup_orders:
+            booking = order.ycc_appointment_id if 'ycc_appointment_id' in Order._fields else False
+            if not booking:
+                booking = Appointment.search([('installation_order_id', '=', order.id)], limit=1)
+            stage = booking.service_stage if booking else ''
+            invoice = order.create_invoice_id if 'create_invoice_id' in Order._fields else False
+            invoice_posted = bool(invoice and invoice.state == 'posted')
+            due = fields.Date.from_string(order.delivery_date)
+            if due <= local_now.date() and stage not in ('completed', 'invoice_closed') and not invoice_posted:
+                add_item('late_delivery', booking, order, 'موعد التسليم: %s' % due)
+            if invoice and not invoice_posted:
+                add_item('open_invoices', booking, order, 'الفاتورة لم تُرحّل بعد')
+        for check_day, day_orders in check_by_day.items():
+            for check_order in day_orders:
+                order = Order.browse(check_order['id'])
+                booking = order.ycc_appointment_id if 'ycc_appointment_id' in Order._fields else False
+                if not booking:
+                    booking = Appointment.search([('installation_order_id', '=', order.id)], limit=1)
+                add_item('checks', booking, order, 'موعد التشييك: %s' % check_day)
         now = fields.Datetime.now()
-        return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'check_by_day':check_by_day,'check_capacity':branch.check_capacity,'branch_comparison':comparison,
+        return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'check_by_day':check_by_day,'check_capacity':branch.check_capacity,'branch_comparison':comparison,'service_indicators':service_items,
             'slots':[{'id':s.id,'name':s.name,'start_hour':s.start_hour,'end_hour':s.end_hour,'capacity':branch.capacity,'days':[int(x) for x in s.weekday_ids.mapped('code')]} for s in slots],
             'exceptions':[{'date':fields.Date.to_string(e.date),'slot_id':e.slot_id.id or False,'reason':e.reason} for e in exceptions],
             'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':list(dict.fromkeys(slot.id for _, slot in self._calendar_periods(a))) if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in self._calendar_periods(a) if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'occupies':a._occupies(now),'service_stage':a.service_stage,'was_postponed':a.was_postponed,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or '', 'notes':a.notes or '', 'postponement_reason':a.last_postponement_reason or '', 'arrival_warning':warning_data(a)[0], 'delivery_warning':warning_data(a)[1]} for a in appointments if a._occupies(now) or a.state == 'no_show']}
