@@ -776,3 +776,36 @@
 .ycc-visual-cell .ycc-alert-icons { margin-inline-start:auto; padding-inline:3px; }
 .ycc-visual-cell .ycc-visual-info { min-width:0; }
 .ycc-visual-cell .ycc-visual-status-row { flex-wrap:wrap; }
+
+/* V6.38 — reserve a real circular gauge footprint; let actions shrink instead. */
+.ycc-board .ycc-day-meter-v636 .ycc-meter-inline {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 5px;
+  align-items: center;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle-wrap { width:78px; min-width:78px; }
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle {
+  width:72px; height:72px; min-width:72px; min-height:72px;
+  max-width:none; flex-shrink:0; aspect-ratio:1;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions { min-width:0; gap:3px !important; }
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button {
+  box-sizing:border-box; min-width:0; max-width:100%;
+  padding:4px 2px !important; font-size:9px !important;
+  line-height:1.2 !important; letter-spacing:-.12px;
+  white-space:nowrap !important; overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button .fa { font-size:9px !important; }
+@media (max-width:1300px) {
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-inline {grid-template-columns:70px minmax(0,1fr);gap:3px;}
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-circle-wrap {width:70px;min-width:70px;}
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-circle {width:66px;height:66px;min-width:66px;min-height:66px;}
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button {font-size:8.5px !important;padding:4px 1px !important;}
+}
+@media (max-width:900px) {
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-circle {width:66px;height:66px;min-width:66px;min-height:66px;}
+}
+/* Ruled notebook icon for actual booking notes. */
+.ycc-alert-note {color:#b77900; font-size:14px !important;}
