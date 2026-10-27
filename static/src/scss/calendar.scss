@@ -914,3 +914,84 @@
 .ycc-service-detail-info small {color:#64748b;}
 .ycc-service-detail-actions {display:flex;flex-wrap:wrap;gap:5px;flex-shrink:0;}
 @media(max-width:600px){.ycc-service-indicator{flex:0 0 112px;}.ycc-service-detail{align-items:flex-start;flex-direction:column;}}
+
+/* V6.44: interactive, expandable customer-service follow-up cards only */
+.ycc-followup-dialog {max-width:820px;}
+.ycc-followup-header {background:#f7f9ff;align-items:center;}
+.ycc-followup-subtitle {display:block;color:#78869b;margin-top:4px;}
+.ycc-service-modal-body {max-height:68vh;overflow-y:auto;padding:16px 20px;}
+.ycc-followup-tools {display:flex;align-items:center;gap:12px;margin-bottom:13px;}
+.ycc-followup-search-wrap {display:flex;align-items:center;gap:8px;flex:1;position:relative;margin:0;border:1px solid #dce4f1;border-radius:8px;padding:0 10px;background:#fff;color:#73829a;}
+.ycc-followup-search-wrap input {border:0!important;box-shadow:none!important;background:transparent!important;min-width:0;height:36px;font-size:12px;}
+.ycc-followup-total {white-space:nowrap;background:#eef2ff;color:#4154a0;padding:7px 10px;border-radius:8px;font-size:12px;}
+.ycc-followup-card {border:1px solid #dce4ef;border-right:4px solid #687cc4;border-radius:10px;margin-bottom:10px;padding:12px;background:#fff;transition:box-shadow .15s;}
+.ycc-followup-card:hover {box-shadow:0 3px 14px rgba(25,47,88,.08);}
+.ycc-followup-late_arrival {border-right-color:#e9a23b;}.ycc-followup-late_delivery,.ycc-followup-no_show {border-right-color:#d94d51;}.ycc-followup-completed {border-right-color:#7c3aed;}.ycc-followup-contacting,.ycc-followup-provisional {border-right-color:#0aa9c3;}.ycc-followup-checks {border-right-color:#007aa7;}.ycc-followup-postponed {border-right-color:#c66c29;}
+.ycc-followup-card-head {display:flex;align-items:center;gap:10px;}
+.ycc-followup-car-icon {width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:#edf3ff;color:#3164ba;border-radius:9px;font-size:18px;flex-shrink:0;}
+.ycc-followup-identity {flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+.ycc-followup-identity strong {font-size:13px;color:#263b60;}.ycc-followup-identity small {font-size:11px;color:#71829a;}
+.ycc-followup-badges {display:flex;gap:5px;flex-wrap:wrap;}.ycc-followup-state,.ycc-followup-postponed {border-radius:12px;padding:2px 7px;font-size:10px;background:#edf3ff;color:#3663a5;}.ycc-followup-postponed {background:#fff1df;color:#b35c13;}
+.ycc-followup-expand {background:#f6f8fd;border:1px solid #dce4ef;border-radius:7px;padding:6px 9px;font-size:11px;color:#4b6386;cursor:pointer;white-space:nowrap;}
+.ycc-followup-summary {display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:9px;font-size:11px;color:#708099;}.ycc-followup-alert {color:#a55b14;}
+.ycc-followup-expanded {border-top:1px solid #e8edf5;margin-top:12px;padding-top:12px;}
+.ycc-followup-facts {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.ycc-followup-facts>div {display:flex;flex-direction:column;gap:3px;min-width:0;}.ycc-followup-facts small {color:#8190a5;font-size:10px;}.ycc-followup-facts strong {font-size:12px;color:#344967;overflow-wrap:anywhere;}
+.ycc-followup-notes {margin-top:10px;padding:9px;border-radius:7px;background:#fff9ee;color:#815d25;font-size:11px;white-space:pre-wrap;}
+.ycc-followup-actions {display:flex;flex-wrap:wrap;gap:8px;margin-top:13px;}
+.ycc-followup-empty-search {text-align:center;padding:18px;color:#71829a;}
+@media(max-width:600px){.ycc-service-modal-body{padding:12px;}.ycc-followup-tools{gap:6px;}.ycc-followup-facts{gap:8px;}.ycc-followup-expand{padding:5px;}}
+
+/* V6.45 — compact two-row dashboard: four summary cards + ten follow-up indicators.
+   Desktop: all ten indicators are visible without horizontal scrolling. */
+.ycc-board .ycc-kpis-v64 {
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  gap:8px !important;
+  margin-bottom:5px !important;
+}
+.ycc-board .ycc-kpis-v64 > div {
+  min-width:0 !important;
+  min-height:45px !important;
+  height:45px !important;
+  padding:5px 10px !important;
+  border-radius:8px !important;
+}
+.ycc-board .ycc-kpis-v64 small {font-size:10px !important;line-height:1.1 !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-inline-end:20px;}
+.ycc-board .ycc-kpis-v64 strong {font-size:19px !important;line-height:1.05 !important;margin:1px 0 0 !important;}
+.ycc-board .ycc-kpis-v64 em {display:none !important;}
+.ycc-board .ycc-kpis-v64 .ycc-kpi-icon {width:19px !important;height:19px !important;top:7px !important;inset-inline-end:8px !important;font-size:11px !important;background:transparent !important;}
+.ycc-board .ycc-service-strip {
+  display:grid !important;
+  grid-template-columns:repeat(10,minmax(0,1fr)) !important;
+  gap:5px !important;
+  width:100% !important;
+  max-width:100% !important;
+  padding:0 0 7px !important;
+  overflow:visible !important;
+  direction:inherit;
+}
+.ycc-board .ycc-service-strip .ycc-service-indicator {
+  box-sizing:border-box;
+  width:100% !important;
+  min-width:0 !important;
+  max-width:none !important;
+  height:32px !important;
+  min-height:32px !important;
+  padding:3px 5px !important;
+  gap:3px !important;
+  font-size:9px !important;
+  border-radius:6px !important;
+  flex:initial !important;
+}
+.ycc-board .ycc-service-strip .ycc-service-title {flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ycc-board .ycc-service-strip .ycc-service-icon {font-size:10px !important;}
+.ycc-board .ycc-service-strip .ycc-service-number {font-size:12px !important;}
+/* On narrow devices, preserve readable labels rather than introducing sideways scrolling. */
+@media(max-width:1100px) {
+ .ycc-board .ycc-service-strip {grid-template-columns:repeat(5,minmax(0,1fr)) !important;}
+}
+@media(max-width:600px) {
+ .ycc-board .ycc-kpis-v64 {grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+ .ycc-board .ycc-service-strip {grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+}

@@ -231,6 +231,12 @@ class YCCCalendar(http.Controller):
                 'delivery_date': fields.Date.to_string(order.delivery_date) if order and order.delivery_date else '',
                 'check_date': fields.Date.to_string(order.check_date) if order and order.check_date else '',
                 'note': note,
+                'state_label': dict(booking._fields['state'].selection).get(booking.state, booking.state) if booking else '',
+                'stage': booking.service_stage if booking else '',
+                'phone': (booking.partner_id.phone or booking.partner_id.mobile or '') if booking else (order.partner_id.phone or order.partner_id.mobile or '' if order else ''),
+                'notes': (booking.notes or '') if booking and 'notes' in booking._fields else '',
+                'postponement_reason': (booking.last_postponement_reason or '') if booking and booking.was_postponed else '',
+                'branch': booking.branch_id.name if booking and booking.branch_id else '',
             })
 
         # The selected period is the scope for appointment-state cards.

@@ -88,10 +88,23 @@ var Calendar=AbstractAction.extend({
    var items=((this.payload.service_indicators||{})[key]||[]);
    var title=$(e.currentTarget).find('.ycc-service-title').text();
    var self=this;
-   var html=qweb.render('ycc.ServiceIndicatorModal',{title:title,items:items});
+   var html=qweb.render('ycc.ServiceIndicatorModal',{title:title,items:items,indicatorKey:key,icon:({'late_arrival':'fa-clock-o','late_delivery':'fa-calendar-times-o','open_invoices':'fa-file-text-o','checks':'fa-stethoscope','contacting':'fa-phone','provisional':'fa-calendar-o','no_show':'fa-user-times','postponed':'fa-calendar-plus-o','completed':'fa-check-circle','invoice_closed':'fa-check-square-o'})[key]||'fa-list-alt'});
    var $modal=$('<div class="modal fade ycc-modal" tabindex="-1" role="dialog"/>').html(html);
    $('body').append($modal);
    $modal.on('click','.ycc-close',function(){$modal.modal('hide');});
+   $modal.on('click','.ycc-followup-expand',function(ev){
+       ev.preventDefault();var $btn=$(this),$card=$btn.closest('.ycc-followup-card');
+       var open=$btn.attr('aria-expanded')==='true';$btn.attr('aria-expanded',String(!open));
+       $btn.find('.fa').toggleClass('fa-chevron-down',open).toggleClass('fa-chevron-up',!open);
+       $btn.find('span').text(open?'التفاصيل':'إخفاء التفاصيل');
+       $card.find('.ycc-followup-expanded').first().toggle(!open);
+   });
+   $modal.on('input','.ycc-followup-search',function(){
+       var q=$.trim($(this).val()).toLowerCase(),visible=0;
+       $modal.find('.ycc-followup-card').each(function(){var match=!q||($(this).attr('data-search')||'').indexOf(q)!==-1;$(this).toggle(match);if(match){visible++;}});
+       $modal.find('.ycc-followup-visible').text(visible);
+       $modal.find('.ycc-followup-empty-search').toggle(!!q && visible===0);
+   });
    $modal.on('click','.ycc-service-open',function(ev){
        ev.preventDefault();
        var id=parseInt(ev.currentTarget.getAttribute('data-id'),10);
