@@ -809,3 +809,48 @@
 }
 /* Ruled notebook icon for actual booking notes. */
 .ycc-alert-note {color:#b77900; font-size:14px !important;}
+
+/* V6.39 — compact day header: capacity ring alongside a two-row action grid.
+   Only presentation changes; existing buttons, counters and handlers stay intact. */
+.ycc-board .ycc-day-meter-v636 { padding:5px 4px !important; }
+.ycc-board .ycc-day-meter-v636 .ycc-meter-inline {
+  display:grid !important;
+  grid-template-columns:62px minmax(0,1fr) !important;
+  align-items:center; gap:5px !important;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle-wrap {
+  width:62px !important; min-width:62px !important; gap:0 !important;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle {
+  width:60px !important; height:60px !important;
+  min-width:60px !important; min-height:60px !important;
+  padding:5px !important; max-width:none !important;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle-center b {font-size:11px !important;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-circle-center span {font-size:8px !important;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-caption {display:none !important;}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions {
+  display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  grid-auto-flow:row; align-content:center; align-items:stretch;
+  gap:3px !important; min-width:0; width:100%;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button {
+  display:flex !important; width:100% !important; min-width:0 !important;
+  height:24px; min-height:24px; padding:3px 2px !important;
+  font-size:8px !important; line-height:1.1 !important;
+  white-space:nowrap !important; overflow:hidden !important;
+  text-overflow:ellipsis !important; border-radius:5px !important;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button .fa {font-size:8px !important;}
+/* If three actions are present, the check appointment occupies the second row. */
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button:nth-child(3):last-child {
+  grid-column:1 / -1;
+}
+/* When only one action exists, use available width instead of a half-width button. */
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button:only-child {grid-column:1 / -1;}
+@media(max-width:1300px) {
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-inline {grid-template-columns:58px minmax(0,1fr) !important;gap:3px !important;}
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-circle-wrap {width:58px !important;min-width:58px !important;}
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-circle {width:56px !important;height:56px !important;min-width:56px !important;min-height:56px !important;}
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button {font-size:7.5px !important;}
+}
