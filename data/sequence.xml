@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo><data noupdate="1">
+<record id="seq_ycc" model="ir.sequence"><field name="name">Car Care Appointment</field><field name="code">ycc.appointment</field><field name="prefix">CAR/%(year)s/</field><field name="padding">5</field></record>
+<record id="day_mon" model="ycc.weekday"><field name="name">الاثنين</field><field name="code">0</field></record>
+<record id="day_tue" model="ycc.weekday"><field name="name">الثلاثاء</field><field name="code">1</field></record>
+<record id="day_wed" model="ycc.weekday"><field name="name">الأربعاء</field><field name="code">2</field></record>
+<record id="day_thu" model="ycc.weekday"><field name="name">الخميس</field><field name="code">3</field></record>
+<record id="day_fri" model="ycc.weekday"><field name="name">الجمعة</field><field name="code">4</field></record>
+<record id="day_sat" model="ycc.weekday"><field name="name">السبت</field><field name="code">5</field></record>
+<record id="day_sun" model="ycc.weekday"><field name="name">الأحد</field><field name="code">6</field></record>
+</data></odoo>
