@@ -854,3 +854,41 @@
   .ycc-board .ycc-day-meter-v636 .ycc-meter-circle {width:56px !important;height:56px !important;min-width:56px !important;min-height:56px !important;}
   .ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button {font-size:7.5px !important;}
 }
+
+/* V6.42: preserve the V6.41 capacity circle; stack the existing day actions
+   vertically in a fixed, narrow column without increasing header height. */
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions {
+  display:flex !important;
+  flex-direction:column !important;
+  flex-wrap:nowrap !important;
+  align-items:stretch !important;
+  justify-content:center !important;
+  gap:2px !important;
+  width:100% !important;
+  min-width:0 !important;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button,
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button:nth-child(3):last-child,
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button:only-child {
+  grid-column:auto !important;
+  box-sizing:border-box !important;
+  width:100% !important;
+  max-width:100% !important;
+  height:17px !important;
+  min-height:17px !important;
+  padding:1px 2px !important;
+  line-height:13px !important;
+  font-size:8px !important;
+  border-radius:4px !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+.ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button .fa {
+  font-size:8px !important;
+}
+@media (max-width:1300px) {
+  .ycc-board .ycc-day-meter-v636 .ycc-meter-actions > button {
+    font-size:7.5px !important;
+  }
+}
