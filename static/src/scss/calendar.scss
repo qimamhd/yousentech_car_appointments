@@ -1006,3 +1006,16 @@
 .ycc-daily-state-stats .ycc-daily-state-provisional{background:#fff0dc;color:#955600}
 .ycc-daily-state-stats .ycc-daily-state-confirmed{background:#eaf0ff;color:#3158ad}
 .ycc-daily-state-stats .ycc-daily-state-contacting{background:#e3f6f8;color:#146b78}
+
+/* V6.56: keep the service follow-up installation-order action visible without hover. */
+.ycc-board .ycc-followup-actions .ycc-service-open[data-model="wo.installation.order.mst"] {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  background-color: #2459c5 !important; border: 1px solid #2459c5 !important;
+  color: #ffffff !important; opacity: 1 !important;
+  font-weight: 700; text-shadow: none;
+}
+.ycc-board .ycc-followup-actions .ycc-service-open[data-model="wo.installation.order.mst"]:hover,
+.ycc-board .ycc-followup-actions .ycc-service-open[data-model="wo.installation.order.mst"]:focus {
+  background-color: #17449d !important; border-color: #17449d !important;
+  color: #ffffff !important; opacity: 1 !important;
+}
