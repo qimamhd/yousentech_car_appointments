@@ -111,9 +111,14 @@ class YCCInstallationOrder(models.Model):
             appt.name, appt.date, appt.actual_arrival_at or _('غير مسجل'),
             actual_request_date, self.env.user.name, explanation)
         appt.message_post(body=audit)
-        order.message_post(body=audit)
+        # Posting the creation audit may internally update mail.thread fields.
+        # Keep the sales-arrival user's normal write restriction intact;
+        # elevate only the server-side audit posting, preserving its author.
+        order.sudo().message_post(body=audit, author_id=self.env.user.partner_id.id)
         if appt.notes:
-            order.message_post(body=_('ملاحظات الحجز: %s') % appt.notes)
+            order.sudo().message_post(
+                body=_('ملاحظات الحجز: %s') % appt.notes,
+                author_id=self.env.user.partner_id.id)
         return order
 
     def write(self, vals):
