@@ -1008,14 +1008,17 @@
 .ycc-daily-state-stats .ycc-daily-state-contacting{background:#e3f6f8;color:#146b78}
 
 /* V6.56: keep the service follow-up installation-order action visible without hover. */
-.ycc-board .ycc-followup-actions .ycc-service-open[data-model="wo.installation.order.mst"] {
+.ycc-followup-actions .ycc-service-open-order {
   display: inline-flex; align-items: center; justify-content: center; gap: 5px;
   background-color: #2459c5 !important; border: 1px solid #2459c5 !important;
   color: #ffffff !important; opacity: 1 !important;
   font-weight: 700; text-shadow: none;
 }
-.ycc-board .ycc-followup-actions .ycc-service-open[data-model="wo.installation.order.mst"]:hover,
-.ycc-board .ycc-followup-actions .ycc-service-open[data-model="wo.installation.order.mst"]:focus {
+.ycc-followup-actions .ycc-service-open-order:hover,
+.ycc-followup-actions .ycc-service-open-order:focus {
   background-color: #17449d !important; border-color: #17449d !important;
   color: #ffffff !important; opacity: 1 !important;
 }
+
+/* V6.57: service modal is mounted outside .ycc-board; keep action readable. */
+.ycc-service-modal .ycc-followup-actions .ycc-service-open-order { visibility: visible !important; display: inline-flex !important; background: #2459c5 !important; color: #fff !important; border-color: #2459c5 !important; opacity: 1 !important; }
