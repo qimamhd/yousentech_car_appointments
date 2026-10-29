@@ -68,21 +68,24 @@ class YCCCalendar(http.Controller):
         def warning_data(booking):
             arrival = ''
             delivery = ''
-            # Delay indicators are calendar-day based, not slot-hour based.
-            # Keep warning after arrival / order creation until completion or invoice closure.
-            stage = booking.service_stage
-            if stage not in ('completed', 'invoice_closed'):
-                if booking.date:
-                    booked_day = fields.Date.from_string(booking.date)
-                    days_late = (local_now.date() - booked_day).days
-                    if days_late > 0:
-                        arrival = 'موعد الحجز: %s | التأخير: %d يوم' % (booked_day, days_late)
-                order = booking.installation_order_id
-                if order and order.delivery_date:
-                    due = fields.Date.from_string(order.delivery_date)
-                    days_late = (local_now.date() - due).days
-                    if days_late > 0:
-                        delivery = 'موعد تسليم السيارة: %s | تأخر التسليم %d يوم' % (due, days_late)
+            # Arrival warning: unchanged from V6.51 (60 minutes after slot start,
+            # confirmed bookings only). This is independent of delivery warnings.
+            if booking.state == 'confirmed' and booking.date and booking.slot_id:
+                booked_day = fields.Date.from_string(booking.date)
+                start = datetime.combine(booked_day, datetime.min.time()) + timedelta(hours=booking.slot_id.start_hour)
+                local_start = local_now.tzinfo.localize(start) if hasattr(local_now.tzinfo, 'localize') else start.replace(tzinfo=local_now.tzinfo)
+                delay = int((local_now - local_start).total_seconds() // 60)
+                if delay >= 60:
+                    arrival = 'موعد الوصول: %s %s | التأخير: %d ساعة و%d دقيقة' % (
+                        booked_day, booking.slot_id.name, delay // 60, delay % 60)
+            # Delivery calendar icon only: overdue on a later calendar day,
+            # and hidden after completion or invoice closure.
+            order = booking.installation_order_id
+            if order and order.delivery_date and booking.service_stage not in ('completed', 'invoice_closed'):
+                due = fields.Date.from_string(order.delivery_date)
+                days_late = (local_now.date() - due).days
+                if days_late > 0:
+                    delivery = 'موعد تسليم السيارة: %s | تأخر التسليم %d يوم' % (due, days_late)
             return arrival, delivery
         # Active installation orders spanning the selected day (not appointments).
         # Order date and delivery date are inclusive; finished/cancelled orders
@@ -244,7 +247,7 @@ class YCCCalendar(http.Controller):
             })
 
         # The selected period is the scope for appointment-state cards.
-        # Late booking indicators are calculated by full calendar days only.
+        # Arrival warning retains V6.51 time-based logic; delivery remains day-based.
         for booking in appointments:
             stage = booking.service_stage
             order = booking.installation_order_id
