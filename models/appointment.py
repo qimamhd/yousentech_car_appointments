@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
+import re
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
 
@@ -152,6 +153,14 @@ class YCCAppointment(models.Model):
     end_date = fields.Date(string='تاريخ نهاية الحجز', tracking=True, help='اتركه فارغًا لحجز يوم واحد. يمكن أن تمتد السيارة لأيام متعددة.')
     partner_id = fields.Many2one('res.partner',string='العميل',required=True,tracking=True)
     phone = fields.Char(string='الجوال', required=True)
+
+    @api.constrains('phone')
+    def _check_sa_mobile(self):
+        for rec in self:
+            phone = (rec.phone or '').strip()
+            if not re.fullmatch(r'05[0-9]{8}', phone):
+                raise ValidationError(_('رقم الجوال إجباري ويجب أن يبدأ بـ 05 ويتكون من 10 أرقام بالضبط (مثال: 05XXXXXXXX).'))
+
     vehicle_plate = fields.Char(string='لوحة السيارة')
     # Original free-text value retained for existing appointments and integrations.
     vehicle_model = fields.Char(string='وصف السيارة السابق', copy=False)
