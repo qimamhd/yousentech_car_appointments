@@ -383,8 +383,11 @@ class YCCAppointment(models.Model):
                 or self.env.user.has_group('base.group_system'))
 
     def _ycc_arrival_only_user(self):
+        # Arrival-only restrictions apply only when the user has no booking role.
+        # A user may legitimately belong to both groups; booking permission wins.
         return (not self._ycc_manager()
-                and self.env.user.has_group('yousentech_car_appointments.group_ycc_sales_arrival'))
+                and self.env.user.has_group('yousentech_car_appointments.group_ycc_sales_arrival')
+                and not self.env.user.has_group('yousentech_car_appointments.group_ycc_booking'))
 
     def _ycc_can_book(self):
         return self._ycc_manager() or (not self._ycc_arrival_only_user()

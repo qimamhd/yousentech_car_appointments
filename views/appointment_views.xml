@@ -103,7 +103,39 @@
 <record id="view_ycc_forecast_wizard_form" model="ir.ui.view"><field name="name">ycc.forecast.wizard.form</field><field name="model">ycc.forecast.wizard</field><field name="arch" type="xml"><form string="التحقق من السيارات الموجودة"><sheet><field name="details" widget="html" readonly="1" nolabel="1"/></sheet><footer><button string="إغلاق" special="cancel" class="btn-primary"/></footer></form></field></record>
 <record id="view_ycc_service_tree" model="ir.ui.view"><field name="name">ycc.service.tree</field><field name="model">ycc.service</field><field name="arch" type="xml"><tree editable="bottom"><field name="name"/><field name="estimated_hours"/><field name="active"/></tree></field></record>
 <record id="action_ycc_branch" model="ir.actions.act_window"><field name="name">تهيئة نظام المواعيد</field><field name="res_model">ycc.branch</field><field name="view_mode">tree,form</field></record>
-<record id="action_ycc_appointment" model="ir.actions.act_window"><field name="name">المواعيد</field><field name="res_model">ycc.appointment</field><field name="view_mode">tree,form</field></record>
+<record id="view_ycc_appointment_search" model="ir.ui.view">
+  <field name="name">ycc.appointment.search</field>
+  <field name="model">ycc.appointment</field>
+  <field name="arch" type="xml">
+    <search string="بحث المواعيد">
+      <field name="name" string="رقم الحجز" filter_domain="[('name','ilike',self)]"/>
+      <field name="partner_id" string="العميل" filter_domain="[('partner_id','child_of',self)]"/>
+      <field name="phone" string="رقم الجوال" filter_domain="[('phone','ilike',self)]"/>
+      <field name="vehicle_plate" string="لوحة السيارة" filter_domain="[('vehicle_plate','ilike',self)]"/>
+      <field name="custom_branch_id" string="الفرع"/>
+      <field name="agency_id" string="الوكالة"/>
+      <field name="car_type_id" string="نوع السيارة"/>
+      <field name="service_id" string="الخدمة"/>
+      <field name="date" string="تاريخ الحجز"/>
+      <field name="state" string="الحالة"/>
+      <separator/>
+      <filter name="provisional" string="مبدئي" domain="[('state','=','provisional')]"/>
+      <filter name="contacting" string="جاري التواصل" domain="[('state','=','contacting')]"/>
+      <filter name="confirmed" string="مؤكد" domain="[('state','=','confirmed')]"/>
+      <filter name="arrived" string="وصلت السيارة" domain="[('state','=','done')]"/>
+      <filter name="installation_created" string="تم إنشاء أمر تركيب" domain="[('state','=','installation_created')]"/>
+      <filter name="no_show" string="لم يحضر" domain="[('state','=','no_show')]"/>
+      <filter name="cancelled" string="ملغي" domain="[('state','=','cancelled')]"/>
+      <group expand="0" string="تجميع حسب">
+        <filter name="group_branch" string="الفرع" context="{'group_by':'custom_branch_id'}"/>
+        <filter name="group_date" string="تاريخ الحجز" context="{'group_by':'date'}"/>
+        <filter name="group_state" string="الحالة" context="{'group_by':'state'}"/>
+        <filter name="group_agent" string="المندوب" context="{'group_by':'agent_id'}"/>
+      </group>
+    </search>
+  </field>
+</record>
+<record id="action_ycc_appointment" model="ir.actions.act_window"><field name="name">المواعيد</field><field name="res_model">ycc.appointment</field><field name="view_mode">tree,form</field><field name="search_view_id" ref="view_ycc_appointment_search"/></record>
 <record id="action_ycc_service" model="ir.actions.act_window"><field name="name">خدمات العناية</field><field name="res_model">ycc.service</field><field name="view_mode">tree,form</field></record>
 <menuitem id="menu_ycc_calendar" name="تقويم المواعيد" parent="qimamhd_wo_v3.work_order_operation_menu" action="action_ycc_calendar" sequence="80"/>
 <menuitem id="menu_ycc_appointment" name="المواعيد" parent="qimamhd_wo_v3.work_order_operation_menu" action="action_ycc_appointment" sequence="81"/>
