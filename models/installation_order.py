@@ -121,12 +121,9 @@ class YCCInstallationOrder(models.Model):
                 author_id=self.env.user.partner_id.id)
         return order
 
-    def write(self, vals):
-        if (self.env.user.has_group('yousentech_car_appointments.group_ycc_sales_arrival')
-                and not (self.env.user.has_group('base.group_system') or self.env.user.has_group('yousentech_car_appointments.group_ycc_manager'))
-                and any(r.ycc_appointment_id for r in self)):
-            raise UserError(_('مندوب الوصول لا يمكنه تعديل أمر التركيب بعد إنشائه.'))
-        return super(YCCInstallationOrder, self).write(vals)
+    # No group-based write prohibition on installation orders. The sales-arrival
+    # group controls appointment UI actions; native Odoo ACLs and business
+    # validations still apply to installation orders.
 
     def action_ycc_open_full_order(self):
         self.ensure_one()
