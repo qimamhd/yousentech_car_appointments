@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Branch-only restriction: not tied to the booking creator or sales representative. -->
+    <record id="ycc_appointment_allowed_branch_rule" model="ir.rule">
+        <field name="name">Appointments - Allowed Branches</field>
+        <field name="model_id" ref="model_ycc_appointment"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[('custom_branch_id', 'in', user.allowed_branch_ids.ids)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+</odoo>

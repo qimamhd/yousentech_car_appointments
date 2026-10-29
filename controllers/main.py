@@ -37,17 +37,21 @@ class YCCCalendar(http.Controller):
         Branch = request.env['ycc.branch']
         # Settings are stored in ycc.branch, while branch names and identities
         # come exclusively from the existing V3 custom.branches model.
-        configurations = Branch.search([('active', '=', True)])
+        configurations = Branch.search([
+            ('active', '=', True),
+            ('branch_id', 'in', request.env.user.allowed_branch_ids.ids),
+        ])
         branches = [
             {'id': config.id, 'name': config.branch_id.display_name,
              'custom_branch_id': config.branch_id.id}
             for config in configurations if config.branch_id
         ]
         if not branches: return {'branches':[],'slots':[],'appointments':[],'exceptions':[]}
-        branch = Branch.browse(int(branch_id)) if branch_id else configurations.filtered(lambda c: c.branch_id)[:1]
+        branch = configurations.filtered(lambda c: c.id == int(branch_id))[:1] if branch_id else configurations.filtered(lambda c: c.branch_id)[:1]
+        if not branch or not branch.exists() or not branch.branch_id:
+            return {'branches': branches, 'slots': [], 'appointments': [], 'exceptions': [], 'error': 'الفرع غير مسموح للمستخدم'}
         branch.check_access_rights('read')
         branch.check_access_rule('read')
-        if not branch.exists() or not branch.branch_id: return {'branches':branches,'slots':[],'appointments':[],'exceptions':[]}
         first = fields.Date.from_string(start) if start else date.today()
         last = fields.Date.from_string(end) if end else first+timedelta(days=7)
         if last <= first or (last-first).days > 42: return {'error':'Invalid date range'}
@@ -64,21 +68,21 @@ class YCCCalendar(http.Controller):
         def warning_data(booking):
             arrival = ''
             delivery = ''
-            if booking.state == 'confirmed' and booking.date and booking.slot_id:
-                booked_day = fields.Date.from_string(booking.date)
-                start = datetime.combine(booked_day, datetime.min.time()) + timedelta(hours=booking.slot_id.start_hour)
-                local_start = local_now.tzinfo.localize(start) if hasattr(local_now.tzinfo, 'localize') else start.replace(tzinfo=local_now.tzinfo)
-                delay = int((local_now - local_start).total_seconds() // 60)
-                if delay >= 60:
-                    arrival = 'موعد الوصول: %s %s | التأخير: %d ساعة و%d دقيقة' % (
-                        booked_day, booking.slot_id.name, delay // 60, delay % 60)
-            order = booking.installation_order_id
-            if order and order.delivery_date and booking.service_stage not in ('completed', 'invoice_closed'):
-                due = fields.Date.from_string(order.delivery_date)
-                days_late = (local_now.date() - due).days
-                if days_late >= 0:
-                    delivery = 'موعد تسليم السيارة: %s | %s' % (
-                        due, ('موعد التسليم اليوم' if days_late == 0 else 'تأخر التسليم %d يوم' % days_late))
+            # Delay indicators are calendar-day based, not slot-hour based.
+            # Keep warning after arrival / order creation until completion or invoice closure.
+            stage = booking.service_stage
+            if stage not in ('completed', 'invoice_closed'):
+                if booking.date:
+                    booked_day = fields.Date.from_string(booking.date)
+                    days_late = (local_now.date() - booked_day).days
+                    if days_late > 0:
+                        arrival = 'موعد الحجز: %s | التأخير: %d يوم' % (booked_day, days_late)
+                order = booking.installation_order_id
+                if order and order.delivery_date:
+                    due = fields.Date.from_string(order.delivery_date)
+                    days_late = (local_now.date() - due).days
+                    if days_late > 0:
+                        delivery = 'موعد تسليم السيارة: %s | تأخر التسليم %d يوم' % (due, days_late)
             return arrival, delivery
         # Active installation orders spanning the selected day (not appointments).
         # Order date and delivery date are inclusive; finished/cancelled orders
@@ -240,7 +244,7 @@ class YCCCalendar(http.Controller):
             })
 
         # The selected period is the scope for appointment-state cards.
-        # Delayed arrival is calculated from the booking's slot and local time.
+        # Late booking indicators are calculated by full calendar days only.
         for booking in appointments:
             stage = booking.service_stage
             order = booking.installation_order_id
@@ -277,7 +281,7 @@ class YCCCalendar(http.Controller):
             invoice = order.create_invoice_id if 'create_invoice_id' in Order._fields else False
             invoice_posted = bool(invoice and invoice.state == 'posted')
             due = fields.Date.from_string(order.delivery_date)
-            if due <= local_now.date() and stage not in ('completed', 'invoice_closed') and not invoice_posted:
+            if due < local_now.date() and stage not in ('completed', 'invoice_closed') and not invoice_posted:
                 add_item('late_delivery', booking, order, 'موعد التسليم: %s' % due)
             if invoice and not invoice_posted:
                 add_item('open_invoices', booking, order, 'الفاتورة لم تُرحّل بعد')
