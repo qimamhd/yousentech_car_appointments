@@ -995,3 +995,14 @@
  .ycc-board .ycc-kpis-v64 {grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
  .ycc-board .ycc-service-strip {grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
 }
+
+/* V6.55: daily occupancy breakdown, no changes to booking calculations */
+.ycc-meter-circle[data-date]{cursor:pointer}
+.ycc-meter-circle[data-date]:focus-visible{outline:2px solid #2563eb;outline-offset:3px}
+.ycc-daily-state-stats{display:flex;flex-wrap:wrap;gap:6px}
+.ycc-daily-state-stats .ycc-daily-state{display:inline-flex;align-items:center;gap:4px;border-radius:5px;padding:4px 8px;background:#edf2fa;color:#304565;font-size:11px;font-weight:600}
+.ycc-daily-state-stats .ycc-daily-state-installation_created{background:#e6f5ed;color:#146c43}
+.ycc-daily-state-stats .ycc-daily-state-done{background:#efe9ff;color:#6840a2}
+.ycc-daily-state-stats .ycc-daily-state-provisional{background:#fff0dc;color:#955600}
+.ycc-daily-state-stats .ycc-daily-state-confirmed{background:#eaf0ff;color:#3158ad}
+.ycc-daily-state-stats .ycc-daily-state-contacting{background:#e3f6f8;color:#146b78}

@@ -9,7 +9,7 @@ function day(s){return new Date(s+'T12:00:00');}
 function add(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n,12);}
 function fmt(d,opts,cal,lang){try{return new Intl.DateTimeFormat(lang+(cal?'-u-ca-'+cal:''),opts).format(d);}catch(e){return iso(d);}}
 var Calendar=AbstractAction.extend({
- events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-new':'_new','click .ycc-installation-count':'_installationDay','click .ycc-check-count':'_checkDay','click .ycc-peer-branches':'_peerBranches','click .ycc-service-indicator':'_serviceIndicator'},
+ events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-meter-circle':'_dayBookings','click .ycc-new':'_new','click .ycc-installation-count':'_installationDay','click .ycc-check-count':'_checkDay','click .ycc-peer-branches':'_peerBranches','click .ycc-service-indicator':'_serviceIndicator'},
  init:function(){this._super.apply(this,arguments);this.mode='week';this.anchor=day(iso(new Date()));this.branchId=null;this.payload={branches:[],slots:[],appointments:[],exceptions:[]};},
  start:function(){
     var self=this;
@@ -179,9 +179,39 @@ var Calendar=AbstractAction.extend({
  _month:function(){this.mode='month';return this._load();},
  _branch:function(e){this.branchId=parseInt(e.currentTarget.value,10);return this._load();},
  _new:function(){if(!this.payload.can_create){return;}this.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',views:[[false,'form']],target:'current'});},
- _period:function(e){var date=e.currentTarget.getAttribute('data-date'),slotId=parseInt(e.currentTarget.getAttribute('data-slot'),10),slot=(this.payload.slots||[]).filter(function(s){return s.id===slotId;})[0];if(!slot)return;
- var bookings=(this.payload.appointments||[]).filter(function(b){return (b.periods||[]).some(function(p){return p.date===date&&p.slot_id===slotId;});}),branch=(this.payload.branches||[]).filter(function(b){return b.id===this.branchId;},this)[0],self=this;
- var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slot.name,branchName:branch?branch.name:'',capacity:this.payload.daily_capacity||slot.capacity,dailyCount:(function(){var seen={};(self.payload.appointments||[]).forEach(function(b){if(b.occupies && (b.periods||[]).some(function(p){return p.date===date;})){seen[b.id]=true;}});return Object.keys(seen).length;})(),bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed';}).length,arrived:bookings.filter(function(b){return b.state==='done'||b.state==='installation_created';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length,canCreate:!!this.payload.can_create,canInstall:!!this.payload.can_create||!!this.payload.arrival_only});
+ _dayBookings:function(e){
+   e.preventDefault();e.stopPropagation();
+   var date=e.currentTarget.getAttribute('data-date');
+   var bookings=this._dailyOccupancyBookings(date);
+   this._showBookingsModal(date,null,'جميع فترات اليوم',bookings,true);
+ },
+ _dailyOccupancyBookings:function(date){
+   var seen={};return (this.payload.appointments||[]).filter(function(b){
+     if(!b.occupies || seen[b.id] || !(b.periods||[]).some(function(p){return p.date===date;})){return false;}
+     seen[b.id]=true;return true;
+   });
+ },
+ _dailyStateCounts:function(bookings){
+   var labels={provisional:'حجز مبدئي',contacting:'جاري التواصل',confirmed:'مؤكد',done:'وصلت السيارة',installation_created:'تم إنشاء أمر تركيب',completed:'تم الإنجاز',invoice_closed:'إقفال الفاتورة',no_show:'لم يحضر',postponed:'تم تأجيله'};
+   var counts={},result=[];
+   bookings.forEach(function(b){var state=b.service_stage||b.state||'other';if(!counts[state]){counts[state]=0;}counts[state]++;});
+   Object.keys(counts).forEach(function(state){result.push({state:state,label:labels[state]||'حجز',count:counts[state]});});
+   return result;
+ },
+ _showBookingsModal:function(date,slotId,slotName,bookings,isDaily){
+   var branch=(this.payload.branches||[]).filter(function(b){return b.id===this.branchId;},this)[0],self=this;
+   var dailyBookings=this._dailyOccupancyBookings(date);
+   var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slotName,branchName:branch?branch.name:'',capacity:this.payload.daily_capacity||0,dailyCount:dailyBookings.length,bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed';}).length,arrived:bookings.filter(function(b){return b.state==='done'||b.state==='installation_created';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length,dailyStates:this._dailyStateCounts(dailyBookings),isDaily:!!isDaily,canCreate:!!this.payload.can_create,canInstall:!!this.payload.can_create||!!this.payload.arrival_only});
+   this._mountPeriodModal(html,date,slotId);
+ },
+ _period:function(e){
+   var date=e.currentTarget.getAttribute('data-date'),slotId=parseInt(e.currentTarget.getAttribute('data-slot'),10),slot=(this.payload.slots||[]).filter(function(s){return s.id===slotId;})[0];
+   if(!slot){return;}
+   var bookings=(this.payload.appointments||[]).filter(function(b){return (b.periods||[]).some(function(p){return p.date===date&&p.slot_id===slotId;});});
+   this._showBookingsModal(date,slotId,slot.name,bookings,false);
+ },
+ _mountPeriodModal:function(html,date,slotId){
+   var self=this;
  var $modal=$('<div class="modal fade ycc-modal" tabindex="-1" role="dialog"/>').html(html);$('body').append($modal);
  $modal.on('click','.ycc-close',function(){$modal.modal('hide');});
  // Open the actual appointment when clicking anywhere on its card.
