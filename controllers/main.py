@@ -37,23 +37,27 @@ class YCCCalendar(http.Controller):
         Branch = request.env['ycc.branch']
         # Settings are stored in ycc.branch, while branch names and identities
         # come exclusively from the existing V3 custom.branches model.
-        configurations = Branch.search([('active', '=', True)])
+        configurations = Branch.search([
+            ('active', '=', True),
+            ('branch_id', 'in', request.env.user.allowed_branch_ids.ids),
+        ])
         branches = [
             {'id': config.id, 'name': config.branch_id.display_name,
              'custom_branch_id': config.branch_id.id}
             for config in configurations if config.branch_id
         ]
         if not branches: return {'branches':[],'slots':[],'appointments':[],'exceptions':[]}
-        branch = Branch.browse(int(branch_id)) if branch_id else configurations.filtered(lambda c: c.branch_id)[:1]
+        branch = configurations.filtered(lambda c: c.id == int(branch_id))[:1] if branch_id else configurations.filtered(lambda c: c.branch_id)[:1]
+        if not branch or not branch.exists() or not branch.branch_id:
+            return {'branches': branches, 'slots': [], 'appointments': [], 'exceptions': [], 'error': 'الفرع غير مسموح للمستخدم'}
         branch.check_access_rights('read')
         branch.check_access_rule('read')
-        if not branch.exists() or not branch.branch_id: return {'branches':branches,'slots':[],'appointments':[],'exceptions':[]}
         first = fields.Date.from_string(start) if start else date.today()
         last = fields.Date.from_string(end) if end else first+timedelta(days=7)
         if last <= first or (last-first).days > 42: return {'error':'Invalid date range'}
         slots = request.env['ycc.slot'].search([('branch_id','=',branch.id),('active','=',True)])
         exceptions = request.env['ycc.exception'].search([('branch_id','=',branch.id),('date','>=',first),('date','<',last)])
-        appointments = request.env['ycc.appointment'].search([('branch_id','=',branch.id),('date','<',last),'|','&',('end_date','=',False),('date','>=',first),('end_date','>=',first),('state','in',['provisional','contacting','confirmed','done','installation_created','postponed','no_show'])])
+        appointments = request.env['ycc.appointment'].search([('branch_id','=',branch.id),('date','<',last),'|','&',('end_date','=',False),('date','>=',first),('end_date','>=',first),('state','in',['provisional','contacting','confirmed','done','installation_created','postponed','no_show','inspection_completed'])])
         # Customer-service warnings are calculated at request time, without
         # modifying the appointment or installation-order workflow.
         tz_name = request.env.user.tz or request.env.company.partner_id.tz or 'Asia/Riyadh'
@@ -64,6 +68,8 @@ class YCCCalendar(http.Controller):
         def warning_data(booking):
             arrival = ''
             delivery = ''
+            # Arrival warning: unchanged from V6.51 (60 minutes after slot start,
+            # confirmed bookings only). This is independent of delivery warnings.
             if booking.state == 'confirmed' and booking.date and booking.slot_id:
                 booked_day = fields.Date.from_string(booking.date)
                 start = datetime.combine(booked_day, datetime.min.time()) + timedelta(hours=booking.slot_id.start_hour)
@@ -72,13 +78,14 @@ class YCCCalendar(http.Controller):
                 if delay >= 60:
                     arrival = 'موعد الوصول: %s %s | التأخير: %d ساعة و%d دقيقة' % (
                         booked_day, booking.slot_id.name, delay // 60, delay % 60)
+            # Delivery calendar icon only: overdue on a later calendar day,
+            # and hidden after completion or invoice closure.
             order = booking.installation_order_id
             if order and order.delivery_date and booking.service_stage not in ('completed', 'invoice_closed'):
                 due = fields.Date.from_string(order.delivery_date)
                 days_late = (local_now.date() - due).days
-                if days_late >= 0:
-                    delivery = 'موعد تسليم السيارة: %s | %s' % (
-                        due, ('موعد التسليم اليوم' if days_late == 0 else 'تأخر التسليم %d يوم' % days_late))
+                if days_late > 0:
+                    delivery = 'موعد تسليم السيارة: %s | تأخر التسليم %d يوم' % (due, days_late)
             return arrival, delivery
         # Active installation orders spanning the selected day (not appointments).
         # Order date and delivery date are inclusive; finished/cancelled orders
@@ -168,7 +175,7 @@ class YCCCalendar(http.Controller):
                 ('date', '<', fields.Date.to_string(last)),
                 '|', '&', ('end_date', '=', False), ('date', '>=', fields.Date.to_string(first)),
                 ('end_date', '>=', fields.Date.to_string(first)),
-                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created','postponed']),
+                ('state', 'in', ['provisional', 'contacting', 'confirmed', 'done', 'installation_created','postponed','inspection_completed']),
             ])
             peer_counts = {}
             for appt in peer_bookings:
@@ -236,11 +243,11 @@ class YCCCalendar(http.Controller):
                 'phone': (booking.partner_id.phone or booking.partner_id.mobile or '') if booking else (order.partner_id.phone or order.partner_id.mobile or '' if order else ''),
                 'notes': (booking.notes or '') if booking and 'notes' in booking._fields else '',
                 'postponement_reason': (booking.last_postponement_reason or '') if booking and booking.was_postponed else '',
-                'branch': booking.branch_id.name if booking and booking.branch_id else '',
+                'branch': booking.branch_id.branch_id.display_name if booking and booking.branch_id and booking.branch_id.branch_id else '',
             })
 
         # The selected period is the scope for appointment-state cards.
-        # Delayed arrival is calculated from the booking's slot and local time.
+        # Arrival warning retains V6.51 time-based logic; delivery remains day-based.
         for booking in appointments:
             stage = booking.service_stage
             order = booking.installation_order_id
@@ -277,7 +284,7 @@ class YCCCalendar(http.Controller):
             invoice = order.create_invoice_id if 'create_invoice_id' in Order._fields else False
             invoice_posted = bool(invoice and invoice.state == 'posted')
             due = fields.Date.from_string(order.delivery_date)
-            if due <= local_now.date() and stage not in ('completed', 'invoice_closed') and not invoice_posted:
+            if due < local_now.date() and stage not in ('completed', 'invoice_closed') and not invoice_posted:
                 add_item('late_delivery', booking, order, 'موعد التسليم: %s' % due)
             if invoice and not invoice_posted:
                 add_item('open_invoices', booking, order, 'الفاتورة لم تُرحّل بعد')
@@ -292,4 +299,4 @@ class YCCCalendar(http.Controller):
         return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'check_by_day':check_by_day,'check_capacity':branch.check_capacity,'branch_comparison':comparison,'service_indicators':service_items,
             'slots':[{'id':s.id,'name':s.name,'start_hour':s.start_hour,'end_hour':s.end_hour,'capacity':branch.capacity,'days':[int(x) for x in s.weekday_ids.mapped('code')]} for s in slots],
             'exceptions':[{'date':fields.Date.to_string(e.date),'slot_id':e.slot_id.id or False,'reason':e.reason} for e in exceptions],
-            'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':list(dict.fromkeys(slot.id for _, slot in self._calendar_periods(a))) if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in self._calendar_periods(a) if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'occupies':a._occupies(now),'service_stage':a.service_stage,'was_postponed':a.was_postponed,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or '', 'notes':a.notes or '', 'postponement_reason':a.last_postponement_reason or '', 'arrival_warning':warning_data(a)[0], 'delivery_warning':warning_data(a)[1]} for a in appointments if a._occupies(now) or a.state == 'no_show']}
+            'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':list(dict.fromkeys(slot.id for _, slot in self._calendar_periods(a))) if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in self._calendar_periods(a) if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'occupies':a._occupies(now),'service_stage':a.service_stage,'was_postponed':a.was_postponed,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or '', 'notes':a.notes or '', 'postponement_reason':a.last_postponement_reason or '', 'arrival_warning':warning_data(a)[0], 'delivery_warning':warning_data(a)[1], 'is_check_only':a.is_check_only, 'cancellation_reason':a.cancellation_reason or ''} for a in appointments if a._occupies(now) or a.state == 'no_show']}

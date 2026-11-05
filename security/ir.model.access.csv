@@ -17,3 +17,8 @@ access_ycc_contact_booking,ycc contact booking,model_ycc_contact,yousentech_car_
 access_ycc_contact_wizard_user,ycc.contact.wizard.user,model_ycc_contact_wizard,yousentech_car_appointments.group_ycc_booking,1,1,1,1
 access_ycc_forecast_wizard,ycc.forecast.wizard,model_ycc_forecast_wizard,base.group_user,1,1,1,0
 access_ycc_postpone_wizard,postpone wizard,model_ycc_postpone_wizard,yousentech_car_appointments.group_ycc_booking,1,1,1,1
+
+access_ycc_close_reason_wizard,ycc.close.reason.wizard,model_ycc_close_reason_wizard,yousentech_car_appointments.group_ycc_booking,1,1,1,1
+access_ycc_delivery_change_wizard,ycc.delivery.change.wizard,model_ycc_delivery_change_wizard,yousentech_car_appointments.group_ycc_booking,1,1,1,1
+access_ycc_delivery_change,ycc.delivery.change,model_ycc_delivery_change,yousentech_car_appointments.group_ycc_booking,1,0,1,0
+access_ycc_delivery_change_manager,ycc.delivery.change.manager,model_ycc_delivery_change,yousentech_car_appointments.group_ycc_manager,1,1,1,1

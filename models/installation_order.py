@@ -27,7 +27,24 @@ class YCCInstallationOrder(models.Model):
 
     def write(self, vals):
         self._ycc_assert_check_date_editable(vals)
+        if 'delivery_date' in vals and any(order.ycc_appointment_id for order in self) and not self.env.context.get('ycc_delivery_change_reason'):
+            raise UserError(_('تغيير موعد تسليم أمر مرتبط بحجز يجب أن يتم من زر تغيير موعد التسليم مع تسجيل السبب.'))
+        if 'create_invoice_id' in vals and vals.get('create_invoice_id'):
+            for order in self:
+                if order.state not in ('execute_completed', 'complete_work') and vals.get('state') not in ('execute_completed', 'complete_work'):
+                    raise UserError(_('لا يمكن إنشاء أو ربط فاتورة قبل إنجاز العمل في أمر التركيب.'))
         return super(YCCInstallationOrder, self).write(vals)
+
+    def unlink(self):
+        linked = self.filtered(lambda order: order.ycc_appointment_id)
+        appointments = linked.mapped('ycc_appointment_id')
+        result = super(YCCInstallationOrder, self).unlink()
+        for appointment in appointments.exists():
+            appointment.sudo().with_context(ycc_internal_order_unlink=True).write({
+                'installation_order_id': False, 'state': 'confirmed'
+            })
+            appointment.sudo().message_post(body=_('تم حذف أمر التركيب المرتبط؛ أعيدت حالة الحجز إلى مؤكد.'))
+        return result
 
 
     @api.constrains('check_date', 'branch_id')
@@ -69,6 +86,8 @@ class YCCInstallationOrder(models.Model):
 
     @api.model
     def create(self, vals):
+        if vals.get('create_invoice_id') and vals.get('state') not in ('execute_completed', 'complete_work'):
+            raise UserError(_('لا يمكن إنشاء أو ربط فاتورة قبل إنجاز العمل في أمر التركيب.'))
         appt_id = self.env.context.get('ycc_source_appointment_id')
         if not appt_id:
             return super(YCCInstallationOrder, self).create(vals)
@@ -111,17 +130,19 @@ class YCCInstallationOrder(models.Model):
             appt.name, appt.date, appt.actual_arrival_at or _('غير مسجل'),
             actual_request_date, self.env.user.name, explanation)
         appt.message_post(body=audit)
-        order.message_post(body=audit)
+        # Posting the creation audit may internally update mail.thread fields.
+        # Keep the sales-arrival user's normal write restriction intact;
+        # elevate only the server-side audit posting, preserving its author.
+        order.sudo().message_post(body=audit, author_id=self.env.user.partner_id.id)
         if appt.notes:
-            order.message_post(body=_('ملاحظات الحجز: %s') % appt.notes)
+            order.sudo().message_post(
+                body=_('ملاحظات الحجز: %s') % appt.notes,
+                author_id=self.env.user.partner_id.id)
         return order
 
-    def write(self, vals):
-        if (self.env.user.has_group('yousentech_car_appointments.group_ycc_sales_arrival')
-                and not (self.env.user.has_group('base.group_system') or self.env.user.has_group('yousentech_car_appointments.group_ycc_manager'))
-                and any(r.ycc_appointment_id for r in self)):
-            raise UserError(_('مندوب الوصول لا يمكنه تعديل أمر التركيب بعد إنشائه.'))
-        return super(YCCInstallationOrder, self).write(vals)
+    # No group-based write prohibition on installation orders. The sales-arrival
+    # group controls appointment UI actions; native Odoo ACLs and business
+    # validations still apply to installation orders.
 
     def action_ycc_open_full_order(self):
         self.ensure_one()
