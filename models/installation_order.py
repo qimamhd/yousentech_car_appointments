@@ -25,6 +25,17 @@ class YCCInstallationOrder(models.Model):
                     order.create_invoice_id and order.create_invoice_id.state == 'posted'):
                 raise UserError(_('لا يمكن تحديد أو تغيير موعد التشييك قبل ترحيل فاتورة أمر التركيب.'))
 
+    def sale_order(self):
+        """Block sales order/invoice creation until installation work is complete.
+
+        Keep the core qimamhd_wo_v3 implementation intact: after validating the
+        workflow state, delegate all original behavior to super().
+        """
+        for order in self:
+            if order.state not in ('execute_completed', 'complete_work'):
+                raise UserError(_('لا يمكن إنشاء أمر البيع أو الفاتورة قبل اكتمال العمل في أمر التركيب.'))
+        return super(YCCInstallationOrder, self).sale_order()
+
     def write(self, vals):
         self._ycc_assert_check_date_editable(vals)
         if 'delivery_date' in vals and any(order.ycc_appointment_id for order in self) and not self.env.context.get('ycc_delivery_change_reason'):
