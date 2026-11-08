@@ -1,2 +1,3 @@
 from . import appointment
 from . import installation_order
+from . import dashboard

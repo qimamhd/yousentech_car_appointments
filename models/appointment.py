@@ -4,6 +4,25 @@ import re
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError, UserError
 
+CANCEL_REASONS = [
+    ('price', 'السعر'),
+    ('found_alternative', 'وجد بديلاً'),
+    ('personal', 'ظروف شخصية'),
+    ('no_longer_needed', 'لم يعد يحتاج الخدمة'),
+    ('duplicate', 'حجز مكرر'),
+    ('branch_cancel', 'إلغاء من الفرع'),
+    ('other_cancel', 'أخرى'),
+]
+NO_SHOW_REASONS = [
+    ('no_answer_reminder', 'لم يرد على التذكير'),
+    ('apologized_same_day', 'اعتذر في نفس اليوم'),
+    ('not_reminded', 'لم يتم التذكير قبل الموعد'),
+    ('forgot', 'نسي الموعد'),
+    ('other_no_show', 'أخرى'),
+]
+OTHER_REASON_CODES = ('other_cancel', 'other_no_show')
+
+
 class YCCBranch(models.Model):
     _name = 'ycc.branch'
     _description = 'إعدادات مواعيد الفرع'
@@ -191,6 +210,8 @@ class YCCAppointment(models.Model):
     phone = fields.Char(string='الجوال', required=True)
     is_check_only = fields.Boolean(string='حجز تشييك مستقل (بدون أمر تركيب)', default=False, tracking=True, copy=False)
     cancellation_reason = fields.Text(string='سبب الإلغاء / عدم الحضور', readonly=True, copy=False, tracking=True)
+    close_reason_code = fields.Selection(CANCEL_REASONS + NO_SHOW_REASONS, string='تصنيف سبب الإغلاق',
+                                         readonly=True, copy=False, tracking=True, index=True)
     inspection_completed_at = fields.Datetime(string='تاريخ اكتمال التشييك', readonly=True, copy=False)
     delivery_change_ids = fields.One2many('ycc.delivery.change', 'appointment_id', string='سجل تغييرات موعد التسليم', readonly=True)
 
@@ -774,7 +795,9 @@ class YCCCloseReasonWizard(models.TransientModel):
     _description = 'سبب إلغاء الحجز أو عدم الحضور'
     appointment_id = fields.Many2one('ycc.appointment', required=True, readonly=True)
     target_state = fields.Selection([('cancelled','ملغي'),('no_show','لم يحضر')], required=True, readonly=True)
-    reason = fields.Text(string='السبب', required=True)
+    cancel_reason = fields.Selection(CANCEL_REASONS, string='سبب الإلغاء')
+    no_show_reason = fields.Selection(NO_SHOW_REASONS, string='سبب عدم الحضور')
+    reason = fields.Text(string='التفاصيل')
 
     def action_apply(self):
         self.ensure_one()
@@ -783,8 +806,19 @@ class YCCCloseReasonWizard(models.TransientModel):
             raise UserError(_('ليس لديك صلاحية إغلاق الحجز.'))
         if rec.installation_order_id:
             raise UserError(_('لا يمكن إغلاق الحجز بعد إنشاء أمر التركيب.'))
-        rec.write({'state': self.target_state, 'cancellation_reason': self.reason})
-        rec.message_post(body=_('تم تغيير حالة الحجز إلى %s. السبب: %s') % (dict(self._fields['target_state'].selection).get(self.target_state), self.reason))
+        if self.target_state == 'cancelled':
+            code, options = self.cancel_reason, CANCEL_REASONS
+        else:
+            code, options = self.no_show_reason, NO_SHOW_REASONS
+        if not code:
+            raise UserError(_('اختر السبب من القائمة.'))
+        details = (self.reason or '').strip()
+        if code in OTHER_REASON_CODES and not details:
+            raise UserError(_('اكتب تفاصيل السبب عند اختيار «أخرى».'))
+        label = dict(options).get(code)
+        text = '%s — %s' % (label, details) if details else label
+        rec.write({'state': self.target_state, 'cancellation_reason': text, 'close_reason_code': code})
+        rec.message_post(body=_('تم تغيير حالة الحجز إلى %s. السبب: %s') % (dict(self._fields['target_state'].selection).get(self.target_state), text))
         return {'type':'ir.actions.act_window_close'}
 
 

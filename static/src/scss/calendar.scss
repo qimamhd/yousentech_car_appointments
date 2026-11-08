@@ -1070,3 +1070,11 @@
 .ycc-delivery-change-form .o_field_radio .o_radio_item {margin-bottom:6px;font-size:14px;}
 .ycc-delivery-change-form .ycc-dc-main textarea.o_field_text {width:100%;min-height:90px;border:1px solid #ced4da;border-radius:6px;padding:8px 10px;}
 .ycc-delivery-change-form .ycc-dc-hint {color:#6c757d;font-size:12px;background:#fafbfc;border-top:1px dashed #e3e8ef;padding-top:10px;margin-top:4px;}
+
+/* V6.65: close-reason popup reuses the delivery-change layout. */
+.ycc-close-reason-form .ycc-dc-main {width:100%;}
+.ycc-close-reason-form .ycc-dc-main td.o_td_label {width:150px;min-width:150px;vertical-align:top;padding-top:8px;}
+.ycc-close-reason-form .ycc-dc-main td {padding-bottom:12px;}
+.ycc-close-reason-form .o_field_radio .o_radio_item {margin-bottom:8px;font-size:14px;}
+.ycc-close-reason-form .ycc-dc-main textarea.o_field_text {width:100%;min-height:80px;border:1px solid #ced4da;border-radius:6px;padding:8px 10px;}
+.ycc-close-reason-form .ycc-dc-hint {color:#6c757d;font-size:12px;border-top:1px dashed #e3e8ef;padding-top:10px;margin-top:4px;}
