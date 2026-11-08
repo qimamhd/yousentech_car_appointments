@@ -4,7 +4,7 @@ var AbstractAction = require('web.AbstractAction');
 var core = require('web.core');
 var qweb = core.qweb;
 
-var STORAGE_KEY = 'ycc_manager_dashboard_v1';
+var STORAGE_KEY = 'ycc_manager_dashboard_v2';
 function loadPrefs() {
     try { return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (e) { return {}; }
 }
@@ -16,7 +16,9 @@ var Dashboard = AbstractAction.extend({
     events: {
         'click .ycc-dash-tab': '_onTab',
         'change .ycc-dash-branch': '_onBranch',
-        'click .ycc-dash-period': '_onPeriod',
+        'click .ycc-dash-mode': '_onMode',
+        'click .ycc-dash-step': '_onStep',
+        'change .ycc-dash-compare': '_onCompare',
         'click .ycc-dash-refresh': '_onRefresh',
         'click [data-branch]': '_onBranchShortcut',
         'click [data-open-model]': '_onOpen',
@@ -26,12 +28,16 @@ var Dashboard = AbstractAction.extend({
         var prefs = loadPrefs();
         this.tab = ['today', 'journey', 'team'].indexOf(prefs.tab) !== -1 ? prefs.tab : 'today';
         this.branchId = prefs.branchId || false;
-        this.period = prefs.period || 'this_month';
+        this.mode = ['day', 'month', 'year'].indexOf(prefs.mode) !== -1 ? prefs.mode : 'month';
+        this.compare = ['none', 'previous', 'last_year'].indexOf(prefs.compare) !== -1 ? prefs.compare : 'none';
+        this.anchor = false;  // the current period by default; navigation is per session
         this.data = null;
     },
     start: function () {
         var self = this;
         this._alive = true;
+        // Odoo's action container has a fixed height and does not scroll by itself.
+        this.$el.addClass('ycc-dash-host');
         // Only the live "today" tab refreshes itself; analysis tabs refresh on demand.
         this._timer = window.setInterval(function () {
             if (self._alive && self.tab === 'today' && !document.hidden && self.$el.is(':visible')) {
@@ -46,7 +52,7 @@ var Dashboard = AbstractAction.extend({
         return this._super.apply(this, arguments);
     },
     _savePrefs: function () {
-        savePrefs({tab: this.tab, branchId: this.branchId, period: this.period});
+        savePrefs({tab: this.tab, branchId: this.branchId, mode: this.mode, compare: this.compare});
     },
     _load: function (silent) {
         var self = this;
@@ -55,7 +61,8 @@ var Dashboard = AbstractAction.extend({
         this._busy = this._rpc({
             model: 'ycc.dashboard',
             method: 'get_dashboard_data',
-            args: [this.tab, {branch_id: this.branchId || false, period: this.period}],
+            args: [this.tab, {branch_id: this.branchId || false, mode: this.mode,
+                              anchor: this.anchor || false, compare: this.compare}],
         }).then(function (data) {
             if (!self._alive) { return; }
             var signature = JSON.stringify(_.omit(data, 'generated_at'));
@@ -104,10 +111,21 @@ var Dashboard = AbstractAction.extend({
         this._savePrefs();
         this._load();
     },
-    _onPeriod: function (ev) {
-        var period = ev.currentTarget.getAttribute('data-period');
-        if (!period || period === this.period) { return; }
-        this.period = period;
+    _onMode: function (ev) {
+        var mode = ev.currentTarget.getAttribute('data-mode');
+        if (!mode || mode === this.mode) { return; }
+        this.mode = mode;
+        this._savePrefs();
+        this._load();
+    },
+    _onStep: function (ev) {
+        var anchor = ev.currentTarget.getAttribute('data-anchor');
+        if (!anchor) { return; }
+        this.anchor = anchor;
+        this._load();
+    },
+    _onCompare: function (ev) {
+        this.compare = ev.currentTarget.value || 'none';
         this._savePrefs();
         this._load();
     },

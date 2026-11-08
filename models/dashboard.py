@@ -27,10 +27,49 @@ STAGE_LABELS = {
 }
 WEEKDAYS_SAT_FIRST = [(5, 'السبت'), (6, 'الأحد'), (0, 'الاثنين'), (1, 'الثلاثاء'),
                       (2, 'الأربعاء'), (3, 'الخميس'), (4, 'الجمعة')]
-PERIODS = {
-    'this_month': 'هذا الشهر', 'last_month': 'الشهر السابق',
-    'last_30': 'آخر 30 يومًا', 'this_week': 'هذا الأسبوع',
-}
+MODES = [('day', 'يومي'), ('month', 'شهري'), ('year', 'سنوي')]
+COMPARES = [('none', 'بدون مقارنة'), ('previous', 'الفترة السابقة'), ('last_year', 'نفس الفترة من السنة السابقة')]
+AR_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس',
+             'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+AR_DAYS = ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد']
+INDICATOR_DEFS = [
+    ('late_arrival', 'تأخر الوصول', 'fa-clock-o'), ('late_delivery', 'تأخر التسليم', 'fa-calendar-times-o'),
+    ('open_invoices', 'فواتير مفتوحة', 'fa-file-text-o'), ('checks', 'تشييك', 'fa-stethoscope'),
+    ('contacting', 'جاري التواصل', 'fa-phone'), ('provisional', 'حجز مبدئي', 'fa-calendar-o'),
+    ('no_show', 'لم يحضر', 'fa-user-times'), ('postponed', 'تم تأجيله', 'fa-calendar-plus-o'),
+    ('completed', 'تم الإنجاز', 'fa-check-circle'), ('invoice_closed', 'إقفال الفاتورة', 'fa-check-square-o'),
+]
+
+
+def _add_months(day, months):
+    index = day.year * 12 + day.month - 1 + months
+    return day.replace(year=index // 12, month=index % 12 + 1, day=1)
+
+
+def _shift_year(day, years):
+    try:
+        return day.replace(year=day.year + years)
+    except ValueError:  # 29 February
+        return day.replace(year=day.year + years, day=28)
+
+
+def _delta(cur, prev, better='up', unit='', points=False):
+    """Comparison badge: absolute change (or percentage points) with direction."""
+    if prev is None or cur is None:
+        return None
+    diff = cur - prev
+    if isinstance(diff, float):
+        diff = round(diff, 1)
+    if not diff:
+        return {'text': 'بدون تغيير', 'dir': 'flat', 'good': 'flat', 'prev': prev}
+    sign = '+' if diff > 0 else '−'
+    value = abs(diff)
+    value = int(value) if float(value).is_integer() else value
+    text = '%s%s%s' % (sign, value, ' نقطة' if points else unit)
+    if not points and not unit and prev:
+        text += ' (%s%s%%)' % (sign, int(round(abs(diff) * 100.0 / prev)))
+    good = 'good' if (diff > 0) == (better == 'up') else 'bad'
+    return {'text': text, 'dir': 'up' if diff > 0 else 'down', 'good': good, 'prev': prev}
 
 
 def _fmt_hours(value):
@@ -77,21 +116,35 @@ class YCCDashboard(models.AbstractModel):
         local = self._tz().localize(datetime.combine(day, dtime.min))
         return local.astimezone(pytz.UTC).replace(tzinfo=None)
 
-    def _period(self, key, today):
-        key = key if key in PERIODS else 'this_month'
-        if key == 'last_month':
-            end = today.replace(day=1)
-            start = (end - timedelta(days=1)).replace(day=1)
-        elif key == 'last_30':
-            end = today + timedelta(days=1)
-            start = end - timedelta(days=30)
-        elif key == 'this_week':
-            start = today - timedelta(days=(today.weekday() + 2) % 7)  # Saturday
-            end = start + timedelta(days=7)
+    def _period(self, mode, anchor):
+        """[start, end) and a label for the chosen granularity around anchor."""
+        if mode == 'day':
+            start = anchor
+            end = anchor + timedelta(days=1)
+            label = '%s %s %s %s' % (AR_DAYS[anchor.weekday()], anchor.day, AR_MONTHS[anchor.month - 1], anchor.year)
+        elif mode == 'year':
+            start = anchor.replace(month=1, day=1)
+            end = start.replace(year=start.year + 1)
+            label = 'سنة %s' % start.year
         else:
-            start = today.replace(day=1)
-            end = (start + timedelta(days=32)).replace(day=1)
-        return key, start, end
+            start = anchor.replace(day=1)
+            end = _add_months(start, 1)
+            label = '%s %s' % (AR_MONTHS[start.month - 1], start.year)
+        return start, end, label
+
+    def _step(self, mode, anchor, step):
+        if mode == 'day':
+            return anchor + timedelta(days=step)
+        if mode == 'year':
+            return _shift_year(anchor.replace(month=1, day=1), step)
+        return _add_months(anchor, step)
+
+    def _compare_anchor(self, mode, anchor, compare):
+        if compare == 'previous':
+            return self._step(mode, anchor, -1)
+        if compare == 'last_year':
+            return _shift_year(anchor, -1)
+        return None
 
     def _configs(self, branch_id):
         Branch = self.env['ycc.branch']
@@ -133,28 +186,58 @@ class YCCDashboard(models.AbstractModel):
         now_utc, local_now = self._now()
         today = local_now.date()
         all_cfg, selected = self._configs(params.get('branch_id'))
-        period_key, start, end = self._period(params.get('period'), today)
+        mode = params.get('mode') if params.get('mode') in dict(MODES) else 'month'
+        compare = params.get('compare') if params.get('compare') in dict(COMPARES) else 'none'
+        try:
+            anchor = fields.Date.to_date(params.get('anchor')) if params.get('anchor') else today
+        except (ValueError, TypeError):
+            anchor = today
+        start, end, label = self._period(mode, anchor)
+        cmp_anchor = self._compare_anchor(mode, anchor, compare)
+        cmp_period = self._period(mode, cmp_anchor) if cmp_anchor else None
         data = {
             'tab': tab,
             'branches': [{'id': c.id, 'name': c.branch_id.display_name} for c in all_cfg],
             'branch_id': int(params['branch_id']) if params.get('branch_id') else False,
-            'periods': [{'key': k, 'label': v} for k, v in PERIODS.items()],
-            'period': period_key,
-            'period_label': '%s — %s' % (fields.Date.to_string(start), fields.Date.to_string(end - timedelta(days=1))),
+            'modes': [{'key': k, 'label': v} for k, v in MODES],
+            'compares': [{'key': k, 'label': v} for k, v in COMPARES],
+            'mode': mode, 'compare': compare,
+            'anchor': fields.Date.to_string(anchor),
+            'prev_anchor': fields.Date.to_string(self._step(mode, anchor, -1)),
+            'next_anchor': fields.Date.to_string(self._step(mode, anchor, 1)),
+            'is_current': start <= today < end,
+            'period_label': label,
+            'compare_label': cmp_period[2] if cmp_period else '',
             'today': fields.Date.to_string(today),
+            'today_label': self._period('day', today)[2],
             'generated_at': local_now.strftime('%H:%M'),
         }
         if not all_cfg:
             data['empty'] = _('لا توجد فروع مهيأة لنظام المواعيد ضمن صلاحياتك.')
             return data
         if tab == 'journey':
-            data.update(self._journey_data(selected, start, end, now_utc))
+            data.update(self._journey_data(selected, start, end, now_utc, cmp_period))
+            data['indicators'] = self._indicators(selected, start, end, local_now)
         elif tab == 'team':
-            data.update(self._team_data(selected, start, end, now_utc))
+            data.update(self._team_data(selected, start, end, now_utc, cmp_period))
         else:
             data['tab'] = 'today'
             data.update(self._today_data(all_cfg, selected, now_utc, local_now))
+            data['indicators'] = self._indicators(selected, today, today + timedelta(days=1), local_now)
         return data
+
+    def _indicators(self, selected, start, end, local_now):
+        """The calendar's customer-service indicators, from the shared model method."""
+        items = self.env['ycc.appointment']._ycc_service_indicators(selected, start, end, local_now)
+        result = []
+        for key, title, icon in INDICATOR_DEFS:
+            rows = items.get(key, [])
+            if key in ('late_delivery', 'open_invoices', 'checks'):
+                ids, model = sorted({r['order_id'] for r in rows if r['order_id']}), 'wo.installation.order.mst'
+            else:
+                ids, model = sorted({r['booking_id'] for r in rows if r['booking_id']}), 'ycc.appointment'
+            result.append({'key': key, 'title': title, 'icon': icon, 'count': len(rows), 'ids': ids, 'model': model})
+        return result
 
     # ---------------------------------------------------------------- tab: today
     def _today_data(self, all_cfg, selected, now_utc, local_now):
@@ -339,15 +422,21 @@ class YCCDashboard(models.AbstractModel):
         return alerts
 
     # -------------------------------------------------------------- tab: journey
-    def _created_in(self, selected, start, end):
+    def _in_period(self, selected, start, end):
+        """Bookings whose booking start date falls in [start, end) — the calendar's basis."""
         return self.env['ycc.appointment'].search([
             ('branch_id', 'in', selected.ids),
-            ('create_date', '>=', self._utc_bound(start)), ('create_date', '<', self._utc_bound(end))])
+            ('date', '>=', fields.Date.to_string(start)), ('date', '<', fields.Date.to_string(end))])
 
-    def _journey_data(self, selected, start, end, now_utc):
-        created = self._created_in(selected, start, end)
-        span = end - start
-        previous = self._created_in(selected, start - span, start)
+    def _avg_wait(self, recs):
+        waits = [max(0.0, (fields.Datetime.to_datetime(a.installation_order_id.create_date)
+                           - fields.Datetime.to_datetime(a.actual_arrival_at)).total_seconds() / 60.0)
+                 for a in recs if a.installation_order_id and a.actual_arrival_at]
+        return _avg(waits)
+
+    def _journey_data(self, selected, start, end, now_utc, cmp_period=None):
+        created = self._in_period(selected, start, end)
+        previous = self._in_period(selected, cmp_period[0], cmp_period[1]) if cmp_period else None
         total = len(created)
 
         def reached(recs):
@@ -359,12 +448,15 @@ class YCCDashboard(models.AbstractModel):
             return [recs, confirmed, arrived, ordered, completed, closed]
 
         steps = reached(created)
+        prev_steps = reached(previous) if previous is not None else None
         labels = ['حجز مبدئي', 'مؤكد', 'وصلت', 'أمر تركيب', 'تم الإنجاز', 'إقفال الفاتورة']
         funnel = []
         for i, recs in enumerate(steps):
             count = len(recs)
             rate = None if i == 0 else _pct(count, len(steps[i - 1]))
+            prev_count = len(prev_steps[i]) if prev_steps else None
             funnel.append({'key': 'step%s' % i, 'label': labels[i], 'value': count,
+                           'delta': _delta(count, prev_count),
                            'h': max(4, _pct(count, total)) if total else 4,
                            'rate': 'البداية' if i == 0 else '%s%% من السابقة' % rate,
                            'weak': i > 0 and rate is not None and rate < 75, 'ids': recs.ids})
@@ -377,7 +469,8 @@ class YCCDashboard(models.AbstractModel):
                 'no_show': recs.filtered(lambda a: a.state == 'no_show'),
                 'postponed': recs.filtered(lambda a: a.was_postponed),
             }
-        now_leaks, prev_leaks = leak_counts(created), leak_counts(previous)
+        now_leaks = leak_counts(created)
+        prev_leaks = leak_counts(previous) if previous is not None else None
 
         def bars(groups):
             biggest = max([len(v) for _k, v in groups] or [0])
@@ -410,13 +503,44 @@ class YCCDashboard(models.AbstractModel):
         ]
         leaks = []
         for key, title, share, reasons, tone in leak_defs:
-            diff = len(now_leaks[key]) - len(prev_leaks[key])
             leaks.append({'key': key, 'title': title, 'value': len(now_leaks[key]), 'share': share,
                           'reasons': reasons, 'tone': tone, 'ids': now_leaks[key].ids,
-                          'trend': ('+%s' % diff) if diff > 0 else ('−%s' % abs(diff)) if diff < 0 else '0',
-                          'trend_dir': 'up' if diff > 0 else 'down' if diff < 0 else 'flat'})
+                          'delta': _delta(len(now_leaks[key]), len(prev_leaks[key]) if prev_leaks else None, better='down')})
 
-        return {'funnel': funnel, 'funnel_overall': overall, 'funnel_total': total, 'leaks': leaks,
+        def headline(recs, stp):
+            n = len(recs)
+            return {
+                'total': n, 'conv': _pct(len(stp[1]), n) if n else None, 'arrived': len(stp[2]),
+                'orders': len(stp[3]), 'closed_rate': _pct(len(stp[5]), n) if n else None,
+                'cancelled': len(recs.filtered(lambda a: a.state == 'cancelled')),
+                'no_show': len(recs.filtered(lambda a: a.state == 'no_show')),
+                'wait': self._avg_wait(recs),
+            }
+        cur = headline(created, steps)
+        prv = headline(previous, prev_steps) if previous is not None else {}
+        summary_defs = [
+            ('total', 'إجمالي الحجوزات', '%s', 'up', False, 'blue', steps[0].ids),
+            ('conv', 'نسبة التأكيد', '%s%%', 'up', True, 'purple', steps[1].ids),
+            ('arrived', 'وصلت السيارات', '%s', 'up', False, 'purple', steps[2].ids),
+            ('orders', 'أوامر التركيب', '%s', 'up', False, 'green', steps[3].ids),
+            ('closed_rate', 'نسبة إقفال الفاتورة', '%s%%', 'up', True, 'green', steps[5].ids),
+            ('cancelled', 'ملغي', '%s', 'down', False, 'red', now_leaks['cancelled'].ids),
+            ('no_show', 'لم يحضر', '%s', 'down', False, 'gray', now_leaks['no_show'].ids),
+            ('wait', 'الوصول ← أمر التركيب', '%s د', 'down', False, 'amber', []),
+        ]
+        summary = []
+        for key, title, fmt, better, points, tone, ids in summary_defs:
+            value = cur.get(key)
+            prev_value = prv.get(key) if prv else None
+            if key == 'wait':
+                value = int(round(value)) if value is not None else None
+                prev_value = int(round(prev_value)) if prev_value is not None else None
+            summary.append({'key': key, 'title': title, 'tone': tone, 'ids': ids,
+                            'value': (fmt % value) if value is not None else '—',
+                            'prev': (fmt % prev_value) if prev_value is not None else '—',
+                            'delta': _delta(value, prev_value, better=better, unit=' د' if key == 'wait' else '', points=points)})
+
+        return {'summary': summary, 'funnel': funnel, 'funnel_overall': overall, 'funnel_total': total, 'leaks': leaks,
                 'durations': self._durations(created, selected, start, end),
                 'delivery_changes': self._delivery_changes(selected, start, end),
                 'heatmap': self._heatmap(selected, start, end) if len(selected) == 1 else None,
@@ -432,10 +556,7 @@ class YCCDashboard(models.AbstractModel):
         rows.append({'key': 'booking_arrival', 'from': 'من الحجز إلى الوصول',
                      'value': ('%.1f' % avg_arrival) if avg_arrival is not None else '—', 'unit': 'يوم',
                      'status': 'من %s حجز وصلت' % len(to_arrival), 'tone': 'neutral'})
-        linked = Appt.search([('branch_id', 'in', selected.ids), ('installation_order_id', '!=', False),
-                              ('actual_arrival_at', '!=', False),
-                              ('installation_order_id.create_date', '>=', self._utc_bound(start)),
-                              ('installation_order_id.create_date', '<', self._utc_bound(end))])
+        linked = created.filtered(lambda a: a.installation_order_id and a.actual_arrival_at)
         waits = [max(0.0, (fields.Datetime.to_datetime(a.installation_order_id.create_date) - fields.Datetime.to_datetime(a.actual_arrival_at)).total_seconds() / 60.0)
                  for a in linked]
         avg_wait = _avg(waits)
@@ -531,18 +652,16 @@ class YCCDashboard(models.AbstractModel):
         return {'cols': [s.name for s in slots], 'rows': rows}
 
     # ----------------------------------------------------------------- tab: team
-    def _team_data(self, selected, start, end, now_utc):
+    def _team_data(self, selected, start, end, now_utc, cmp_period=None):
         Appt = self.env['ycc.appointment']
-        created = self._created_in(selected, start, end)
+        created = self._in_period(selected, start, end)
+        previous = self._in_period(selected, cmp_period[0], cmp_period[1]) if cmp_period else None
         contacts = self.env['ycc.contact'].search([
             ('appointment_id.branch_id', 'in', selected.ids),
             ('contact_at', '>=', self._utc_bound(start)), ('contact_at', '<', self._utc_bound(end))])
         overdue = Appt.search([('branch_id', 'in', selected.ids), ('state', 'in', FOLLOWUP_STATES),
                                ('next_contact_at', '<', now_utc)])
-        linked = Appt.search([('branch_id', 'in', selected.ids), ('installation_order_id', '!=', False),
-                              ('actual_arrival_at', '!=', False),
-                              ('installation_order_id.create_date', '>=', self._utc_bound(start)),
-                              ('installation_order_id.create_date', '<', self._utc_bound(end))])
+        linked = created.filtered(lambda a: a.installation_order_id and a.actual_arrival_at)
         users = created.mapped('create_uid') | contacts.mapped('user_id') | overdue.mapped('create_uid') \
             | linked.mapped('installation_order_id.create_uid')
         manager = self.env.ref('yousentech_car_appointments.group_ycc_manager', raise_if_not_found=False)
@@ -564,6 +683,12 @@ class YCCDashboard(models.AbstractModel):
             else:
                 role, role_key = 'مستخدم', 'other'
             mine_overdue = overdue.filtered(lambda a: a.create_uid == user)
+            prev_conv = prev_created = None
+            if previous is not None:
+                before = previous.filtered(lambda a: a.create_uid == user)
+                prev_created = len(before)
+                prev_ok = before.filtered(lambda a: a.state in REACHED_CONFIRMED or a.installation_order_id)
+                prev_conv = _pct(len(prev_ok), len(before)) if before else None
             rows.append({
                 'id': user.id, 'name': user.name, 'initials': (user.name or '?').strip()[:1],
                 'role': role, 'role_key': role_key,
@@ -575,6 +700,8 @@ class YCCDashboard(models.AbstractModel):
                 'contacts': len(contacts.filtered(lambda c: c.user_id == user)),
                 'late': len(mine_overdue), 'late_ids': mine_overdue.ids,
                 'orders': len(waits), 'wait': int(round(avg_wait)) if avg_wait is not None else None,
+                'created_delta': _delta(len(mine), prev_created),
+                'conv_delta': _delta(_pct(len(confirmed), len(mine)) if mine else None, prev_conv, points=True),
             })
         rows.sort(key=lambda r: (r['conv'] is None, -(r['conv'] or 0), -r['created']))
         for index, row in enumerate(rows):
@@ -623,7 +750,7 @@ class YCCDashboard(models.AbstractModel):
         hour_bars = [{'hour': h, 'v': _pct(c, peak) if peak else 0, 'count': c, 'peak': bool(peak) and c == peak} for h, c in hours.items()]
         peak_hour = max(hours, key=lambda h: hours[h]) if peak else None
         evening = len(created.filtered(lambda a: self._local(a.create_date).hour >= 18))
-        return {'people': rows, 'spotlights': spotlights,
+        return {'people': rows, 'spotlights': spotlights, 'compare_on': previous is not None,
                 'channels': distribution('channel', channel_labels),
                 'results': distribution('result', result_labels),
                 'hours': hour_bars, 'contacts_total': len(contacts),

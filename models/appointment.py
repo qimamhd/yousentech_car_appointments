@@ -773,6 +773,150 @@ class YCCAppointment(models.Model):
         return {'type':'ir.actions.act_window','name':_('تغيير موعد التسليم'),'res_model':'ycc.delivery.change.wizard','view_mode':'form','target':'new',
                 'context':dict(self.env.context, default_appointment_id=self.id, default_old_date=self.installation_order_id.delivery_date)}
 
+    # ------------------------------------------------------------------
+    # V6.66: shared indicator logic. The calendar endpoint and the manager
+    # dashboard both call these methods, so the same booking always produces
+    # the same number on both screens.
+    # ------------------------------------------------------------------
+    SERVICE_INDICATOR_KEYS = ('late_arrival', 'late_delivery', 'open_invoices', 'checks',
+                              'contacting', 'provisional', 'no_show', 'postponed',
+                              'completed', 'invoice_closed')
+    SERVICE_INDICATOR_STATES = ['provisional', 'contacting', 'confirmed', 'done', 'installation_created',
+                                'postponed', 'no_show', 'inspection_completed']
+
+    @api.model
+    def _ycc_local_now(self):
+        import pytz
+        from datetime import datetime as _dt
+        name = self.env.user.tz or self.env.company.partner_id.tz or 'Asia/Riyadh'
+        try:
+            tz = pytz.timezone(name)
+        except pytz.UnknownTimeZoneError:
+            tz = pytz.UTC
+        return _dt.now(tz)
+
+    @api.model
+    def _ycc_order_is_late(self, order, today, booking=None):
+        """One definition of a late delivery for every screen:
+        delivery date passed, order not draft/cancelled/completed, invoice not posted,
+        and (when linked) the booking is not completed or invoice-closed."""
+        if not order or not order.delivery_date:
+            return False
+        if fields.Date.to_date(order.delivery_date) >= today:
+            return False
+        if order.state in ('draft', 'cancel_order', 'execute_completed', 'complete_work'):
+            return False
+        invoice = order.create_invoice_id if 'create_invoice_id' in order._fields else False
+        if invoice and invoice.state == 'posted':
+            return False
+        if booking and booking.service_stage in ('completed', 'invoice_closed'):
+            return False
+        return True
+
+    @api.model
+    def _ycc_warning_data(self, booking, local_now):
+        """(arrival warning, delivery warning) texts used by calendar cards and indicators."""
+        from datetime import datetime as _dt
+        arrival = ''
+        delivery = ''
+        if booking.state == 'confirmed' and booking.date and booking.slot_id:
+            booked_day = fields.Date.to_date(booking.date)
+            start = _dt.combine(booked_day, _dt.min.time()) + timedelta(hours=booking.slot_id.start_hour)
+            tz = local_now.tzinfo
+            local_start = tz.localize(start) if hasattr(tz, 'localize') else start.replace(tzinfo=tz)
+            delay = int((local_now - local_start).total_seconds() // 60)
+            if delay >= 60:
+                arrival = 'موعد الوصول: %s %s | التأخير: %d ساعة و%d دقيقة' % (
+                    booked_day, booking.slot_id.name, delay // 60, delay % 60)
+        order = booking.installation_order_id
+        if self._ycc_order_is_late(order, local_now.date(), booking):
+            due = fields.Date.to_date(order.delivery_date)
+            delivery = 'موعد تسليم السيارة: %s | تأخر التسليم %d يوم' % (due, (local_now.date() - due).days)
+        return arrival, delivery
+
+    @api.model
+    def _ycc_service_indicators(self, configs, first, last, local_now=None):
+        """Customer-service indicators for branch configurations and [first, last).
+
+        Booking cards use bookings overlapping the range (calendar rule);
+        delivery / invoice cards use orders due within the range; checks use
+        check dates within the range.
+        """
+        local_now = local_now or self._ycc_local_now()
+        first_s, last_s = fields.Date.to_string(first), fields.Date.to_string(last)
+        items = {key: [] for key in self.SERVICE_INDICATOR_KEYS}
+        seen = {key: set() for key in items}
+        state_labels = dict(self._fields['state'].selection)
+
+        def add_item(key, booking=None, order=None, note=''):
+            identity = ('order', order.id) if order and key in ('late_delivery', 'open_invoices', 'checks') \
+                else ('booking', booking.id) if booking else ('order', order.id)
+            if identity in seen[key]:
+                return
+            seen[key].add(identity)
+            items[key].append({
+                'booking_id': booking.id if booking else False,
+                'order_id': order.id if order else (booking.installation_order_id.id if booking and booking.installation_order_id else False),
+                'booking': booking.name if booking else '',
+                'customer': booking.partner_id.name if booking else (order.partner_id.name if order else ''),
+                'vehicle': (booking.vehicle_plate or '') if booking else '',
+                'booking_date': fields.Date.to_string(booking.date) if booking and booking.date else '',
+                'delivery_date': fields.Date.to_string(order.delivery_date) if order and order.delivery_date else '',
+                'check_date': fields.Date.to_string(order.check_date) if order and 'check_date' in order._fields and order.check_date else '',
+                'note': note,
+                'state_label': state_labels.get(booking.state, booking.state) if booking else '',
+                'stage': booking.service_stage if booking else '',
+                'phone': (booking.partner_id.phone or booking.partner_id.mobile or '') if booking
+                         else ((order.partner_id.phone or order.partner_id.mobile or '') if order else ''),
+                'notes': (booking.notes or '') if booking else '',
+                'postponement_reason': (booking.last_postponement_reason or '') if booking and booking.was_postponed else '',
+                'branch': booking.branch_id.branch_id.display_name if booking and booking.branch_id.branch_id else '',
+            })
+
+        bookings = self.search([
+            ('branch_id', 'in', configs.ids), ('date', '<', last_s),
+            '|', '&', ('end_date', '=', False), ('date', '>=', first_s), ('end_date', '>=', first_s),
+            ('state', 'in', self.SERVICE_INDICATOR_STATES)])
+        for booking in bookings:
+            stage = booking.service_stage
+            arrival_note, _delivery_note = self._ycc_warning_data(booking, local_now)
+            if arrival_note:
+                add_item('late_arrival', booking, note=arrival_note)
+            if booking.state == 'contacting':
+                add_item('contacting', booking)
+            if booking.state == 'provisional':
+                add_item('provisional', booking)
+            if booking.state == 'no_show':
+                add_item('no_show', booking)
+            if booking.was_postponed:
+                add_item('postponed', booking, note=booking.last_postponement_reason or '')
+            if stage == 'completed':
+                add_item('completed', booking)
+            if stage == 'invoice_closed':
+                add_item('invoice_closed', booking)
+
+        if 'wo.installation.order.mst' in self.env:
+            Order = self.env['wo.installation.order.mst']
+            custom_ids = configs.mapped('branch_id').ids
+
+            def booking_of(order):
+                booking = order.ycc_appointment_id if 'ycc_appointment_id' in Order._fields else self.browse()
+                return booking or self.search([('installation_order_id', '=', order.id)], limit=1)
+
+            for order in Order.search([('branch_id', 'in', custom_ids), ('delivery_date', '>=', first_s),
+                                       ('delivery_date', '<', last_s)], order='delivery_date asc, id asc'):
+                booking = booking_of(order)
+                if self._ycc_order_is_late(order, local_now.date(), booking):
+                    add_item('late_delivery', booking, order, 'موعد التسليم: %s' % fields.Date.to_string(order.delivery_date))
+                invoice = order.create_invoice_id if 'create_invoice_id' in Order._fields else False
+                if invoice and invoice.state != 'posted' and order.state != 'cancel_order':
+                    add_item('open_invoices', booking, order, 'الفاتورة لم تُرحّل بعد')
+            if 'check_date' in Order._fields:
+                for order in Order.search([('branch_id', 'in', custom_ids), ('check_date', '>=', first_s),
+                                           ('check_date', '<', last_s)], order='check_date asc, id asc'):
+                    add_item('checks', booking_of(order), order, 'موعد التشييك: %s' % fields.Date.to_string(order.check_date))
+        return items
+
     @api.model
     def cron_expire_holds(self):
         self.search([('state','in',['provisional','contacting']),('hold_until','!=',False),('hold_until','<=',fields.Datetime.now())]).write({'state':'expired'})

@@ -87,28 +87,11 @@ class YCCCalendar(http.Controller):
         except pytz.UnknownTimeZoneError:
             local_tz = pytz.UTC
         local_now = datetime.now(local_tz)
+        Appointment = request.env['ycc.appointment']
+
         def warning_data(booking):
-            arrival = ''
-            delivery = ''
-            # Arrival warning: unchanged from V6.51 (60 minutes after slot start,
-            # confirmed bookings only). This is independent of delivery warnings.
-            if booking.state == 'confirmed' and booking.date and booking.slot_id:
-                booked_day = fields.Date.from_string(booking.date)
-                start = datetime.combine(booked_day, datetime.min.time()) + timedelta(hours=booking.slot_id.start_hour)
-                local_start = local_now.tzinfo.localize(start) if hasattr(local_now.tzinfo, 'localize') else start.replace(tzinfo=local_now.tzinfo)
-                delay = int((local_now - local_start).total_seconds() // 60)
-                if delay >= 60:
-                    arrival = 'موعد الوصول: %s %s | التأخير: %d ساعة و%d دقيقة' % (
-                        booked_day, booking.slot_id.name, delay // 60, delay % 60)
-            # Delivery calendar icon only: overdue on a later calendar day,
-            # and hidden after completion or invoice closure.
-            order = booking.installation_order_id
-            if order and order.delivery_date and booking.service_stage not in ('completed', 'invoice_closed'):
-                due = fields.Date.from_string(order.delivery_date)
-                days_late = (local_now.date() - due).days
-                if days_late > 0:
-                    delivery = 'موعد تسليم السيارة: %s | تأخر التسليم %d يوم' % (due, days_late)
-            return arrival, delivery
+            # V6.66: shared with the manager dashboard (one definition).
+            return Appointment._ycc_warning_data(booking, local_now)
         # Active installation orders spanning the selected day (not appointments).
         # Order date and delivery date are inclusive; finished/cancelled orders
         # are excluded by the explicit active-state allowlist.
@@ -234,86 +217,9 @@ class YCCCalendar(http.Controller):
                 items.sort(key=lambda x: (not x['open'], x['percent'] if x['open'] else 999,
                                           -x['remaining'], x['name']))
                 comparison[date_key] = items
-        # Customer-service indicators use the selected branch and displayed date range.
-        # Do not mutate appointment dates, order states, or booking capacity.
-        service_items = {key: [] for key in (
-            'late_arrival', 'late_delivery', 'open_invoices', 'checks',
-            'contacting', 'provisional', 'no_show', 'postponed',
-            'completed', 'invoice_closed')}
-        seen_items = {key: set() for key in service_items}
-
-        def add_item(key, booking=None, order=None, note=''):
-            identity = ('order', order.id) if order and key in ('late_delivery', 'open_invoices', 'checks') else ('booking', booking.id) if booking else ('order', order.id)
-            if identity in seen_items[key]:
-                return
-            seen_items[key].add(identity)
-            service_items[key].append({
-                'booking_id': booking.id if booking else False,
-                'order_id': order.id if order else (booking.installation_order_id.id if booking and booking.installation_order_id else False),
-                'booking': booking.name if booking else '',
-                'customer': booking.partner_id.name if booking else (order.partner_id.name if order else ''),
-                'vehicle': booking.vehicle_plate or '' if booking else '',
-                'booking_date': fields.Date.to_string(booking.date) if booking and booking.date else '',
-                'delivery_date': fields.Date.to_string(order.delivery_date) if order and order.delivery_date else '',
-                'check_date': fields.Date.to_string(order.check_date) if order and order.check_date else '',
-                'note': note,
-                'state_label': dict(booking._fields['state'].selection).get(booking.state, booking.state) if booking else '',
-                'stage': booking.service_stage if booking else '',
-                'phone': (booking.partner_id.phone or booking.partner_id.mobile or '') if booking else (order.partner_id.phone or order.partner_id.mobile or '' if order else ''),
-                'notes': (booking.notes or '') if booking and 'notes' in booking._fields else '',
-                'postponement_reason': (booking.last_postponement_reason or '') if booking and booking.was_postponed else '',
-                'branch': booking.branch_id.branch_id.display_name if booking and booking.branch_id and booking.branch_id.branch_id else '',
-            })
-
-        # The selected period is the scope for appointment-state cards.
-        # Arrival warning retains V6.51 time-based logic; delivery remains day-based.
-        for booking in appointments:
-            stage = booking.service_stage
-            order = booking.installation_order_id
-            arrival_note, delivery_note = warning_data(booking)
-            if arrival_note:
-                add_item('late_arrival', booking, note=arrival_note)
-            if booking.state == 'contacting':
-                add_item('contacting', booking)
-            if booking.state == 'provisional':
-                add_item('provisional', booking)
-            if booking.state == 'no_show':
-                add_item('no_show', booking)
-            if booking.was_postponed:
-                add_item('postponed', booking, note=booking.last_postponement_reason or '')
-            if stage == 'completed':
-                add_item('completed', booking)
-            if stage == 'invoice_closed':
-                add_item('invoice_closed', booking)
-
-        # Delivery and invoice follow-up must include orders whose original
-        # booking falls outside the displayed week. Limit to this branch and
-        # to due dates within the selected period (not all historical orders).
-        followup_orders = Order.search([
-            ('branch_id', '=', branch.branch_id.id),
-            ('delivery_date', '>=', fields.Date.to_string(first)),
-            ('delivery_date', '<', fields.Date.to_string(last)),
-        ], order='delivery_date asc, id asc')
-        Appointment = request.env['ycc.appointment']
-        for order in followup_orders:
-            booking = order.ycc_appointment_id if 'ycc_appointment_id' in Order._fields else False
-            if not booking:
-                booking = Appointment.search([('installation_order_id', '=', order.id)], limit=1)
-            stage = booking.service_stage if booking else ''
-            invoice = order.create_invoice_id if 'create_invoice_id' in Order._fields else False
-            invoice_posted = bool(invoice and invoice.state == 'posted')
-            due = fields.Date.from_string(order.delivery_date)
-            if due < local_now.date() and stage not in ('completed', 'invoice_closed') and not invoice_posted:
-                add_item('late_delivery', booking, order, 'موعد التسليم: %s' % due)
-            if invoice and not invoice_posted:
-                add_item('open_invoices', booking, order, 'الفاتورة لم تُرحّل بعد')
-        for check_day, day_orders in check_by_day.items():
-            for check_order in day_orders:
-                order = Order.browse(check_order['id'])
-                booking = order.ycc_appointment_id if 'ycc_appointment_id' in Order._fields else False
-                if not booking:
-                    booking = Appointment.search([('installation_order_id', '=', order.id)], limit=1)
-                add_item('checks', booking, order, 'موعد التشييك: %s' % check_day)
+        # Customer-service indicators: shared model logic (V6.66) so the manager
+        # dashboard shows exactly the same numbers for the same branch and range.
+        service_items = Appointment._ycc_service_indicators(branch, first, last, local_now)
         # V6.64: cars that arrived but still have no installation order.
         # Sent with the arrival timestamp; the browser shows the card only
         # after the branch threshold and keeps the waiting timer ticking.

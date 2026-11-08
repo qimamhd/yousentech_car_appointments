@@ -32,6 +32,9 @@ $ycc-red: #C92A2A;
     .is-alert { color: $ycc-orange-ink; }
     .is-bad { color: $ycc-orange-ink; font-weight: 600; }
 }
+/* Odoo's action container has a fixed height and no scrolling of its own:
+   the host scrolls so nothing below the fold is hidden. */
+.ycc-dash-host { height: 100%; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
 /* Inside Odoo the action container has a fixed height: without this, flex
    children that scroll (tabs, tables, lists) may shrink to zero height. */
 .ycc-dash > *, .ycc-dash-card > * { flex-shrink: 0; }
@@ -323,4 +326,62 @@ $ycc-red: #C92A2A;
     .ycc-dash-slot-time { flex-basis: auto; border-inline-end: 0; border-bottom: 2px solid $ycc-line; padding: 0 0 6px; flex-direction: row; justify-content: space-between; }
     .ycc-dash-filters { width: 100%; }
     .ycc-dash-branch { min-width: 0; width: 100%; }
+}
+
+/* V6.66: period navigation, comparison, calendar indicators, summary ------- */
+.ycc-dash-mode { border: 0; border-radius: 9px; padding: 8px 14px; min-height: 34px; background: transparent; color: #667792; font-size: 13px; font-weight: 600; cursor: pointer; }
+.ycc-dash-mode.active { background: #FFFFFF; color: #4C50B5; box-shadow: 0 2px 6px rgba(36, 54, 82, .11); }
+.ycc-dash-nav { display: flex; align-items: center; gap: 6px; background: #FFFFFF; border: 1px solid #D6DAE1; border-radius: 10px; padding: 3px; min-height: 42px; }
+.ycc-dash-step { min-width: 34px; height: 34px; border: 0; border-radius: 8px; background: #F2F4FA; color: #4C5B77; cursor: pointer; padding: 0 10px; font-size: 13px; }
+.ycc-dash-step:hover { background: #E5E9FF; color: #4C50B5; }
+.ycc-dash-current { font-weight: 600; color: #4C50B5; }
+.ycc-dash-nav-label { min-width: 150px; text-align: center; font-size: 13.5px; color: $ycc-ink; }
+.ycc-dash-compare { font-size: 13.5px; min-width: 210px; min-height: 42px; padding: 7px 10px; border: 1px solid #D6DAE1; border-radius: 10px; background: $ycc-card; color: $ycc-ink; }
+.ycc-dash-basis { font-size: 12.5px; color: $ycc-muted; background: #FFFFFF; border: 1px dashed #D6DAE1; border-radius: 10px; padding: 9px 14px; }
+
+.ycc-dash-delta { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 2px 8px; white-space: nowrap; direction: rtl; }
+.ycc-dash-delta.good { background: #E6F6EE; color: $ycc-green-dark; }
+.ycc-dash-delta.bad { background: #FDEDE4; color: $ycc-orange-ink; }
+.ycc-dash-delta.flat { background: #F1F3F6; color: $ycc-muted; }
+.ycc-dash-delta .fa { font-size: 10px; }
+.ycc-dash-table .ycc-dash-delta { margin-inline-start: 6px; }
+.ycc-dash-funnel-step .ycc-dash-delta { align-self: flex-start; }
+
+.ycc-dash-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.ycc-dash-sum { border: 1px solid $ycc-line; border-radius: 14px; padding: 14px 16px; background: $ycc-card; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: start; cursor: pointer; min-width: 0; transition: transform .12s, box-shadow .12s; }
+.ycc-dash-sum:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(36, 54, 82, .08); }
+.ycc-dash-sum-title { font-size: 12.5px; font-weight: 600; }
+.ycc-dash-sum strong { font-size: 28px; line-height: 1.05; font-weight: 800; }
+.ycc-dash-sum small { font-size: 11.5px; color: $ycc-muted; }
+.ycc-dash-sum.tone-blue { background: #E9EDFF; border-color: #DCE3FF; color: #364C9C; }
+.ycc-dash-sum.tone-purple { background: #EEEBFF; border-color: #DED8FC; color: #5845BD; }
+.ycc-dash-sum.tone-green { background: #E6F9F2; border-color: #CBEFE0; color: #137957; }
+.ycc-dash-sum.tone-red { background: #FEECEC; border-color: #FACACA; color: #B42318; }
+.ycc-dash-sum.tone-gray { background: #F4F5F7; border-color: #DFE3E8; color: #475569; }
+.ycc-dash-sum.tone-amber { background: #FFF3E3; border-color: #F7E4C8; color: #AC691A; }
+
+.ycc-dash-ind-card { padding: 14px 16px; }
+.ycc-dash-ind-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.ycc-dash-ind { display: flex; align-items: center; gap: 8px; min-height: 44px; border: 1px solid; border-radius: 10px; padding: 8px 12px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: start; transition: filter .12s; }
+.ycc-dash-ind:hover { filter: brightness(.96); }
+.ycc-dash-ind span { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ycc-dash-ind strong { font-size: 17px; }
+.ycc-dash-ind.is-zero { opacity: .62; }
+.ycc-dash-ind.ind-late_arrival { background: #FFF3E3; color: #A65A0A; border-color: #F4D5A6; }
+.ycc-dash-ind.ind-late_delivery { background: #FFEBEE; color: #C62828; border-color: #F7C5CB; }
+.ycc-dash-ind.ind-open_invoices, .ycc-dash-ind.ind-invoice_closed { background: #E9EEF5; color: #475569; border-color: #CBD5E1; }
+.ycc-dash-ind.ind-checks { background: #E0F2FE; color: #0369A1; border-color: #B8DFF7; }
+.ycc-dash-ind.ind-contacting, .ycc-dash-ind.ind-provisional { background: #E6F9FC; color: #0E7490; border-color: #B8E7EE; }
+.ycc-dash-ind.ind-no_show { background: #FEECEC; color: #DC2626; border-color: #FACACA; }
+.ycc-dash-ind.ind-postponed { background: #FFF0E5; color: #C2410C; border-color: #F4D1B5; }
+.ycc-dash-ind.ind-completed { background: #F3E8FF; color: #7C3AED; border-color: #DCC6FA; }
+
+@media (max-width: 1100px) {
+    .ycc-dash-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ycc-dash-ind-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+    .ycc-dash-nav { width: 100%; justify-content: space-between; }
+    .ycc-dash-compare { width: 100%; min-width: 0; }
+    .ycc-dash-nav-label { min-width: 0; }
 }

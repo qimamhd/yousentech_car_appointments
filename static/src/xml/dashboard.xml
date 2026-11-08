@@ -10,8 +10,8 @@
     <div class="ycc-dash-eyebrow">العناية بالسيارات <i class="fa fa-angle-left"/> لوحة المدير</div>
     <h1>لوحة مؤشرات المواعيد</h1>
     <p>
-     <t t-if="tab === 'today'">اليوم <t t-esc="d.today"/></t>
-     <t t-if="tab !== 'today'">الفترة <t t-esc="d.period_label"/></t>
+     <t t-if="tab === 'today'">اليوم: <t t-esc="d.today_label"/></t>
+     <t t-if="tab !== 'today'"><t t-esc="d.period_label"/><t t-if="d.compare_label"> · مقارنة مع <t t-esc="d.compare_label"/></t></t>
      · آخر تحديث <t t-esc="d.generated_at"/>
     </p>
    </div>
@@ -24,9 +24,29 @@
      <t t-foreach="d.branches" t-as="b"><option t-att-value="b.id" t-att-selected="b.id === d.branch_id ? 'selected' : undefined"><t t-esc="b.name"/></option></t>
     </select>
    </label>
-   <div t-if="tab !== 'today'" class="ycc-dash-seg" role="group" aria-label="الفترة">
-    <t t-foreach="d.periods" t-as="p"><button type="button" t-att-class="'ycc-dash-period' + (p.key === d.period ? ' active' : '')" t-att-data-period="p.key"><t t-esc="p.label"/></button></t>
-   </div>
+   <t t-if="tab !== 'today'">
+    <div class="ycc-dash-field">
+     <span><i class="fa fa-calendar"/> الفترة</span>
+     <div class="ycc-dash-seg" role="group" aria-label="نوع الفترة">
+      <t t-foreach="d.modes" t-as="m"><button type="button" t-att-class="'ycc-dash-mode' + (m.key === d.mode ? ' active' : '')" t-att-data-mode="m.key"><t t-esc="m.label"/></button></t>
+     </div>
+    </div>
+    <div class="ycc-dash-field">
+     <span>التاريخ</span>
+     <div class="ycc-dash-nav">
+      <button type="button" class="ycc-dash-step" t-att-data-anchor="d.prev_anchor" title="الفترة السابقة" aria-label="الفترة السابقة"><i class="fa fa-chevron-right"/></button>
+      <strong class="ycc-dash-nav-label"><t t-esc="d.period_label"/></strong>
+      <button type="button" class="ycc-dash-step" t-att-data-anchor="d.next_anchor" title="الفترة التالية" aria-label="الفترة التالية"><i class="fa fa-chevron-left"/></button>
+      <button t-if="!d.is_current" type="button" class="ycc-dash-step ycc-dash-current" t-att-data-anchor="d.today">الحالية</button>
+     </div>
+    </div>
+    <label class="ycc-dash-field">
+     <span><i class="fa fa-exchange"/> المقارنة</span>
+     <select class="ycc-dash-compare">
+      <t t-foreach="d.compares" t-as="c"><option t-att-value="c.key" t-att-selected="c.key === d.compare ? 'selected' : undefined"><t t-esc="c.label"/></option></t>
+     </select>
+    </label>
+   </t>
    <button type="button" class="ycc-dash-refresh" title="تحديث البيانات" aria-label="تحديث البيانات"><i class="fa fa-refresh"/></button>
   </div>
  </header>
@@ -44,6 +64,23 @@
 </div>
 </t>
 
+<t t-name="ycc.DashIndicators">
+ <section class="ycc-dash-card ycc-dash-ind-card" aria-label="مؤشرات خدمة العملاء">
+  <div class="ycc-dash-card-head"><h2>مؤشرات خدمة العملاء <small><t t-esc="scopeLabel"/> · نفس حساب شاشة التقويم</small></h2></div>
+  <div class="ycc-dash-ind-strip">
+   <t t-foreach="d.indicators" t-as="ind">
+    <button type="button" t-att-class="'ycc-dash-ind ind-' + ind.key + (ind.count ? '' : ' is-zero')" t-att-data-open-model="ind.model" t-att-data-open-ids="ind.ids.join(',')" t-att-data-open-title="ind.title" t-att-title="ind.title + ' — اضغط لعرض السجلات'">
+     <i t-att-class="'fa ' + ind.icon"/><span><t t-esc="ind.title"/></span><strong><t t-esc="ind.count"/></strong>
+    </button>
+   </t>
+  </div>
+ </section>
+</t>
+
+<t t-name="ycc.DashDelta">
+ <span t-if="delta" t-att-class="'ycc-dash-delta ' + delta.good" t-att-title="'السابق: ' + delta.prev"><i t-att-class="'fa ' + (delta.dir === 'up' ? 'fa-arrow-up' : delta.dir === 'down' ? 'fa-arrow-down' : 'fa-minus')"/> <bdi dir="ltr"><t t-esc="delta.text"/></bdi></span>
+</t>
+
 <!-- ================================================================ TODAY -->
 <t t-name="ycc.DashToday">
  <section class="ycc-dash-kpis" aria-label="مؤشرات اليوم">
@@ -56,6 +93,8 @@
    </div>
   </t>
  </section>
+
+ <t t-call="ycc.DashIndicators"><t t-set="scopeLabel" t-value="'اليوم'"/></t>
 
  <div class="ycc-dash-row">
   <section class="ycc-dash-card ycc-dash-grow" aria-label="خط سير اليوم">
@@ -134,6 +173,18 @@
 
 <!-- ============================================================== JOURNEY -->
 <t t-name="ycc.DashJourney">
+ <div class="ycc-dash-basis"><i class="fa fa-info-circle"/> الأرقام محسوبة حسب <strong>تاريخ الحجز</strong> (مثل شاشة التقويم) للحجوزات التي يبدأ موعدها في <t t-esc="d.period_label"/>.</div>
+ <section class="ycc-dash-summary" aria-label="الملخص">
+  <t t-foreach="d.summary" t-as="k">
+   <button type="button" t-att-class="'ycc-dash-sum tone-' + k.tone" data-open-model="ycc.appointment" t-att-data-open-ids="k.ids.join(',')" t-att-data-open-title="k.title">
+    <span class="ycc-dash-sum-title"><t t-esc="k.title"/></span>
+    <strong><bdi dir="ltr"><t t-esc="k.value"/></bdi></strong>
+    <t t-call="ycc.DashDelta"><t t-set="delta" t-value="k.delta"/></t>
+    <small t-if="d.compare_label">السابق (<t t-esc="d.compare_label"/>): <bdi dir="ltr"><t t-esc="k.prev"/></bdi></small>
+   </button>
+  </t>
+ </section>
+ <t t-call="ycc.DashIndicators"><t t-set="scopeLabel" t-value="d.period_label"/></t>
  <section class="ycc-dash-card" aria-label="قمع التحويل">
   <div class="ycc-dash-card-head">
    <h2>قمع التحويل</h2>
@@ -146,6 +197,7 @@
      <span t-att-class="'ycc-dash-funnel-rate' + (f.weak ? ' is-weak' : '')"><t t-esc="f.rate"/></span>
      <span class="ycc-dash-funnel-track"><span class="ycc-dash-funnel-bar" t-attf-style="height: #{f.h}%"><strong><t t-esc="f.value"/></strong></span></span>
      <span class="ycc-dash-funnel-label"><t t-esc="f.label"/></span>
+     <t t-call="ycc.DashDelta"><t t-set="delta" t-value="f.delta"/></t>
     </button>
    </t>
   </div>
@@ -154,7 +206,7 @@
  <section class="ycc-dash-leaks" aria-label="نقاط التسرب">
   <t t-foreach="d.leaks" t-as="l">
    <div t-att-class="'ycc-dash-card ycc-dash-leak tone-' + l.tone">
-    <div class="ycc-dash-card-head"><h3><t t-esc="l.title"/></h3><span t-att-class="'ycc-dash-trend ' + l.trend_dir" title="مقارنة بالفترة السابقة"><t t-esc="l.trend"/></span></div>
+    <div class="ycc-dash-card-head"><h3><t t-esc="l.title"/></h3><t t-call="ycc.DashDelta"><t t-set="delta" t-value="l.delta"/></t></div>
     <button type="button" class="ycc-dash-leak-value" data-open-model="ycc.appointment" t-att-data-open-ids="l.ids.join(',')" t-att-data-open-title="l.title"><strong><t t-esc="l.value"/></strong><span><t t-esc="l.share"/></span></button>
     <t t-foreach="l.reasons" t-as="r">
      <div class="ycc-dash-reason"><span class="ycc-dash-bar-label"><span><t t-esc="r.label"/></span><span><t t-esc="r.count"/></span></span><span class="ycc-dash-meter thin"><span t-attf-style="width: #{r.pct}%"/></span></div>
@@ -227,7 +279,7 @@
  </section>
 
  <section class="ycc-dash-card" aria-label="لوحة أداء الموظفين">
-  <div class="ycc-dash-card-head"><h2>لوحة الأداء</h2><span class="ycc-dash-sub">محسوبة على منشئ الحجز · مرتبة حسب نسبة التأكيد</span></div>
+  <div class="ycc-dash-card-head"><h2>لوحة الأداء</h2><span class="ycc-dash-sub">حسب منشئ الحجز وتاريخ الحجز · مرتبة حسب نسبة التأكيد<t t-if="d.compare_on"> · السهم = التغير عن <t t-esc="d.compare_label"/></t></span></div>
   <div t-if="!d.people.length" class="ycc-dash-muted">لا يوجد نشاط في هذه الفترة.</div>
   <div t-if="d.people.length" class="ycc-dash-table-wrap">
    <table class="ycc-dash-table">
@@ -238,8 +290,8 @@
      <t t-foreach="d.people" t-as="p">
       <tr>
        <td><span class="ycc-dash-person"><span t-att-class="'ycc-dash-avatar ' + p.avatar"><t t-esc="p.initials"/></span><span><strong><t t-esc="p.name"/></strong><small><t t-esc="p.role"/></small></span></span></td>
-       <td><button type="button" class="ycc-dash-num-link" data-open-model="ycc.appointment" t-att-data-open-ids="p.created_ids.join(',')" t-att-data-open-title="'حجوزات ' + p.name"><t t-esc="p.created"/></button></td>
-       <td><span class="ycc-dash-conv"><span t-att-class="'ycc-dash-meter conv-' + (p.conv_level || 'none')"><span t-attf-style="width: #{p.conv || 0}%"/></span><strong><t t-esc="p.conv_text"/></strong></span></td>
+       <td><button type="button" class="ycc-dash-num-link" data-open-model="ycc.appointment" t-att-data-open-ids="p.created_ids.join(',')" t-att-data-open-title="'حجوزات ' + p.name"><t t-esc="p.created"/></button><t t-if="d.compare_on"><t t-call="ycc.DashDelta"><t t-set="delta" t-value="p.created_delta"/></t></t></td>
+       <td><span class="ycc-dash-conv"><span t-att-class="'ycc-dash-meter conv-' + (p.conv_level || 'none')"><span t-attf-style="width: #{p.conv || 0}%"/></span><strong><t t-esc="p.conv_text"/></strong></span><t t-if="d.compare_on"><t t-call="ycc.DashDelta"><t t-set="delta" t-value="p.conv_delta"/></t></t></td>
        <td><t t-esc="p.expired"/></td>
        <td><t t-esc="p.cancelled"/></td>
        <td><t t-esc="p.no_show"/></td>
