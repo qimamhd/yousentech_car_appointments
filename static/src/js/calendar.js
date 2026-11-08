@@ -9,7 +9,7 @@ function day(s){return new Date(s+'T12:00:00');}
 function add(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n,12);}
 function fmt(d,opts,cal,lang){try{return new Intl.DateTimeFormat(lang+(cal?'-u-ca-'+cal:''),opts).format(d);}catch(e){return iso(d);}}
 var Calendar=AbstractAction.extend({
- events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-day':'_day','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-meter-circle':'_dayBookings','click .ycc-new':'_new','click .ycc-installation-count':'_installationDay','click .ycc-check-count':'_checkDay','click .ycc-peer-branches':'_peerBranches','click .ycc-service-indicator':'_serviceIndicator','click .ycc-arrival-open':'_openArrivalBooking'},
+ events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-day':'_day','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-meter-circle':'_dayBookings','click .ycc-new':'_new','click .ycc-installation-count':'_installationDay','click .ycc-check-count':'_checkDay','click .ycc-peer-branches':'_peerBranches','click .ycc-service-indicator':'_serviceIndicator'},
  init:function(){this._super.apply(this,arguments);this.mode='week';this.anchor=day(iso(new Date()));this.branchId=null;this.payload={branches:[],slots:[],appointments:[],exceptions:[]};},
  start:function(){
     var self=this;
@@ -90,29 +90,50 @@ var Calendar=AbstractAction.extend({
  var indicatorDefs=[{key:'late_arrival',title:'تأخر الوصول',icon:'fa-clock-o'},{key:'late_delivery',title:'تأخر التسليم',icon:'fa-calendar-times-o'},{key:'open_invoices',title:'فواتير مفتوحة',icon:'fa-file-text-o'},{key:'checks',title:'تشييك',icon:'fa-stethoscope'},{key:'contacting',title:'جاري التواصل',icon:'fa-phone'},{key:'provisional',title:'حجز مبدئي',icon:'fa-calendar-o'},{key:'no_show',title:'لم يحضر',icon:'fa-user-times'},{key:'postponed',title:'تم تأجيله',icon:'fa-calendar-plus-o'},{key:'completed',title:'تم الإنجاز',icon:'fa-check-circle'},{key:'invoice_closed',title:'إقفال الفاتورة',icon:'fa-check-square-o'}];
  var serviceIndicators=indicatorDefs.map(function(d){return {key:d.key,title:d.title,icon:d.icon,count:((data.service_indicators||{})[d.key]||[]).length};});
  this.$el.html(qweb.render('ycc.Calendar',{branches:data.branches||[],branchId:this.branchId,days:days,slots:slots,rows:rows,timeRows:timeRows,mode:this.mode,arrivalOnly:!!data.arrival_only,canCreate:!!data.can_create,calendarDir:isRtl?'rtl':'ltr',periodLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'gregory',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'gregory',lang),hijriLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang),serviceIndicators:serviceIndicators,arrivalAlerts:data.arrival_alerts||[],arrivalAlertMinutes:data.arrival_alert_minutes||30,summary:{dailyCapacity:data.daily_capacity||0,averagePct:capacity?Math.round(occupied*100/capacity):0,fullDays:fullDays,capacity:capacity,occupied:occupied,confirmed:all.filter(function(b){return b.state==='confirmed';}).length,provisional:all.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length}}));},
- _tickArrivalAlerts:function(){
-   var $card=this.$('.ycc-arrival-alerts');if(!$card.length){return;}
-   var now=Date.now()+(this._clockOffset||0),threshold=(this.payload.arrival_alert_minutes||30)*60000,visible=0;
+ _waitText:function(elapsed){
    function pad(n){return (n<10?'0':'')+n;}
-   $card.find('.ycc-arrival-alert-item').each(function(){
+   var total=Math.floor(elapsed/1000),d=Math.floor(total/86400),h=Math.floor((total%86400)/3600),m=Math.floor((total%3600)/60),sec=total%60;
+   var clock=(h||d?pad(h)+':':'')+pad(m)+':'+pad(sec);
+   return d?d+' يوم '+clock:clock;
+ },
+ _tickArrivalAlerts:function(){
+   var self=this,now=Date.now()+(this._clockOffset||0),threshold=(this.payload.arrival_alert_minutes||30)*60000;
+   var alerts=this.payload.arrival_alerts||[];
+   var waiting=alerts.filter(function(a){return a.arrival_ts&&now-a.arrival_ts>=threshold;}).length;
+   this.$('.ycc-waiting-count').text(waiting);
+   this.$('.ycc-service-waiting_order').toggleClass('is-active',waiting>0);
+   var $modal=$('.ycc-waiting-modal:visible');
+   if(!$modal.length){return;}
+   var visible=0;
+   $modal.find('.ycc-arrival-alert-item').each(function(){
      var arrival=parseInt(this.getAttribute('data-arrival'),10),elapsed=now-arrival,$item=$(this);
      if(!arrival||elapsed<threshold){$item.hide();return;}
      visible++;
-     var total=Math.floor(elapsed/1000),h=Math.floor(total/3600),m=Math.floor((total%3600)/60),sec=total%60;
-     $item.find('.ycc-arrival-wait').text((h?h+':'+pad(m):pad(m))+':'+pad(sec));
+     $item.find('.ycc-arrival-wait').text(self._waitText(elapsed));
      $item.toggleClass('is-critical',elapsed>=threshold*2).show();
    });
-   $card.find('.ycc-arrival-alerts-count').text(visible);
-   $card.toggle(visible>0);
+   $modal.find('.ycc-waiting-empty').toggle(visible===0);
  },
- _openArrivalBooking:function(e){
-   e.preventDefault();e.stopPropagation();
-   var id=parseInt(e.currentTarget.getAttribute('data-id'),10);if(!id){return;}
-   this.do_action({type:'ir.actions.act_window',name:'تفاصيل الحجز',res_model:'ycc.appointment',res_id:id,views:[[false,'form']],view_mode:'form',target:'current'});
+ _waitingOrderModal:function(){
+   var self=this;
+   var html=qweb.render('ycc.WaitingOrderModal',{alerts:this.payload.arrival_alerts||[],minutes:this.payload.arrival_alert_minutes||30});
+   var $modal=$('<div class="modal fade ycc-modal" tabindex="-1" role="dialog"/>').html(html);
+   $('body').append($modal);
+   $modal.on('click','.ycc-close',function(){$modal.modal('hide');});
+   $modal.on('click','.ycc-arrival-open',function(ev){
+     ev.preventDefault();var id=parseInt(this.getAttribute('data-id'),10);if(!id){return;}
+     $modal.one('hidden.bs.modal',function(){self.do_action({type:'ir.actions.act_window',name:'تفاصيل الحجز',res_model:'ycc.appointment',res_id:id,views:[[false,'form']],view_mode:'form',target:'current'});});
+     $modal.modal('hide');
+   });
+   $modal.on('shown.bs.modal',function(){self._tickArrivalAlerts();});
+   $modal.on('hidden.bs.modal',function(){$modal.remove();self._load(true);});
+   $modal.modal('show');
+   this._tickArrivalAlerts();
  },
  _serviceIndicator:function(e){
    e.preventDefault();e.stopPropagation();
    var key=e.currentTarget.getAttribute('data-indicator');
+   if(key==='waiting_order'){return this._waitingOrderModal();}
    var items=((this.payload.service_indicators||{})[key]||[]);
    var title=$(e.currentTarget).find('.ycc-service-title').text();
    var self=this;

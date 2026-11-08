@@ -9,27 +9,6 @@
    <button type="button" class="ycc-date-arrow ycc-next" title="الفترة التالية" aria-label="الفترة التالية"><i class="fa fa-chevron-left"/></button>
    <button type="button" class="ycc-today">اليوم</button>
   </div><div class="ycc-switch"><button t-att-class="mode === 'day' ? 'active ycc-mode-day' : 'ycc-mode-day'">يومي</button><button t-att-class="mode === 'week' ? 'active ycc-mode-week' : 'ycc-mode-week'">أسبوعي</button><button t-att-class="mode === 'month' ? 'active ycc-mode-month' : 'ycc-mode-month'">شهري</button></div></div>
- <div t-if="arrivalAlerts.length" class="ycc-arrival-alerts" role="alert" style="display:none">
-  <div class="ycc-arrival-alerts-head">
-   <span class="ycc-arrival-alerts-icon"><i class="fa fa-bell"/></span>
-   <div class="ycc-arrival-alerts-text"><strong>سيارات وصلت ولم يُنشأ لها أمر تركيب</strong><small>تجاوزت <t t-esc="arrivalAlertMinutes"/> دقيقة منذ تسجيل الوصول — تختفي تلقائيًا بعد إنشاء أمر التركيب</small></div>
-   <span class="ycc-arrival-alerts-count">0</span>
-  </div>
-  <div class="ycc-arrival-alerts-list">
-   <t t-foreach="arrivalAlerts" t-as="alertItem">
-    <div class="ycc-arrival-alert-item" t-att-data-arrival="alertItem.arrival_ts" style="display:none">
-     <span class="ycc-arrival-alert-car"><i class="fa fa-car"/></span>
-     <div class="ycc-arrival-alert-info">
-      <strong><t t-esc="alertItem.customer"/></strong>
-      <span><t t-esc="alertItem.name"/><t t-if="alertItem.vehicle"> · <t t-esc="alertItem.vehicle"/></t></span>
-      <small>وصلت: <t t-esc="alertItem.arrival_label"/><t t-if="alertItem.agent"> · المندوب: <t t-esc="alertItem.agent"/></t></small>
-     </div>
-     <div class="ycc-arrival-alert-timer" title="مدة الانتظار منذ تسجيل الوصول"><i class="fa fa-hourglass-half"/><b class="ycc-arrival-wait">--:--</b><small>مدة الانتظار</small></div>
-     <button type="button" class="btn btn-sm btn-primary ycc-arrival-open" t-att-data-id="alertItem.id"><i class="fa fa-external-link"/> فتح الحجز</button>
-    </div>
-   </t>
-  </div>
- </div>
  <div class="ycc-kpis ycc-kpis-v64">
  <div class="stat-capacity"><span class="ycc-kpi-icon"><i class="fa fa-car"/></span><small>السعة اليومية للفرع</small><strong><t t-esc="summary.dailyCapacity"/></strong><em>سيارات / يوم</em></div>
  <div class="stat-booked"><span class="ycc-kpi-icon"><i class="fa fa-car"/></span><small>إجمالي السيارات المحجوزة</small><strong><t t-esc="summary.occupied"/></strong><em>خلال الفترة المعروضة (سيارة / يوم)</em></div>
@@ -37,6 +16,11 @@
  <div class="stat-hold"><span class="ycc-kpi-icon"><i class="fa fa-exclamation-triangle"/></span><small>الأيام المكتملة أو المتجاوزة</small><strong><t t-esc="summary.fullDays"/></strong><em>يوم خلال الفترة المعروضة</em></div>
  </div>
  <div class="ycc-service-strip" role="group" aria-label="مؤشرات خدمة العملاء">
+  <button type="button" class="ycc-service-indicator ycc-service-waiting_order" data-indicator="waiting_order" t-att-title="'سيارات وصلت ولم يُنشأ لها أمر تركيب بعد '+arrivalAlertMinutes+' دقيقة — اضغط لعرض التفاصيل'">
+   <span class="ycc-service-icon"><i class="fa fa-hourglass-half"/></span>
+   <span class="ycc-service-title">بانتظار أمر تركيب</span>
+   <strong class="ycc-service-number ycc-waiting-count">0</strong>
+  </button>
   <t t-foreach="serviceIndicators" t-as="indicator">
    <button type="button" t-att-class="'ycc-service-indicator ycc-service-'+indicator.key" t-att-data-indicator="indicator.key" t-att-title="indicator.title+' — '+indicator.count+' سيارة. اضغط لعرض التفاصيل'">
     <span class="ycc-service-icon"><i t-att-class="'fa '+indicator.icon"/></span>
@@ -107,6 +91,26 @@
  <t t-foreach="orders" t-as="o"><div class="ycc-installation-order-card"><div><strong><t t-esc="o.customer"/></strong><small>السيارة: <t t-esc="o.vehicle || 'غير محددة'"/> · أمر التركيب: <t t-esc="o.name"/></small><small>الحجز السابق: <t t-esc="o.booking_name || 'غير مرتبط'"/> · تاريخ الحجز الأصلي: <t t-esc="o.booking_date || 'غير مرتبط'"/></small><small>تاريخ موعد التشييك: <t t-esc="o.check_date"/></small></div><button type="button" class="btn btn-outline-primary btn-sm ycc-open-order" t-att-data-id="o.id">فتح أمر التركيب</button></div></t>
  <t t-if="!orders.length"><div class="ycc-empty">لا توجد سيارات تشييك لهذا اليوم.</div></t>
  </div><div class="modal-footer"><button type="button" class="btn btn-secondary ycc-close">إغلاق</button></div></div></div>
+</t>
+<t t-name="ycc.WaitingOrderModal">
+ <div class="modal-dialog modal-lg ycc-dialog ycc-waiting-dialog" role="document"><div class="modal-content">
+  <div class="modal-header"><div><small class="ycc-modal-eyebrow">تقويم المواعيد / مؤشرات خدمة العملاء</small><h4 class="modal-title"><i class="fa fa-hourglass-half"/> بانتظار أمر تركيب</h4><small class="ycc-followup-subtitle">سيارات وصلت قبل أكثر من <t t-esc="minutes"/> دقيقة ولم يُنشأ لها أمر تركيب. تختفي تلقائيًا بعد إنشاء الأمر.</small></div><button type="button" class="close ycc-close" aria-label="إغلاق">×</button></div>
+  <div class="modal-body ycc-waiting-modal">
+   <t t-foreach="alerts" t-as="alertItem">
+    <div class="ycc-arrival-alert-item" t-att-data-arrival="alertItem.arrival_ts" style="display:none">
+     <span class="ycc-arrival-alert-car"><i class="fa fa-car"/></span>
+     <div class="ycc-arrival-alert-info">
+      <strong><t t-esc="alertItem.customer"/></strong>
+      <span><t t-esc="alertItem.name"/><t t-if="alertItem.vehicle"> · <t t-esc="alertItem.vehicle"/></t></span>
+      <small>وصلت: <t t-esc="alertItem.arrival_label"/><t t-if="alertItem.agent"> · المندوب: <t t-esc="alertItem.agent"/></t></small>
+     </div>
+     <div class="ycc-arrival-alert-timer" title="مدة الانتظار منذ تسجيل الوصول"><b class="ycc-arrival-wait">--:--</b><small>مدة الانتظار</small></div>
+     <button type="button" class="btn btn-sm btn-primary ycc-arrival-open" t-att-data-id="alertItem.id"><i class="fa fa-external-link"/> فتح الحجز</button>
+    </div>
+   </t>
+   <div class="ycc-waiting-empty" style="display:none"><i class="fa fa-check-circle"/> لا توجد سيارات منتظرة حاليًا.</div>
+  </div>
+ </div></div>
 </t>
 <t t-name="ycc.ServiceIndicatorModal">
  <div class="modal-dialog modal-lg ycc-dialog ycc-followup-dialog" role="document"><div class="modal-content">

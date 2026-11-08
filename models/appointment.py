@@ -816,8 +816,8 @@ class YCCDeliveryChangeWizard(models.TransientModel):
     reason = fields.Selection([
         ('customer_delay', 'تأخير من قبل العميل'),
         ('branch_postponement', 'تأجيل من قبل الفرع'),
-    ], string='سبب تأخير موعد التسليم', required=True)
-    note = fields.Text(string='تفاصيل إضافية')
+    ], string='نوع السبب', required=True)
+    note = fields.Text(string='السبب', required=True)
 
     def action_apply(self):
         self.ensure_one()
@@ -828,7 +828,10 @@ class YCCDeliveryChangeWizard(models.TransientModel):
         if not order:
             raise UserError(_('لا يوجد أمر تركيب مرتبط بهذا الحجز.'))
         if not self.reason:
-            raise UserError(_('اختر سبب تغيير موعد التسليم.'))
+            raise UserError(_('اختر نوع السبب: تأخير من قبل العميل أو تأجيل من قبل الفرع.'))
+        note = (self.note or '').strip()
+        if not note:
+            raise UserError(_('اكتب سبب تغيير موعد التسليم.'))
         if not self.new_date:
             raise UserError(_('حدد موعد التسليم الجديد.'))
         current = order.delivery_date or False
@@ -845,8 +848,7 @@ class YCCDeliveryChangeWizard(models.TransientModel):
         if new_date < today and not appt._ycc_manager():
             raise UserError(_('لا يمكن تحديد موعد تسليم بتاريخ سابق؛ هذه الصلاحية متاحة لمدير المواعيد فقط.'))
         reason_label = dict(self._fields['reason'].selection).get(self.reason)
-        note = (self.note or '').strip()
-        full_reason = '%s — %s' % (reason_label, note) if note else reason_label
+        full_reason = '%s — %s' % (reason_label, note)
         # Pass the explicit workflow context required by the inherited order.write guard.
         order.with_context(ycc_delivery_change_reason=True).write({'delivery_date': self.new_date})
         self.env['ycc.delivery.change'].create({
