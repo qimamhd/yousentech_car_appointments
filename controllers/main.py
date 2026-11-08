@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import date, timedelta, datetime
+from calendar import timegm
+import time
 import pytz
 from odoo import http, fields
 from odoo.http import request
@@ -20,6 +22,25 @@ class YCCCalendar(http.Controller):
             # A pre-existing booking may have non-contiguous/disabled slots.
             # Do not make the whole calendar unavailable because of one record.
             return [(fields.Date.to_string(appointment.date), appointment.slot_id)]
+
+    @staticmethod
+    def _exception_domain(branch_ids, first, last):
+        """Exceptions overlapping [first, last): single-day or multi-day."""
+        return [('branch_id', 'in', branch_ids),
+                ('date', '<', fields.Date.to_string(last)),
+                '|', ('end_date', '>=', fields.Date.to_string(first)),
+                '&', ('end_date', '=', False), ('date', '>=', fields.Date.to_string(first))]
+
+    @staticmethod
+    def _exception_days(exception, first, last):
+        """Every displayed day covered by an exception (end date inclusive)."""
+        begin = max(fields.Date.from_string(exception.date), first)
+        finish = min(fields.Date.from_string(exception.end_date or exception.date), last - timedelta(days=1))
+        days = []
+        while begin <= finish:
+            days.append(fields.Date.to_string(begin))
+            begin += timedelta(days=1)
+        return days
 
     @http.route('/ycc/calendar/installation_action', type='json', auth='user')
     def installation_action(self, appointment_id=None):
@@ -56,15 +77,16 @@ class YCCCalendar(http.Controller):
         last = fields.Date.from_string(end) if end else first+timedelta(days=7)
         if last <= first or (last-first).days > 42: return {'error':'Invalid date range'}
         slots = request.env['ycc.slot'].search([('branch_id','=',branch.id),('active','=',True)])
-        exceptions = request.env['ycc.exception'].search([('branch_id','=',branch.id),('date','>=',first),('date','<',last)])
+        exceptions = request.env['ycc.exception'].search(self._exception_domain([branch.id], first, last))
         appointments = request.env['ycc.appointment'].search([('branch_id','=',branch.id),('date','<',last),'|','&',('end_date','=',False),('date','>=',first),('end_date','>=',first),('state','in',['provisional','contacting','confirmed','done','installation_created','postponed','no_show','inspection_completed'])])
         # Customer-service warnings are calculated at request time, without
         # modifying the appointment or installation-order workflow.
         tz_name = request.env.user.tz or request.env.company.partner_id.tz or 'Asia/Riyadh'
         try:
-            local_now = datetime.now(pytz.timezone(tz_name))
+            local_tz = pytz.timezone(tz_name)
         except pytz.UnknownTimeZoneError:
-            local_now = datetime.now(pytz.UTC)
+            local_tz = pytz.UTC
+        local_now = datetime.now(local_tz)
         def warning_data(booking):
             arrival = ''
             delivery = ''
@@ -190,13 +212,10 @@ class YCCCalendar(http.Controller):
                     peer_counts[key] = peer_counts.get(key, 0) + 1
             peer_slots = request.env['ycc.slot'].search([
                 ('branch_id', 'in', visible_configs.ids), ('active', '=', True)])
-            peer_exceptions = request.env['ycc.exception'].search([
-                ('branch_id', 'in', visible_configs.ids),
-                ('date', '>=', fields.Date.to_string(first)),
-                ('date', '<', fields.Date.to_string(last)),
-                ('slot_id', '=', False),
-            ])
-            blocked = {(ex.branch_id.id, fields.Date.to_string(ex.date)) for ex in peer_exceptions}
+            peer_exceptions = request.env['ycc.exception'].search(
+                self._exception_domain(visible_configs.ids, first, last) + [('slot_id', '=', False)])
+            blocked = {(ex.branch_id.id, ex_day) for ex in peer_exceptions
+                       for ex_day in self._exception_days(ex, first, last)}
             for offset in range((last-first).days):
                 current_day = first + timedelta(days=offset)
                 date_key = fields.Date.to_string(current_day)
@@ -295,8 +314,27 @@ class YCCCalendar(http.Controller):
                 if not booking:
                     booking = Appointment.search([('installation_order_id', '=', order.id)], limit=1)
                 add_item('checks', booking, order, 'موعد التشييك: %s' % check_day)
+        # V6.64: cars that arrived but still have no installation order.
+        # Sent with the arrival timestamp; the browser shows the card only
+        # after the branch threshold and keeps the waiting timer ticking.
+        arrival_alerts = []
+        for waiting in Appointment.search([
+                ('branch_id', '=', branch.id), ('state', '=', 'done'),
+                ('is_check_only', '=', False), ('installation_order_id', '=', False),
+                ('actual_arrival_at', '!=', False)], order='actual_arrival_at asc', limit=50):
+            arrived_utc = fields.Datetime.from_string(waiting.actual_arrival_at)
+            arrival_alerts.append({
+                'id': waiting.id, 'name': waiting.name,
+                'customer': waiting.partner_id.name or '',
+                'vehicle': ' · '.join(x for x in (waiting.car_type_id.display_name or waiting.vehicle_model or '',
+                                                   waiting.vehicle_plate or '') if x),
+                'phone': waiting.phone or '',
+                'agent': waiting.agent_id.name or '',
+                'arrival_ts': timegm(arrived_utc.timetuple()) * 1000,
+                'arrival_label': pytz.UTC.localize(arrived_utc).astimezone(local_tz).strftime('%Y-%m-%d %H:%M'),
+            })
         now = fields.Datetime.now()
-        return {'branches':branches,'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'check_by_day':check_by_day,'check_capacity':branch.check_capacity,'branch_comparison':comparison,'service_indicators':service_items,
+        return {'branches':branches,'arrival_alerts':arrival_alerts,'arrival_alert_minutes':branch.arrival_order_alert_minutes or 30,'server_now':int(time.time()*1000),'branch_id':branch.id,'daily_capacity':branch.capacity,'arrival_only':request.env['ycc.appointment']._ycc_arrival_only_user(),'can_create':request.env['ycc.appointment']._ycc_can_book(),'lang':request.env.user.lang or 'en_US','today':fields.Date.to_string(fields.Date.context_today(request.env.user)), 'installation_by_day':installation_by_day,'check_by_day':check_by_day,'check_capacity':branch.check_capacity,'branch_comparison':comparison,'service_indicators':service_items,
             'slots':[{'id':s.id,'name':s.name,'start_hour':s.start_hour,'end_hour':s.end_hour,'capacity':branch.capacity,'days':[int(x) for x in s.weekday_ids.mapped('code')]} for s in slots],
-            'exceptions':[{'date':fields.Date.to_string(e.date),'slot_id':e.slot_id.id or False,'reason':e.reason} for e in exceptions],
+            'exceptions':[{'date':ex_day,'slot_id':e.slot_id.id or False,'reason':e.reason} for e in exceptions for ex_day in self._exception_days(e, first, last)],
             'appointments':[{'id':a.id,'name':a.name,'date':fields.Date.to_string(a.date),'end_date':fields.Date.to_string(a.end_date or a.date),'slot_id':a.slot_id.id,'slot_ids':list(dict.fromkeys(slot.id for _, slot in self._calendar_periods(a))) if a.slot_id and a.date else [],'periods':[{'date':d,'slot_id':slot.id} for d,slot in self._calendar_periods(a) if first <= fields.Date.from_string(d) < last] if a.slot_id and a.date else [],'client':a.partner_id.name,'vehicle':'%s · %s'%((a.car_type_id.display_name or a.vehicle_model or ''),a.vehicle_plate or ''),'service':a.service_id.name or '','state':a.state,'occupies':a._occupies(now),'service_stage':a.service_stage,'was_postponed':a.was_postponed,'installation_order_id':a.installation_order_id.id or False,'agent':a.agent_id.name or '','hold_until':a.hold_until or '', 'notes':a.notes or '', 'postponement_reason':a.last_postponement_reason or '', 'arrival_warning':warning_data(a)[0], 'delivery_warning':warning_data(a)[1], 'is_check_only':a.is_check_only, 'cancellation_reason':a.cancellation_reason or ''} for a in appointments if a._occupies(now) or a.state == 'no_show']}

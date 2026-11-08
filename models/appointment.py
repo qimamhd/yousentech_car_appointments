@@ -29,6 +29,22 @@ class YCCBranch(models.Model):
     exception_ids = fields.One2many('ycc.exception', 'branch_id', string='الاستثناءات')
     _sql_constraints = [('unique_branch', 'unique(branch_id)', 'يوجد إعداد مواعيد لهذا الفرع بالفعل.')]
 
+    @api.model
+    def _ycc_allowed_custom_branches(self):
+        user = self.env.user
+        if 'allowed_branch_ids' in user._fields:
+            return user.allowed_branch_ids
+        return self.env['custom.branches']
+
+    @api.model
+    def _search(self, args, offset=0, limit=None, order=None, count=False, access_rights_uid=None):
+        # Selection widgets on the appointment form pass ycc_allowed_only so
+        # users only see appointment configurations of their allowed branches.
+        if self.env.context.get('ycc_allowed_only'):
+            args = list(args or []) + [('branch_id', 'in', self._ycc_allowed_custom_branches().ids)]
+        return super()._search(args, offset=offset, limit=limit, order=order,
+                               count=count, access_rights_uid=access_rights_uid)
+
     def write(self, vals):
         if 'capacity' in vals:
             for rec in self:
@@ -147,7 +163,24 @@ class YCCAppointment(models.Model):
     _inherit = ['mail.thread','mail.activity.mixin']
     _order = 'date desc,id desc'
     name = fields.Char(default='New',readonly=True,copy=False)
-    branch_id = fields.Many2one('ycc.branch',string='الفرع',tracking=True)
+
+    @api.model
+    def _default_ycc_branch(self):
+        """Default appointment configuration for bookings created without a
+        calendar cell (calendar header button, list view). Prefers the user's
+        own branch, otherwise the first allowed configured branch."""
+        Branch = self.env['ycc.branch']
+        allowed = Branch._ycc_allowed_custom_branches()
+        configs = Branch.search([('active', '=', True), ('branch_id', 'in', allowed.ids)], order='id')
+        user = self.env.user
+        own = user.branch_id if 'branch_id' in user._fields and user._fields['branch_id'].comodel_name == 'custom.branches' else False
+        if own:
+            preferred = configs.filtered(lambda c: c.branch_id == own)[:1]
+            if preferred:
+                return preferred.id
+        return configs[:1].id or False
+
+    branch_id = fields.Many2one('ycc.branch',string='الفرع',tracking=True,default=_default_ycc_branch)
     custom_branch_id = fields.Many2one('custom.branches', string='الفرع الفعلي (V3)',
                                        related='branch_id.branch_id', store=True, readonly=True)
     slot_id = fields.Many2one('ycc.slot',string='بداية الفترة',tracking=True)
@@ -176,6 +209,14 @@ class YCCAppointment(models.Model):
     # All vehicle types must remain selectable, including legacy types without a manufacturer.
     # New types inherit the selected manufacturer via the form context only.
     car_type_id = fields.Many2one('wo.car.types', string='نوع السيارة', tracking=True)
+
+    @api.onchange('branch_id')
+    def _onchange_ycc_branch(self):
+        for rec in self:
+            if rec.slot_id and rec.slot_id.branch_id != rec.branch_id:
+                rec.slot_id = False
+            if rec.end_slot_id and rec.end_slot_id.branch_id != rec.branch_id:
+                rec.end_slot_id = False
 
     def _validate_vehicle_selection(self):
         for rec in self:
@@ -217,15 +258,32 @@ class YCCAppointment(models.Model):
             # to provisional). Never write back to the installation order.
             if order:
                 invoice = order.create_invoice_id
-                # Completion is the final customer-service stage and must
-                # override a previously posted invoice (not vice versa).
-                if order.state in ('execute_completed', 'complete_work'):
-                    stage = 'completed'
-                elif invoice and invoice.state == 'posted':
+                # V6.64: the final customer-service stage is the actual invoice
+                # closure (posted invoice). Work completion comes before it.
+                # A draft or cancelled invoice keeps the booking at completed.
+                if invoice and invoice.state == 'posted':
                     stage = 'invoice_closed'
+                elif order.state in ('execute_completed', 'complete_work'):
+                    stage = 'completed'
                 elif order.state != 'cancel_order' and stage in ('provisional', 'contacting', 'confirmed', 'done', 'postponed'):
                     stage = 'installation_created'
             rec.service_stage = stage
+
+    invoice_state_label = fields.Char(string='حالة الفاتورة', compute='_compute_invoice_state_label')
+
+    @api.depends('installation_order_id', 'installation_order_id.create_invoice_id',
+                 'installation_order_id.create_invoice_id.state')
+    def _compute_invoice_state_label(self):
+        for rec in self:
+            invoice = rec.installation_order_id.create_invoice_id if rec.installation_order_id else False
+            if not invoice:
+                rec.invoice_state_label = _('لم تُنشأ فاتورة بعد')
+            elif invoice.state == 'posted':
+                rec.invoice_state_label = _('مرحّلة — تم إقفال الفاتورة (%s)') % invoice.display_name
+            elif invoice.state == 'cancel':
+                rec.invoice_state_label = _('ملغاة (%s)') % invoice.display_name
+            else:
+                rec.invoice_state_label = _('مسودة — بانتظار الترحيل (%s)') % invoice.display_name
 
     check_date = fields.Date(string='تاريخ موعد التشييك', related='installation_order_id.check_date', readonly=True, store=True)
 
@@ -424,7 +482,9 @@ class YCCAppointment(models.Model):
         if not self._ycc_can_book() and not self._ycc_arrival_only_user():
             raise UserError(_('المواعيد للقراءة فقط؛ لا تملك صلاحية التعديل.'))
         if any(rec.installation_order_id for rec in self) and not self.env.context.get('ycc_internal_order_unlink'):
-            protected = set(vals) - {'message_follower_ids', 'activity_ids'}
+            # Contact history stays available after the order: the contact
+            # wizard updates only the follow-up date on the booking.
+            protected = set(vals) - {'message_follower_ids', 'activity_ids', 'next_contact_at', 'message_main_attachment_id'}
             if protected:
                 raise UserError(_('تم إنشاء أمر تركيب لهذا الحجز؛ بيانات الحجز أصبحت للقراءة فقط.'))
         if 'date' in vals and vals.get('date'):
@@ -734,8 +794,12 @@ class YCCDeliveryChange(models.Model):
     _order = 'change_date desc,id desc'
     appointment_id = fields.Many2one('ycc.appointment', required=True, ondelete='cascade', index=True)
     installation_order_id = fields.Many2one('wo.installation.order.mst', ondelete='set null')
-    old_date = fields.Date(string='الموعد السابق', required=True)
+    old_date = fields.Date(string='الموعد السابق')
     new_date = fields.Date(string='الموعد الجديد', required=True)
+    reason_code = fields.Selection([
+        ('customer_delay', 'تأخير من قبل العميل'),
+        ('branch_postponement', 'تأجيل من قبل الفرع'),
+    ], string='نوع السبب', readonly=True)
     reason = fields.Text(string='سبب التغيير', required=True)
     user_id = fields.Many2one('res.users', required=True, default=lambda self:self.env.user)
     change_date = fields.Datetime(required=True, default=fields.Datetime.now)
@@ -745,12 +809,15 @@ class YCCDeliveryChangeWizard(models.TransientModel):
     _name = 'ycc.delivery.change.wizard'
     _description = 'تغيير موعد تسليم السيارة'
     appointment_id = fields.Many2one('ycc.appointment', required=True, readonly=True)
+    installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب',
+                                            related='appointment_id.installation_order_id', readonly=True)
     old_date = fields.Date(string='موعد التسليم الحالي', readonly=True)
     new_date = fields.Date(string='موعد التسليم الجديد', required=True)
     reason = fields.Selection([
         ('customer_delay', 'تأخير من قبل العميل'),
         ('branch_postponement', 'تأجيل من قبل الفرع'),
     ], string='سبب تأخير موعد التسليم', required=True)
+    note = fields.Text(string='تفاصيل إضافية')
 
     def action_apply(self):
         self.ensure_one()
@@ -758,18 +825,37 @@ class YCCDeliveryChangeWizard(models.TransientModel):
         order = appt.installation_order_id
         if not appt._ycc_can_book():
             raise UserError(_('ليس لديك صلاحية تغيير موعد التسليم.'))
-        if not order or not (self.reason or '').strip():
-            raise UserError(_('يجب تحديد أمر التركيب وكتابة سبب التغيير.'))
-        if not self.old_date or not self.new_date or self.old_date == self.new_date:
-            raise UserError(_('اختر موعد تسليم جديدًا مختلفًا عن الموعد الحالي.'))
-        if order.delivery_date != self.old_date:
+        if not order:
+            raise UserError(_('لا يوجد أمر تركيب مرتبط بهذا الحجز.'))
+        if not self.reason:
+            raise UserError(_('اختر سبب تغيير موعد التسليم.'))
+        if not self.new_date:
+            raise UserError(_('حدد موعد التسليم الجديد.'))
+        current = order.delivery_date or False
+        # Stale check: the order date must still be what the wizard displayed.
+        if (current or False) != (self.old_date or False):
             raise UserError(_('تم تعديل موعد التسليم من مستخدم آخر. أغلق النافذة وافتحها مجددًا لمراجعة الموعد الحالي.'))
+        # An empty delivery date may be set for the first time from here.
+        if current and self.new_date == current:
+            raise UserError(_('اختر موعد تسليم جديدًا مختلفًا عن الموعد الحالي.'))
+        new_date = fields.Date.from_string(self.new_date)
+        if order.order_date and new_date < fields.Date.from_string(order.order_date):
+            raise UserError(_('موعد التسليم الجديد لا يمكن أن يسبق تاريخ طلب أمر التركيب (%s).') % order.order_date)
+        today = fields.Date.from_string(fields.Date.context_today(self))
+        if new_date < today and not appt._ycc_manager():
+            raise UserError(_('لا يمكن تحديد موعد تسليم بتاريخ سابق؛ هذه الصلاحية متاحة لمدير المواعيد فقط.'))
         reason_label = dict(self._fields['reason'].selection).get(self.reason)
+        note = (self.note or '').strip()
+        full_reason = '%s — %s' % (reason_label, note) if note else reason_label
         # Pass the explicit workflow context required by the inherited order.write guard.
         order.with_context(ycc_delivery_change_reason=True).write({'delivery_date': self.new_date})
-        self.env['ycc.delivery.change'].create({'appointment_id':appt.id,'installation_order_id':order.id,
-            'old_date':self.old_date,'new_date':self.new_date,'reason':reason_label})
-        appt.message_post(body=_('تم تغيير موعد التسليم من %s إلى %s. السبب: %s') % (self.old_date,self.new_date,reason_label))
+        self.env['ycc.delivery.change'].create({
+            'appointment_id': appt.id, 'installation_order_id': order.id,
+            'old_date': current or False, 'new_date': self.new_date,
+            'reason_code': self.reason, 'reason': full_reason})
+        body = _('تم تغيير موعد التسليم من %s إلى %s. السبب: %s') % (current or _('غير محدد'), self.new_date, full_reason)
+        appt.message_post(body=body)
+        order.sudo().message_post(body=body, author_id=self.env.user.partner_id.id)
         return {'type':'ir.actions.act_window_close'}
 
 

@@ -9,7 +9,7 @@ function day(s){return new Date(s+'T12:00:00');}
 function add(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n,12);}
 function fmt(d,opts,cal,lang){try{return new Intl.DateTimeFormat(lang+(cal?'-u-ca-'+cal:''),opts).format(d);}catch(e){return iso(d);}}
 var Calendar=AbstractAction.extend({
- events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-day':'_day','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-meter-circle':'_dayBookings','click .ycc-new':'_new','click .ycc-installation-count':'_installationDay','click .ycc-check-count':'_checkDay','click .ycc-peer-branches':'_peerBranches','click .ycc-service-indicator':'_serviceIndicator'},
+ events:{'click .ycc-prev':'_prev','click .ycc-next':'_next','click .ycc-today':'_today','click .ycc-mode-day':'_day','click .ycc-mode-week':'_week','click .ycc-mode-month':'_month','change .ycc-branch':'_branch','click .ycc-cell':'_period','click .ycc-meter-circle':'_dayBookings','click .ycc-new':'_new','click .ycc-installation-count':'_installationDay','click .ycc-check-count':'_checkDay','click .ycc-peer-branches':'_peerBranches','click .ycc-service-indicator':'_serviceIndicator','click .ycc-arrival-open':'_openArrivalBooking'},
  init:function(){this._super.apply(this,arguments);this.mode='week';this.anchor=day(iso(new Date()));this.branchId=null;this.payload={branches:[],slots:[],appointments:[],exceptions:[]};},
  start:function(){
     var self=this;
@@ -20,11 +20,14 @@ var Calendar=AbstractAction.extend({
         if(self._calendarAlive && !document.hidden && self.$el.is(':visible') &&
            !$('.ycc-modal:visible').length){self._load(true);}
     },10000);
+    // Waiting timers for the arrival alert card tick locally every second.
+    this._alertTimer=window.setInterval(function(){if(self._calendarAlive){self._tickArrivalAlerts();}},1000);
     return this._load();
  },
  destroy:function(){
     this._calendarAlive=false;
     if(this._refreshTimer){window.clearInterval(this._refreshTimer);this._refreshTimer=null;}
+    if(this._alertTimer){window.clearInterval(this._alertTimer);this._alertTimer=null;}
     if(this._onWindowFocus){window.removeEventListener('focus',this._onWindowFocus);}
     return this._super.apply(this,arguments);
  },
@@ -37,7 +40,11 @@ var Calendar=AbstractAction.extend({
     }}).then(function(data){
         if(!self._calendarAlive){return;}
         if(data.error){if(!silent){self.$el.text(data.error);}return;}
+        // server_now changes on every request; keep it out of the change signature.
+        if(data.server_now){self._clockOffset=data.server_now-Date.now();}
+        var serverNow=data.server_now;delete data.server_now;
         var signature=JSON.stringify(data);
+        data.server_now=serverNow;
         // Don't disturb the user's scroll or the current calendar on an unchanged poll.
         if(silent && signature===self._lastSignature){return;}
         var scroll=self.$('.ycc-grid-wrap'),top=scroll.scrollTop(),left=scroll.scrollLeft();
@@ -46,6 +53,7 @@ var Calendar=AbstractAction.extend({
         self._lastSignature=signature;
         self._render();
         if(silent){self.$('.ycc-grid-wrap').scrollTop(top).scrollLeft(left);}
+        self._tickArrivalAlerts();
     }).then(function(){self._loading=null;if(self._reloadQueued){self._reloadQueued=false;return self._load();}},function(err){
         self._loading=null;
         if(!silent){throw err;}
@@ -81,7 +89,27 @@ var Calendar=AbstractAction.extend({
  var fullDays=rows.filter(function(row){return row.dailyCapacity>0 && row.dailyCount>=row.dailyCapacity;}).length;
  var indicatorDefs=[{key:'late_arrival',title:'تأخر الوصول',icon:'fa-clock-o'},{key:'late_delivery',title:'تأخر التسليم',icon:'fa-calendar-times-o'},{key:'open_invoices',title:'فواتير مفتوحة',icon:'fa-file-text-o'},{key:'checks',title:'تشييك',icon:'fa-stethoscope'},{key:'contacting',title:'جاري التواصل',icon:'fa-phone'},{key:'provisional',title:'حجز مبدئي',icon:'fa-calendar-o'},{key:'no_show',title:'لم يحضر',icon:'fa-user-times'},{key:'postponed',title:'تم تأجيله',icon:'fa-calendar-plus-o'},{key:'completed',title:'تم الإنجاز',icon:'fa-check-circle'},{key:'invoice_closed',title:'إقفال الفاتورة',icon:'fa-check-square-o'}];
  var serviceIndicators=indicatorDefs.map(function(d){return {key:d.key,title:d.title,icon:d.icon,count:((data.service_indicators||{})[d.key]||[]).length};});
- this.$el.html(qweb.render('ycc.Calendar',{branches:data.branches||[],branchId:this.branchId,days:days,slots:slots,rows:rows,timeRows:timeRows,mode:this.mode,arrivalOnly:!!data.arrival_only,canCreate:!!data.can_create,calendarDir:isRtl?'rtl':'ltr',periodLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'gregory',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'gregory',lang),hijriLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang),serviceIndicators:serviceIndicators,summary:{dailyCapacity:data.daily_capacity||0,averagePct:capacity?Math.round(occupied*100/capacity):0,fullDays:fullDays,capacity:capacity,occupied:occupied,confirmed:all.filter(function(b){return b.state==='confirmed';}).length,provisional:all.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length}}));},
+ this.$el.html(qweb.render('ycc.Calendar',{branches:data.branches||[],branchId:this.branchId,days:days,slots:slots,rows:rows,timeRows:timeRows,mode:this.mode,arrivalOnly:!!data.arrival_only,canCreate:!!data.can_create,calendarDir:isRtl?'rtl':'ltr',periodLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'gregory',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'gregory',lang),hijriLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang),serviceIndicators:serviceIndicators,arrivalAlerts:data.arrival_alerts||[],arrivalAlertMinutes:data.arrival_alert_minutes||30,summary:{dailyCapacity:data.daily_capacity||0,averagePct:capacity?Math.round(occupied*100/capacity):0,fullDays:fullDays,capacity:capacity,occupied:occupied,confirmed:all.filter(function(b){return b.state==='confirmed';}).length,provisional:all.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length}}));},
+ _tickArrivalAlerts:function(){
+   var $card=this.$('.ycc-arrival-alerts');if(!$card.length){return;}
+   var now=Date.now()+(this._clockOffset||0),threshold=(this.payload.arrival_alert_minutes||30)*60000,visible=0;
+   function pad(n){return (n<10?'0':'')+n;}
+   $card.find('.ycc-arrival-alert-item').each(function(){
+     var arrival=parseInt(this.getAttribute('data-arrival'),10),elapsed=now-arrival,$item=$(this);
+     if(!arrival||elapsed<threshold){$item.hide();return;}
+     visible++;
+     var total=Math.floor(elapsed/1000),h=Math.floor(total/3600),m=Math.floor((total%3600)/60),sec=total%60;
+     $item.find('.ycc-arrival-wait').text((h?h+':'+pad(m):pad(m))+':'+pad(sec));
+     $item.toggleClass('is-critical',elapsed>=threshold*2).show();
+   });
+   $card.find('.ycc-arrival-alerts-count').text(visible);
+   $card.toggle(visible>0);
+ },
+ _openArrivalBooking:function(e){
+   e.preventDefault();e.stopPropagation();
+   var id=parseInt(e.currentTarget.getAttribute('data-id'),10);if(!id){return;}
+   this.do_action({type:'ir.actions.act_window',name:'تفاصيل الحجز',res_model:'ycc.appointment',res_id:id,views:[[false,'form']],view_mode:'form',target:'current'});
+ },
  _serviceIndicator:function(e){
    e.preventDefault();e.stopPropagation();
    var key=e.currentTarget.getAttribute('data-indicator');
@@ -179,7 +207,7 @@ var Calendar=AbstractAction.extend({
  _week:function(){this.mode='week';return this._load();},
  _month:function(){this.mode='month';return this._load();},
  _branch:function(e){this.branchId=parseInt(e.currentTarget.value,10);return this._load();},
- _new:function(){if(!this.payload.can_create){return;}this.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',views:[[false,'form']],target:'current'});},
+ _new:function(){if(!this.payload.can_create){return;}this.do_action({type:'ir.actions.act_window',res_model:'ycc.appointment',views:[[false,'form']],target:'current',context:this.branchId?{default_branch_id:this.branchId}:{}});},
  _dayBookings:function(e){
    e.preventDefault();e.stopPropagation();
    var date=e.currentTarget.getAttribute('data-date');
