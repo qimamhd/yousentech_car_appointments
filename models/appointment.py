@@ -747,7 +747,10 @@ class YCCDeliveryChangeWizard(models.TransientModel):
     appointment_id = fields.Many2one('ycc.appointment', required=True, readonly=True)
     old_date = fields.Date(string='موعد التسليم الحالي', readonly=True)
     new_date = fields.Date(string='موعد التسليم الجديد', required=True)
-    reason = fields.Text(string='سبب التغيير', required=True)
+    reason = fields.Selection([
+        ('customer_delay', 'تأخير من قبل العميل'),
+        ('branch_postponement', 'تأجيل من قبل الفرع'),
+    ], string='سبب تأخير موعد التسليم', required=True)
 
     def action_apply(self):
         self.ensure_one()
@@ -759,10 +762,14 @@ class YCCDeliveryChangeWizard(models.TransientModel):
             raise UserError(_('يجب تحديد أمر التركيب وكتابة سبب التغيير.'))
         if not self.old_date or not self.new_date or self.old_date == self.new_date:
             raise UserError(_('اختر موعد تسليم جديدًا مختلفًا عن الموعد الحالي.'))
-        order.write({'delivery_date': self.new_date})
+        if order.delivery_date != self.old_date:
+            raise UserError(_('تم تعديل موعد التسليم من مستخدم آخر. أغلق النافذة وافتحها مجددًا لمراجعة الموعد الحالي.'))
+        reason_label = dict(self._fields['reason'].selection).get(self.reason)
+        # Pass the explicit workflow context required by the inherited order.write guard.
+        order.with_context(ycc_delivery_change_reason=True).write({'delivery_date': self.new_date})
         self.env['ycc.delivery.change'].create({'appointment_id':appt.id,'installation_order_id':order.id,
-            'old_date':self.old_date,'new_date':self.new_date,'reason':self.reason})
-        appt.message_post(body=_('تم تغيير موعد التسليم من %s إلى %s. السبب: %s') % (self.old_date,self.new_date,self.reason))
+            'old_date':self.old_date,'new_date':self.new_date,'reason':reason_label})
+        appt.message_post(body=_('تم تغيير موعد التسليم من %s إلى %s. السبب: %s') % (self.old_date,self.new_date,reason_label))
         return {'type':'ir.actions.act_window_close'}
 
 
