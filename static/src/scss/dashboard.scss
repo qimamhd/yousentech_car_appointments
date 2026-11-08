@@ -32,6 +32,9 @@ $ycc-red: #C92A2A;
     .is-alert { color: $ycc-orange-ink; }
     .is-bad { color: $ycc-orange-ink; font-weight: 600; }
 }
+/* Inside Odoo the action container has a fixed height: without this, flex
+   children that scroll (tabs, tables, lists) may shrink to zero height. */
+.ycc-dash > *, .ycc-dash-card > * { flex-shrink: 0; }
 .ycc-dash-loading .ycc-dash { opacity: .65; transition: opacity .15s; pointer-events: none; }
 
 /* Header ------------------------------------------------------------------ */
@@ -52,14 +55,16 @@ $ycc-red: #C92A2A;
 .ycc-dash-loading .ycc-dash-refresh .fa { animation: ycc-dash-spin 1s linear infinite; }
 @keyframes ycc-dash-spin { to { transform: rotate(360deg); } }
 
-/* Tabs -------------------------------------------------------------------- */
-.ycc-dash-tabs { display: flex; gap: 6px; border-bottom: 1px solid $ycc-line; overflow-x: auto; }
-.ycc-dash-tab { position: relative; border: 0; background: transparent; padding: 11px 16px 13px; font-size: 14.5px; font-weight: 600; color: $ycc-soft; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
-.ycc-dash-tab:hover { color: $ycc-ink; }
-.ycc-dash-tab.active { color: $ycc-blue; }
-.ycc-dash-tab.active::after { content: ''; position: absolute; inset-inline: 10px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: $ycc-blue; }
+/* Tabs: segmented bar in the calendar's switch style ------------------------ */
+.ycc-dash-tabs { display: flex; gap: 6px; background: #FFFFFF; border: 1px solid $ycc-line; border-radius: 14px; padding: 6px; overflow-x: auto; min-height: 58px; box-shadow: 0 1px 2px rgba(36, 54, 82, .05); }
+.ycc-dash-tab { flex: 1 1 0; min-width: 150px; min-height: 46px; border: 0; border-radius: 10px; background: transparent; padding: 10px 16px; font-size: 15px; font-weight: 700; color: #667792; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 9px; white-space: nowrap; transition: background .15s, color .15s; }
+.ycc-dash-tab .fa { font-size: 16px; }
+.ycc-dash-tab:hover { background: #F2F4FA; color: #26354D; }
+.ycc-dash-tab.active { background: #5957CE; color: #FFFFFF; box-shadow: 0 3px 10px rgba(89, 87, 206, .28); }
 .ycc-dash-live { display: inline-flex; align-items: center; gap: 5px; background: #E6F6EE; color: $ycc-green-dark; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.ycc-dash-tab.active .ycc-dash-live { background: rgba(255, 255, 255, .2); color: #FFFFFF; }
 .ycc-dash-live > span { width: 7px; height: 7px; border-radius: 50%; background: #12B76A; animation: ycc-dash-pulse 1.8s ease-in-out infinite; }
+.ycc-dash-tab.active .ycc-dash-live > span { background: #FFFFFF; }
 @keyframes ycc-dash-pulse { 50% { opacity: .35; } }
 
 /* Shared blocks ------------------------------------------------------------ */
@@ -83,6 +88,7 @@ $ycc-red: #C92A2A;
 .ycc-dash-bar-label { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; color: $ycc-muted; }
 .ycc-dash-bar-label strong { color: $ycc-ink; }
 .ycc-dash-reason { display: flex; flex-direction: column; gap: 4px; }
+.ycc-dash-leak .ycc-dash-meter { background: rgba(255, 255, 255, .8); }
 .ycc-dash-link, .ycc-dash-inline-link, .ycc-dash-num-link { white-space: nowrap; border: 0; background: transparent; color: $ycc-blue; font-weight: 600; cursor: pointer; padding: 6px 2px; }
 .ycc-dash-link:hover, .ycc-dash-inline-link:hover, .ycc-dash-num-link:hover { color: $ycc-blue-dark; text-decoration: underline; }
 .ycc-dash-inline-link { white-space: normal; text-align: start; color: $ycc-muted; font-weight: 500; font-size: 12.5px; padding: 0; }
@@ -106,14 +112,22 @@ $ycc-red: #C92A2A;
 .ycc-dash-kpi-value { display: flex; align-items: baseline; gap: 8px; }
 .ycc-dash-kpi-value strong { font-size: 36px; line-height: 1; font-weight: 800; }
 .ycc-dash-kpi-value span, .ycc-dash-kpi-note { font-size: 12.5px; color: $ycc-muted; }
+.ycc-dash-kpi.tone-blue { background: #E9EDFF; border-color: #DCE3FF; }
+.ycc-dash-kpi.tone-blue .ycc-dash-kpi-label, .ycc-dash-kpi.tone-blue .ycc-dash-kpi-value strong { color: #364C9C; }
+.ycc-dash-kpi.tone-blue .ycc-dash-meter > span { background: #4C6EF5; }
+.ycc-dash-kpi.tone-purple { background: #EEEBFF; border-color: #DED8FC; }
+.ycc-dash-kpi.tone-purple .ycc-dash-kpi-label, .ycc-dash-kpi.tone-purple .ycc-dash-kpi-value strong { color: #5845BD; }
 .ycc-dash-kpi.tone-purple .ycc-dash-meter > span { background: $ycc-purple; }
+.ycc-dash-kpi.tone-green { background: #E6F9F2; border-color: #CBEFE0; }
+.ycc-dash-kpi.tone-green .ycc-dash-kpi-label, .ycc-dash-kpi.tone-green .ycc-dash-kpi-value strong { color: #137957; }
 .ycc-dash-kpi.tone-green .ycc-dash-meter > span { background: $ycc-orange; }
-.ycc-dash-kpi.tone-neutral .ycc-dash-meter > span { background: $ycc-gray; }
-.ycc-dash-kpi.tone-alert { background: $ycc-orange-dark; border-color: $ycc-orange-dark; animation: ycc-dash-kpi-pulse 2.4s ease-in-out infinite; }
-.ycc-dash-kpi.tone-alert .ycc-dash-kpi-label, .ycc-dash-kpi.tone-alert .ycc-dash-kpi-value span, .ycc-dash-kpi.tone-alert .ycc-dash-kpi-note { color: #FFF1E8; }
-.ycc-dash-kpi.tone-alert .ycc-dash-kpi-value strong { color: #FFFFFF; }
-.ycc-dash-kpi.tone-alert .ycc-dash-meter { background: rgba(255, 255, 255, .25); }
-.ycc-dash-kpi.tone-alert .ycc-dash-meter > span { background: #FFFFFF; }
+.ycc-dash-kpi.tone-neutral { background: #FFF3E3; border-color: #F7E4C8; }
+.ycc-dash-kpi.tone-neutral .ycc-dash-kpi-label, .ycc-dash-kpi.tone-neutral .ycc-dash-kpi-value strong { color: #AC691A; }
+.ycc-dash-kpi.tone-neutral .ycc-dash-meter > span { background: $ycc-amber; }
+.ycc-dash-kpi .ycc-dash-meter { background: rgba(255, 255, 255, .75); }
+.ycc-dash-kpi.tone-alert { background: #FFF0E5; border-color: #F4BC9E; animation: ycc-dash-kpi-pulse 2.4s ease-in-out infinite; }
+.ycc-dash-kpi.tone-alert .ycc-dash-kpi-label, .ycc-dash-kpi.tone-alert .ycc-dash-kpi-value strong { color: $ycc-orange-dark; }
+.ycc-dash-kpi.tone-alert .ycc-dash-meter > span { background: $ycc-orange; }
 @keyframes ycc-dash-kpi-pulse { 50% { box-shadow: 0 0 0 5px rgba(232, 89, 12, .15); } }
 
 .ycc-dash-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: $ycc-muted; }
@@ -199,12 +213,16 @@ $ycc-red: #C92A2A;
 .ycc-dash-leak-value { border: 0; background: transparent; padding: 0; display: flex; align-items: baseline; gap: 6px; cursor: pointer; text-align: start; }
 .ycc-dash-leak-value strong { font-size: 32px; line-height: 1; }
 .ycc-dash-leak-value span { font-size: 12.5px; color: $ycc-muted; }
-.ycc-dash-leak.tone-amber .ycc-dash-leak-value strong { color: #B07800; }
+.ycc-dash-leak.tone-amber { background: #FFF3E3; border-color: #F7E4C8; }
+.ycc-dash-leak.tone-amber .ycc-dash-leak-value strong { color: #AC691A; }
 .ycc-dash-leak.tone-amber .ycc-dash-meter > span { background: $ycc-amber; }
+.ycc-dash-leak.tone-red { background: #FEECEC; border-color: #FACACA; }
 .ycc-dash-leak.tone-red .ycc-dash-leak-value strong { color: $ycc-red; }
 .ycc-dash-leak.tone-red .ycc-dash-meter > span { background: $ycc-red; }
+.ycc-dash-leak.tone-gray { background: #F4F5F7; border-color: #DFE3E8; }
 .ycc-dash-leak.tone-gray .ycc-dash-leak-value strong { color: $ycc-muted; }
 .ycc-dash-leak.tone-gray .ycc-dash-meter > span { background: $ycc-gray; }
+.ycc-dash-leak.tone-orange { background: #FFF0E5; border-color: #F4D1B5; }
 .ycc-dash-leak.tone-orange .ycc-dash-leak-value strong { color: $ycc-orange-dark; }
 .ycc-dash-leak.tone-orange .ycc-dash-meter > span { background: $ycc-orange; }
 

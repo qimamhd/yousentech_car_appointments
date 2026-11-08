@@ -31,11 +31,11 @@
   </div>
  </header>
 
- <nav class="ycc-dash-tabs" role="tablist" aria-label="أقسام لوحة المؤشرات">
-  <button type="button" role="tab" t-att-aria-selected="tab === 'today' ? 'true' : 'false'" t-att-class="'ycc-dash-tab' + (tab === 'today' ? ' active' : '')" data-tab="today"><i class="fa fa-bolt"/> اليوم <span class="ycc-dash-live" t-if="tab === 'today'"><span/>مباشر</span></button>
+ <div class="ycc-dash-tabs" role="tablist" aria-label="أقسام لوحة المؤشرات">
+  <button type="button" role="tab" t-att-aria-selected="tab === 'today' ? 'true' : 'false'" t-att-class="'ycc-dash-tab' + (tab === 'today' ? ' active' : '')" data-tab="today"><i class="fa fa-bolt"/> اليوم <span class="ycc-dash-live" t-if="tab === 'today'"><span></span>مباشر</span></button>
   <button type="button" role="tab" t-att-aria-selected="tab === 'journey' ? 'true' : 'false'" t-att-class="'ycc-dash-tab' + (tab === 'journey' ? ' active' : '')" data-tab="journey"><i class="fa fa-filter"/> رحلة الحجز</button>
   <button type="button" role="tab" t-att-aria-selected="tab === 'team' ? 'true' : 'false'" t-att-class="'ycc-dash-tab' + (tab === 'team' ? ' active' : '')" data-tab="team"><i class="fa fa-users"/> أداء الفريق</button>
- </nav>
+ </div>
 
  <div t-if="d.empty" class="ycc-dash-empty"><i class="fa fa-info-circle"/> <t t-esc="d.empty"/></div>
  <t t-if="!d.empty &amp;&amp; tab === 'today'"><t t-call="ycc.DashToday"/></t>
