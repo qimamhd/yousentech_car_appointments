@@ -146,15 +146,20 @@ class YCCDashboard(models.AbstractModel):
             return _shift_year(anchor, -1)
         return None
 
-    def _configs(self, branch_id):
+    def _configs(self, branch_ids):
+        """All allowed configurations, and the selected ones (empty selection = all)."""
         Branch = self.env['ycc.branch']
         allowed = Branch._ycc_allowed_custom_branches()
         all_cfg = Branch.search([('active', '=', True), ('branch_id', 'in', allowed.ids)], order='id')
-        selected = all_cfg
-        if branch_id:
-            selected = all_cfg.filtered(lambda c: c.id == int(branch_id))
-            if not selected:
-                raise AccessError(_('الفرع غير مسموح للمستخدم.'))
+        ids = set()
+        for value in branch_ids or []:
+            try:
+                ids.add(int(value))
+            except (TypeError, ValueError):
+                continue
+        selected = all_cfg.filtered(lambda c: c.id in ids) if ids else all_cfg
+        if ids and not selected:
+            raise AccessError(_('الفرع غير مسموح للمستخدم.'))
         return all_cfg, selected
 
     def _safe_periods(self, appt):
@@ -185,7 +190,13 @@ class YCCDashboard(models.AbstractModel):
         params = params or {}
         now_utc, local_now = self._now()
         today = local_now.date()
-        all_cfg, selected = self._configs(params.get('branch_id'))
+        raw_ids = params.get('branch_ids')
+        if raw_ids is None and params.get('branch_id'):
+            raw_ids = [params.get('branch_id')]
+        if not isinstance(raw_ids, (list, tuple)):
+            raw_ids = [raw_ids] if raw_ids else []
+        all_cfg, selected = self._configs(raw_ids)
+        flow_mode = params.get('flow_mode') if params.get('flow_mode') in ('day', 'week', 'month') else 'day'
         mode = params.get('mode') if params.get('mode') in dict(MODES) else 'month'
         compare = params.get('compare') if params.get('compare') in dict(COMPARES) else 'none'
         try:
@@ -198,7 +209,13 @@ class YCCDashboard(models.AbstractModel):
         data = {
             'tab': tab,
             'branches': [{'id': c.id, 'name': c.branch_id.display_name} for c in all_cfg],
-            'branch_id': int(params['branch_id']) if params.get('branch_id') else False,
+            'branch_ids': selected.ids if raw_ids and len(selected) < len(all_cfg) else [],
+            'branch_label': ('كل الفروع (%s)' % len(all_cfg)) if len(selected) == len(all_cfg)
+                            else selected[:1].branch_id.display_name if len(selected) == 1
+                            else '%s فروع' % len(selected),
+            'multi': len(selected) > 1,
+            'flow_mode': flow_mode,
+            'flow_modes': [{'key': 'day', 'label': 'يومي'}, {'key': 'week', 'label': 'أسبوعي'}, {'key': 'month', 'label': 'شهري'}],
             'modes': [{'key': k, 'label': v} for k, v in MODES],
             'compares': [{'key': k, 'label': v} for k, v in COMPARES],
             'mode': mode, 'compare': compare,
@@ -218,11 +235,13 @@ class YCCDashboard(models.AbstractModel):
         if tab == 'journey':
             data.update(self._journey_data(selected, start, end, now_utc, cmp_period))
             data['indicators'] = self._indicators(selected, start, end, local_now)
+            if len(selected) > 1:
+                data['branch_compare'] = self._journey_branch_compare(selected, start, end, cmp_period)
         elif tab == 'team':
             data.update(self._team_data(selected, start, end, now_utc, cmp_period))
         else:
             data['tab'] = 'today'
-            data.update(self._today_data(all_cfg, selected, now_utc, local_now))
+            data.update(self._today_data(all_cfg, selected, now_utc, local_now, flow_mode))
             data['indicators'] = self._indicators(selected, today, today + timedelta(days=1), local_now)
         return data
 
@@ -240,7 +259,7 @@ class YCCDashboard(models.AbstractModel):
         return result
 
     # ---------------------------------------------------------------- tab: today
-    def _today_data(self, all_cfg, selected, now_utc, local_now):
+    def _today_data(self, all_cfg, selected, now_utc, local_now, flow_mode='day'):
         Appt = self.env['ycc.appointment']
         Order = self._orders_model()
         today = local_now.date()
@@ -276,10 +295,10 @@ class YCCDashboard(models.AbstractModel):
             deliveries_today = Order.search([('branch_id', 'in', custom_ids), ('delivery_date', '=', today_s),
                                              ('state', 'not in', ['cancel_order', 'draft'])])
             late_candidates = Order.search([('branch_id', 'in', custom_ids), ('delivery_date', '<', today_s),
-                                            ('state', 'in', ACTIVE_ORDER_STATES)], order='delivery_date asc')
-            late_orders = late_candidates.filtered(
-                lambda o: not (o.create_invoice_id and o.create_invoice_id.state == 'posted')
-                if 'create_invoice_id' in Order._fields else True)
+                                            ('state', 'not in', ['draft', 'cancel_order'])], order='delivery_date asc')
+            # Same late-delivery definition as the calendar (shared model method).
+            late_orders = late_candidates.filtered(lambda o: Appt._ycc_order_is_late(
+                o, today, o.ycc_appointment_id if 'ycc_appointment_id' in Order._fields else None))
 
         longest = waiting[-1][1] if waiting else 0
         if waiting:
@@ -302,12 +321,22 @@ class YCCDashboard(models.AbstractModel):
              'tone': 'green'},
         ]
 
-        # Timeline only for a single branch (slots differ between branches).
-        timeline, timeline_note = [], ''
-        if len(selected) == 1:
-            timeline = self._timeline(selected, occupying[selected.id] | no_show_today, today, local_now, booked, capacity)
-        else:
-            timeline_note = _('اختر فرعًا واحدًا لعرض خط سير اليوم حسب فترات الاستقبال.')
+        flow_start, flow_end, flow_label = self._flow_period(flow_mode, today)
+        occupancy = self._period_occupancy(selected, flow_start, flow_end, today, now_utc)
+        flow = self._flow(selected, flow_mode, flow_start, flow_end, now_utc, local_now, occupancy)
+        branch_compare = None
+        if len(selected) > 1:
+            branch_compare = []
+            for cfg in selected:
+                one = self._flow(cfg, flow_mode, flow_start, flow_end, now_utc, local_now, occupancy)
+                m = one['metrics']
+                waiting_cfg = len([1 for appt, _m in waiting if appt.branch_id == cfg])
+                branch_compare.append({'id': cfg.id, 'name': cfg.branch_id.display_name,
+                                       'bookings': m['bookings'], 'arrived': m['arrived'],
+                                       'show_rate': m['show_rate'], 'waiting': waiting_cfg, 'late': m['late'],
+                                       'no_show': m['no_show'], 'left': m['left'], 'occupancy': m['occupancy']})
+            self._rank(branch_compare, [('show_rate', 'up'), ('occupancy', 'up'), ('waiting', 'down'),
+                                        ('late', 'down'), ('no_show', 'down')])
 
         alerts = self._today_alerts(selected, occ, waiting, late_orders, now_utc, local_now)
 
@@ -340,7 +369,8 @@ class YCCDashboard(models.AbstractModel):
             {'key': 'today', 'label': 'اليوم', 'count': len(fu_today), 'ids': fu_today.ids, 'tone': 'blue'},
             {'key': 'week', 'label': 'خلال 7 أيام', 'count': len(fu_week), 'ids': fu_week.ids, 'tone': 'neutral'},
         ]
-        return {'kpis': kpis, 'timeline': timeline, 'timeline_note': timeline_note, 'alerts': alerts,
+        return {'kpis': kpis, 'progress': flow['tiles'], 'flow_label': flow_label, 'branch_compare': branch_compare,
+                'alerts': alerts,
                 'alerts_count': len(alerts), 'states': states, 'states_total': sum(s['count'] for s in states),
                 'branch_occupancy': branches, 'followups': followups,
                 'expiring': {'count': len(expiring), 'ids': expiring.ids}}
@@ -353,46 +383,121 @@ class YCCDashboard(models.AbstractModel):
             return '%s ساعة %s دقيقة' % (minutes // 60, minutes % 60)
         return '%s دقيقة' % minutes
 
-    def _timeline(self, cfg, appts, today, local_now, booked, capacity):
-        today_s = fields.Date.to_string(today)
-        now_hour = local_now.hour + local_now.minute / 60.0
+    def _flow_period(self, mode, today):
+        if mode == 'week':
+            start = today - timedelta(days=(today.weekday() + 2) % 7)  # Saturday
+            return start, start + timedelta(days=7), 'هذا الأسبوع (%s — %s)' % (start.day, (start + timedelta(days=6)).day)
+        if mode == 'month':
+            start = today.replace(day=1)
+            return start, _add_months(start, 1), '%s %s' % (AR_MONTHS[start.month - 1], start.year)
+        return today, today + timedelta(days=1), 'اليوم'
+
+    def _period_occupancy(self, configs, start, end, today, now_utc):
+        """Per configuration: occupied car-days, capacity car-days and places left from today.
+
+        Uses the calendar's daily occupancy rule for every working day.
+        Days without an operating slot, or fully closed by an exception, add no capacity.
+        """
+        Appt = self.env['ycc.appointment']
+        start_s, end_s = fields.Date.to_string(start), fields.Date.to_string(end)
         exceptions = self.env['ycc.exception'].search([
-            ('branch_id', '=', cfg.id), ('date', '<=', today_s),
-            '|', '&', ('end_date', '=', False), ('date', '=', today_s), ('end_date', '>=', today_s)])
-        closed_day = bool(exceptions.filtered(lambda e: not e.slot_id))
-        closed_slots = set(exceptions.mapped('slot_id').ids)
-        by_slot = {}
-        for appt in appts:
-            for day, slot in self._safe_periods(appt):
-                if day == today_s:
-                    by_slot.setdefault(slot.id, []).append(appt)
-        rows = []
-        remaining = max(0, capacity - booked)
-        slots = self.env['ycc.slot'].search([('branch_id', '=', cfg.id), ('active', '=', True)], order='start_hour')
-        for slot in slots.filtered(lambda s: s.operates_on(today)):
-            closed = closed_day or slot.id in closed_slots
-            if closed:
-                status, caption = 'closed', 'مغلقة'
-            elif now_hour >= slot.end_hour:
-                status, caption = 'past', 'انتهت'
-            elif now_hour >= slot.start_hour:
-                status, caption = 'now', 'الآن'
-            else:
-                status, caption = 'next', 'قادمة'
-            cars = []
-            seen = set()
-            for appt in by_slot.get(slot.id, []):
-                if appt.id in seen:
+            ('branch_id', 'in', configs.ids), ('slot_id', '=', False), ('date', '<', end_s),
+            '|', ('end_date', '>=', start_s), '&', ('end_date', '=', False), ('date', '>=', start_s)])
+        result = {}
+        for cfg in configs:
+            slots = self.env['ycc.slot'].search([('branch_id', '=', cfg.id), ('active', '=', True)])
+            closed = exceptions.filtered(lambda e: e.branch_id == cfg)
+            occupied = capacity = left = 0
+            current = start
+            while current < end:
+                works = any(slot.operates_on(current) for slot in slots) and not any(
+                    fields.Date.to_date(e.date) <= current <= fields.Date.to_date(e.end_date or e.date) for e in closed)
+                if works:
+                    count = len(Appt._daily_occupied_appointments(cfg.id, fields.Date.to_string(current), now=now_utc))
+                    occupied += count
+                    capacity += cfg.capacity or 0
+                    if current >= today:
+                        left += max(0, (cfg.capacity or 0) - count)
+                current += timedelta(days=1)
+            result[cfg.id] = {'occupied': occupied, 'capacity': capacity, 'left': left}
+        return result
+
+    def _flow(self, configs, mode, start, end, now_utc, local_now, occupancy):
+        """Booking flow for [start, end) as compact indicators (slot detail lives in the calendar)."""
+        from datetime import datetime as _dt
+        Appt = self.env['ycc.appointment']
+        today = local_now.date()
+        now_local = local_now.replace(tzinfo=None)
+        recs = Appt.search([('branch_id', 'in', configs.ids),
+                            ('date', '>=', fields.Date.to_string(start)), ('date', '<', fields.Date.to_string(end)),
+                            ('state', 'in', Appt.SERVICE_INDICATOR_STATES)])
+
+        def start_at(a):
+            base = _dt.combine(fields.Date.to_date(a.date), _dt.min.time())
+            return base + timedelta(hours=a.slot_id.start_hour) if a.slot_id else base
+
+        def minutes_since(a):
+            return (now_local - start_at(a)).total_seconds() / 60.0
+
+        is_arrived = lambda a: bool(a.actual_arrival_at) or bool(a.installation_order_id) \
+            or a.state in ('done', 'installation_created', 'inspection_completed')
+        active = recs.filtered(lambda a: a.state != 'no_show' and a._occupies(now_utc))
+        due = recs.filtered(lambda a: minutes_since(a) >= 0 and a.state not in ('provisional', 'contacting'))
+        arrived_due = due.filtered(is_arrived)
+        upcoming = active.filtered(lambda a: minutes_since(a) < 0 and not is_arrived(a))
+        unconfirmed = upcoming.filtered(lambda a: a.state in ('provisional', 'contacting'))
+        not_yet = recs.filtered(lambda a: a.state == 'confirmed' and 0 <= minutes_since(a) < 60)
+        late = recs.filtered(lambda a: a.state == 'confirmed' and minutes_since(a) >= 60)
+        no_show = recs.filtered(lambda a: a.state == 'no_show')
+        occ_cfg = [occupancy.get(c.id, {}) for c in configs]
+        occupied = sum(o.get('occupied', 0) for o in occ_cfg)
+        capacity = sum(o.get('capacity', 0) for o in occ_cfg)
+        left = sum(o.get('left', 0) for o in occ_cfg)
+        show_rate = _pct(len(arrived_due), len(due)) if due else None
+        word = {'day': 'اليوم', 'week': 'الأسبوع', 'month': 'الشهر'}[mode]
+        tiles = [
+            {'key': 'show_rate', 'label': 'نسبة الحضور حتى الآن', 'tone': 'green' if show_rate is None or show_rate >= 80 else 'amber',
+             'value': ('%s%%' % show_rate) if show_rate is not None else '—',
+             'sub': 'وصل %s من %s موعدًا حان وقته' % (len(arrived_due), len(due)), 'ids': due.ids},
+            {'key': 'upcoming', 'label': 'قادمة خلال %s' % word, 'tone': 'blue', 'value': len(upcoming),
+             'sub': ('منها %s غير مؤكدة' % len(unconfirmed)) if unconfirmed else 'كلها مؤكدة', 'ids': upcoming.ids},
+            {'key': 'due_now', 'label': 'حان موعدها ولم تصل', 'tone': 'purple', 'value': len(not_yet),
+             'sub': 'خلال أول ساعة من موعدها', 'ids': not_yet.ids},
+            {'key': 'late', 'label': 'متأخرة عن الوصول', 'tone': 'alert' if late else 'neutral', 'value': len(late),
+             'sub': 'تجاوزت ساعة ولم يُسجل وصولها', 'ids': late.ids},
+            {'key': 'no_show', 'label': 'لم يحضر', 'tone': 'gray', 'value': len(no_show),
+             'sub': 'خلال %s' % word, 'ids': no_show.ids},
+            {'key': 'occupancy', 'label': 'إشغال %s' % word, 'tone': 'purple',
+             'value': ('%s%%' % _pct(occupied, capacity)) if capacity else '—',
+             'sub': '%s سيارة/يوم من سعة %s' % (occupied, capacity), 'ids': active.ids},
+            {'key': 'remaining', 'label': 'أماكن متبقية' + ('' if mode == 'day' else ' من اليوم حتى نهاية %s' % word),
+             'tone': 'green' if left else 'alert', 'value': left, 'sub': 'حسب سعة الفروع وأيام العمل', 'ids': []},
+        ]
+        if mode == 'day':
+            continuing = Appt.browse()
+            for cfg in configs:
+                continuing |= Appt._daily_occupied_appointments(cfg.id, fields.Date.to_string(today), now=now_utc)
+            continuing = continuing.filtered(lambda a: fields.Date.to_date(a.date) < today)
+            tiles.insert(5, {'key': 'continuing', 'label': 'حجوزات ممتدة من أيام سابقة', 'tone': 'gray',
+                             'value': len(continuing), 'sub': 'تشغل مكانًا اليوم', 'ids': continuing.ids})
+        metrics = {'bookings': len(active | no_show), 'arrived': len(arrived_due), 'show_rate': show_rate,
+                   'late': len(late), 'no_show': len(no_show), 'left': left,
+                   'occupancy': _pct(occupied, capacity) if capacity else None}
+        return {'tiles': tiles, 'metrics': metrics}
+
+    @staticmethod
+    def _rank(rows, columns):
+        """Mark the best and worst branch per column (ties and empty values ignored)."""
+        for key, better in columns:
+            values = [r[key] for r in rows if r.get(key) is not None]
+            for r in rows:
+                r.setdefault('flags', {})
+                if len(set(values)) < 2 or r.get(key) is None:
+                    r['flags'][key] = ''
                     continue
-                seen.add(appt.id)
-                key = self._stage_key(appt)
-                cars.append({'id': appt.id, 'name': appt.partner_id.name or appt.name, 'stage': key,
-                             'label': STAGE_LABELS[key], 'ref': appt.name,
-                             'vehicle': appt.car_type_id.display_name or appt.vehicle_model or ''})
-            rows.append({'id': slot.id, 'time': slot.name, 'caption': caption, 'status': status, 'cars': cars,
-                         'free': status in ('next', 'now') and remaining > 0,
-                         'free_text': '+ متاح · %s أماكن متبقية اليوم' % remaining})
-        return rows
+                best = max(values) if better == 'up' else min(values)
+                worst = min(values) if better == 'up' else max(values)
+                r['flags'][key] = 'best' if r[key] == best else 'worst' if r[key] == worst else ''
 
     def _today_alerts(self, selected, occ, waiting, late_orders, now_utc, local_now):
         alerts = []
@@ -439,13 +544,7 @@ class YCCDashboard(models.AbstractModel):
         previous = self._in_period(selected, cmp_period[0], cmp_period[1]) if cmp_period else None
         total = len(created)
 
-        def reached(recs):
-            confirmed = recs.filtered(lambda a: a.state in REACHED_CONFIRMED or a.installation_order_id)
-            arrived = recs.filtered(lambda a: a.actual_arrival_at or a.installation_order_id)
-            ordered = recs.filtered(lambda a: a.installation_order_id)
-            completed = ordered.filtered(lambda a: a.service_stage in ('completed', 'invoice_closed'))
-            closed = ordered.filtered(lambda a: a.service_stage == 'invoice_closed')
-            return [recs, confirmed, arrived, ordered, completed, closed]
+        reached = self._reached
 
         steps = reached(created)
         prev_steps = reached(previous) if previous is not None else None
@@ -507,15 +606,8 @@ class YCCDashboard(models.AbstractModel):
                           'reasons': reasons, 'tone': tone, 'ids': now_leaks[key].ids,
                           'delta': _delta(len(now_leaks[key]), len(prev_leaks[key]) if prev_leaks else None, better='down')})
 
-        def headline(recs, stp):
-            n = len(recs)
-            return {
-                'total': n, 'conv': _pct(len(stp[1]), n) if n else None, 'arrived': len(stp[2]),
-                'orders': len(stp[3]), 'closed_rate': _pct(len(stp[5]), n) if n else None,
-                'cancelled': len(recs.filtered(lambda a: a.state == 'cancelled')),
-                'no_show': len(recs.filtered(lambda a: a.state == 'no_show')),
-                'wait': self._avg_wait(recs),
-            }
+        headline = self._headline
+
         cur = headline(created, steps)
         prv = headline(previous, prev_steps) if previous is not None else {}
         summary_defs = [
@@ -545,6 +637,47 @@ class YCCDashboard(models.AbstractModel):
                 'delivery_changes': self._delivery_changes(selected, start, end),
                 'heatmap': self._heatmap(selected, start, end) if len(selected) == 1 else None,
                 'heatmap_note': '' if len(selected) == 1 else _('اختر فرعًا واحدًا لعرض خريطة الازدحام حسب الفترات.')}
+
+    def _reached(self, recs):
+        confirmed = recs.filtered(lambda a: a.state in REACHED_CONFIRMED or a.installation_order_id)
+        arrived = recs.filtered(lambda a: a.actual_arrival_at or a.installation_order_id)
+        ordered = recs.filtered(lambda a: a.installation_order_id)
+        completed = ordered.filtered(lambda a: a.service_stage in ('completed', 'invoice_closed'))
+        closed = ordered.filtered(lambda a: a.service_stage == 'invoice_closed')
+        return [recs, confirmed, arrived, ordered, completed, closed]
+
+    def _headline(self, recs, stp=None):
+        stp = stp or self._reached(recs)
+        n = len(recs)
+        return {
+            'total': n, 'conv': _pct(len(stp[1]), n) if n else None, 'arrived': len(stp[2]),
+            'orders': len(stp[3]), 'closed_rate': _pct(len(stp[5]), n) if n else None,
+            'cancelled': len(recs.filtered(lambda a: a.state == 'cancelled')),
+            'no_show': len(recs.filtered(lambda a: a.state == 'no_show')),
+            'wait': self._avg_wait(recs),
+        }
+
+    def _journey_branch_compare(self, selected, start, end, cmp_period):
+        rows = []
+        for cfg in selected:
+            cur = self._headline(self._in_period(cfg, start, end))
+            prev = self._headline(self._in_period(cfg, cmp_period[0], cmp_period[1])) if cmp_period else {}
+            wait = int(round(cur['wait'])) if cur['wait'] is not None else None
+            row = {'id': cfg.id, 'name': cfg.branch_id.display_name, 'total': cur['total'], 'conv': cur['conv'],
+                   'arrived': cur['arrived'], 'orders': cur['orders'], 'closed_rate': cur['closed_rate'],
+                   'cancelled': cur['cancelled'], 'no_show': cur['no_show'], 'wait': wait,
+                   'deltas': {}}
+            if prev:
+                row['deltas'] = {
+                    'total': _delta(cur['total'], prev['total']),
+                    'conv': _delta(cur['conv'], prev['conv'], points=True),
+                    'closed_rate': _delta(cur['closed_rate'], prev['closed_rate'], points=True),
+                    'cancelled': _delta(cur['cancelled'], prev['cancelled'], better='down'),
+                }
+            rows.append(row)
+        self._rank(rows, [('total', 'up'), ('conv', 'up'), ('closed_rate', 'up'), ('cancelled', 'down'),
+                          ('no_show', 'down'), ('wait', 'down')])
+        return rows
 
     def _durations(self, created, selected, start, end):
         Appt = self.env['ycc.appointment']

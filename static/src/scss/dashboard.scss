@@ -73,7 +73,7 @@ $ycc-red: #C92A2A;
 /* Shared blocks ------------------------------------------------------------ */
 .ycc-dash-card { background: $ycc-card; border: 1px solid $ycc-line; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .ycc-dash-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
-.ycc-dash-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: stretch; }
+.ycc-dash-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
 .ycc-dash-grow { flex: 999 1 560px; }
 .ycc-dash-side { flex: 1 1 340px; }
 .ycc-dash-grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -385,3 +385,43 @@ $ycc-red: #C92A2A;
     .ycc-dash-compare { width: 100%; min-width: 0; }
     .ycc-dash-nav-label { min-width: 0; }
 }
+
+/* V6.66: today's flow as compact indicators (replaces the slot timeline) */
+.ycc-dash-progress { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ycc-dash-prog { border: 1px solid $ycc-line; border-radius: 12px; padding: 12px 14px; background: #F7F8FA; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: start; cursor: pointer; min-width: 0; transition: filter .12s; }
+.ycc-dash-prog:hover { filter: brightness(.97); }
+.ycc-dash-prog-label { font-size: 12.5px; font-weight: 600; }
+.ycc-dash-prog strong { font-size: 26px; line-height: 1.1; font-weight: 800; }
+.ycc-dash-prog small { font-size: 11.5px; opacity: .85; }
+.ycc-dash-prog.tone-blue { background: #E9EDFF; border-color: #DCE3FF; color: #364C9C; }
+.ycc-dash-prog.tone-purple { background: #EEEBFF; border-color: #DED8FC; color: #5845BD; }
+.ycc-dash-prog.tone-green { background: #E6F9F2; border-color: #CBEFE0; color: #137957; }
+.ycc-dash-prog.tone-amber, .ycc-dash-prog.tone-neutral { background: #FFF3E3; border-color: #F7E4C8; color: #AC691A; }
+.ycc-dash-prog.tone-alert { background: #FFF0E5; border-color: #F4BC9E; color: #C2410C; }
+.ycc-dash-prog.tone-gray { background: #F4F5F7; border-color: #DFE3E8; color: #475569; }
+@media (max-width: 1100px) { .ycc-dash-progress { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* V6.66: multi-branch picker, flow period toggle, branch comparison --------- */
+.ycc-dash-branchpick { position: relative; }
+.ycc-dash-branch-toggle { display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 190px; min-height: 42px; padding: 7px 12px; border: 1px solid #D6DAE1; border-radius: 10px; background: $ycc-card; color: $ycc-ink; font-size: 13.5px; cursor: pointer; }
+.ycc-dash-branch-toggle:hover { border-color: #5957CE; }
+.ycc-dash-branch-panel { position: absolute; top: 100%; inset-inline-end: 0; inset-inline-start: auto; z-index: 20; margin-top: 6px; width: 270px; background: $ycc-card; border: 1px solid $ycc-line; border-radius: 12px; box-shadow: 0 10px 30px rgba(36, 54, 82, .16); padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.ycc-dash-check { display: flex; align-items: center; gap: 8px; margin: 0; padding: 7px 8px; border-radius: 8px; font-size: 13.5px; color: $ycc-ink; cursor: pointer; }
+.ycc-dash-check:hover { background: #F2F4FA; }
+.ycc-dash-check input { width: 16px; height: 16px; accent-color: #5957CE; margin: 0; }
+.ycc-dash-check.is-all { font-weight: 700; border-bottom: 1px solid $ycc-line; border-radius: 8px 8px 0 0; }
+.ycc-dash-check-list { max-height: 240px; overflow-y: auto; }
+.ycc-dash-branch-actions { display: flex; gap: 8px; margin-top: 4px; }
+.ycc-dash-branch-actions button { flex: 1 1 0; min-height: 38px; border-radius: 9px; border: 1px solid #D6DAE1; background: $ycc-card; color: $ycc-muted; font-weight: 600; cursor: pointer; }
+.ycc-dash-branch-actions .ycc-dash-branch-apply { background: #5957CE; border-color: #5957CE; color: #FFFFFF; }
+
+.ycc-dash-seg.small { padding: 3px; }
+.ycc-dash-flow { border: 0; border-radius: 8px; padding: 6px 12px; min-height: 32px; background: transparent; color: #667792; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.ycc-dash-flow.active { background: #FFFFFF; color: #4C50B5; box-shadow: 0 2px 6px rgba(36, 54, 82, .11); }
+
+.ycc-dash-cmp { min-width: 900px; }
+.ycc-dash-cmp td:first-child .ycc-dash-num-link { font-size: 13.5px; }
+.ycc-dash-flag { display: inline-block; border-radius: 6px; padding: 1px 6px; }
+.ycc-dash-flag.best { background: #E6F6EE; color: $ycc-green-dark; font-weight: 700; }
+.ycc-dash-flag.worst { background: #FDEDE4; color: $ycc-orange-ink; font-weight: 700; }
+@media (max-width: 640px) { .ycc-dash-branch-toggle { width: 100%; min-width: 0; } .ycc-dash-branch-panel { width: 100%; } }

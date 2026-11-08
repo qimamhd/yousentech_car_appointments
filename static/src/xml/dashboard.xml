@@ -17,13 +17,18 @@
    </div>
   </div>
   <div class="ycc-dash-filters">
-   <label class="ycc-dash-field">
-    <span><i class="fa fa-map-marker"/> الفرع</span>
-    <select class="ycc-dash-branch">
-     <option value="">كل الفروع</option>
-     <t t-foreach="d.branches" t-as="b"><option t-att-value="b.id" t-att-selected="b.id === d.branch_id ? 'selected' : undefined"><t t-esc="b.name"/></option></t>
-    </select>
-   </label>
+   <div class="ycc-dash-field ycc-dash-branchpick">
+    <span><i class="fa fa-map-marker"/> الفروع</span>
+    <button type="button" class="ycc-dash-branch-toggle" aria-haspopup="true"><span><t t-esc="d.branch_label"/></span><i class="fa fa-caret-down"/></button>
+    <div class="ycc-dash-branch-panel" style="display: none">
+     <label class="ycc-dash-check is-all"><input type="checkbox" class="ycc-dash-branch-all" t-att-checked="!d.branch_ids.length ? 'checked' : undefined"/> كل الفروع</label>
+     <div class="ycc-dash-check-list">
+      <t t-foreach="d.branches" t-as="b"><label class="ycc-dash-check"><input type="checkbox" class="ycc-dash-branch-cb" t-att-value="b.id" t-att-checked="(!d.branch_ids.length || d.branch_ids.indexOf(b.id) !== -1) ? 'checked' : undefined"/> <t t-esc="b.name"/></label></t>
+     </div>
+     <small class="ycc-dash-sub">اختر فرعين أو أكثر لعرض جدول المقارنة</small>
+     <div class="ycc-dash-branch-actions"><button type="button" class="ycc-dash-branch-apply">تطبيق</button><button type="button" class="ycc-dash-branch-cancel">إلغاء</button></div>
+    </div>
+   </div>
    <t t-if="tab !== 'today'">
     <div class="ycc-dash-field">
      <span><i class="fa fa-calendar"/> الفترة</span>
@@ -97,29 +102,22 @@
  <t t-call="ycc.DashIndicators"><t t-set="scopeLabel" t-value="'اليوم'"/></t>
 
  <div class="ycc-dash-row">
-  <section class="ycc-dash-card ycc-dash-grow" aria-label="خط سير اليوم">
+  <section class="ycc-dash-card ycc-dash-grow" aria-label="سير اليوم">
    <div class="ycc-dash-card-head">
-    <h2>خط سير اليوم</h2>
-    <div class="ycc-dash-legend">
-     <span><i class="stage-provisional"/>مبدئي</span><span><i class="stage-confirmed"/>مؤكد</span><span><i class="stage-done"/>وصلت</span><span><i class="stage-waiting"/>بانتظار أمر</span><span><i class="stage-order"/>أمر تركيب</span><span><i class="stage-noshow"/>لم يحضر</span>
+    <h2>سير الحجوزات <small><t t-esc="d.flow_label"/> · تفاصيل الفترات في شاشة التقويم</small></h2>
+    <div class="ycc-dash-seg small" role="group" aria-label="فترة سير الحجوزات">
+     <t t-foreach="d.flow_modes" t-as="fm"><button type="button" t-att-class="'ycc-dash-flow' + (fm.key === d.flow_mode ? ' active' : '')" t-att-data-flow="fm.key"><t t-esc="fm.label"/></button></t>
     </div>
    </div>
-   <div t-if="d.timeline_note" class="ycc-dash-note"><i class="fa fa-hand-o-up"/> <t t-esc="d.timeline_note"/></div>
-   <div t-if="!d.timeline_note &amp;&amp; !d.timeline.length" class="ycc-dash-note">لا توجد فترات استقبال تعمل اليوم في هذا الفرع.</div>
-   <t t-foreach="d.timeline" t-as="s">
-    <div t-att-class="'ycc-dash-slot is-' + s.status">
-     <div class="ycc-dash-slot-time"><strong><t t-esc="s.time"/></strong><span><t t-esc="s.caption"/></span></div>
-     <div class="ycc-dash-slot-cars">
-      <t t-foreach="s.cars" t-as="c">
-       <button type="button" t-att-class="'ycc-dash-car stage-' + c.stage" data-open-model="ycc.appointment" t-att-data-open-id="c.id" t-att-title="c.ref + (c.vehicle ? ' · ' + c.vehicle : '')">
-        <i class="fa fa-car"/><span class="ycc-dash-car-name"><t t-esc="c.name"/></span><small><t t-esc="c.label"/></small>
-       </button>
-      </t>
-      <span t-if="s.free" class="ycc-dash-free"><t t-esc="s.free_text"/></span>
-      <span t-if="!s.cars.length &amp;&amp; !s.free" class="ycc-dash-muted">لا توجد حجوزات</span>
-     </div>
-    </div>
-   </t>
+   <div class="ycc-dash-progress">
+    <t t-foreach="d.progress" t-as="g">
+     <button type="button" t-att-class="'ycc-dash-prog tone-' + g.tone" data-open-model="ycc.appointment" t-att-data-open-ids="g.ids.join(',')" t-att-data-open-title="g.label">
+      <span class="ycc-dash-prog-label"><t t-esc="g.label"/></span>
+      <strong><bdi dir="ltr"><t t-esc="g.value"/></bdi></strong>
+      <small><t t-esc="g.sub"/></small>
+     </button>
+    </t>
+   </div>
   </section>
 
   <aside class="ycc-dash-card ycc-dash-side" aria-label="تحتاج قرار الآن">
@@ -136,6 +134,30 @@
    </div>
   </aside>
  </div>
+
+ <section t-if="d.branch_compare" class="ycc-dash-card" aria-label="مقارنة الفروع">
+  <div class="ycc-dash-card-head"><h2>مقارنة الفروع <small><t t-esc="d.flow_label"/> · الأخضر الأفضل والبرتقالي الأضعف</small></h2></div>
+  <div class="ycc-dash-table-wrap">
+   <table class="ycc-dash-table ycc-dash-cmp">
+    <thead><tr><th>الفرع</th><th>الحجوزات</th><th>وصلت</th><th>نسبة الحضور</th><th>بانتظار أمر تركيب</th><th>متأخرة عن الوصول</th><th>لم يحضر</th><th>أماكن متبقية</th><th>الإشغال</th></tr></thead>
+    <tbody>
+     <t t-foreach="d.branch_compare" t-as="r">
+      <tr>
+       <td><button type="button" class="ycc-dash-num-link" t-att-data-branch="r.id" title="عرض هذا الفرع فقط"><t t-esc="r.name"/></button></td>
+       <td><t t-esc="r.bookings"/></td>
+       <td><t t-esc="r.arrived"/></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.show_rate"><t t-esc="r.show_rate === null ? '—' : r.show_rate + '%'"/></span></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.waiting"><t t-esc="r.waiting"/></span></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.late"><t t-esc="r.late"/></span></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.no_show"><t t-esc="r.no_show"/></span></td>
+       <td><t t-esc="r.left"/></td>
+       <td><span class="ycc-dash-conv"><span class="ycc-dash-meter"><span t-attf-style="width: #{r.occupancy || 0}%"/></span><strong t-att-class="'ycc-dash-flag ' + r.flags.occupancy"><t t-esc="r.occupancy === null ? '—' : r.occupancy + '%'"/></strong></span></td>
+      </tr>
+     </t>
+    </tbody>
+   </table>
+  </div>
+ </section>
 
  <div class="ycc-dash-grid3">
   <section class="ycc-dash-card" aria-label="حالات مواعيد اليوم">
@@ -183,6 +205,29 @@
     <small t-if="d.compare_label">السابق (<t t-esc="d.compare_label"/>): <bdi dir="ltr"><t t-esc="k.prev"/></bdi></small>
    </button>
   </t>
+ </section>
+ <section t-if="d.branch_compare" class="ycc-dash-card" aria-label="مقارنة الفروع">
+  <div class="ycc-dash-card-head"><h2>مقارنة الفروع <small><t t-esc="d.period_label"/><t t-if="d.compare_label"> · التغير عن <t t-esc="d.compare_label"/></t> · الأخضر الأفضل والبرتقالي الأضعف</small></h2></div>
+  <div class="ycc-dash-table-wrap">
+   <table class="ycc-dash-table ycc-dash-cmp">
+    <thead><tr><th>الفرع</th><th>إجمالي الحجوزات</th><th>نسبة التأكيد</th><th>وصلت</th><th>أوامر التركيب</th><th>نسبة إقفال الفاتورة</th><th>ملغي</th><th>لم يحضر</th><th>الوصول ← أمر التركيب</th></tr></thead>
+    <tbody>
+     <t t-foreach="d.branch_compare" t-as="r">
+      <tr>
+       <td><button type="button" class="ycc-dash-num-link" t-att-data-branch="r.id" title="عرض هذا الفرع فقط"><t t-esc="r.name"/></button></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.total"><t t-esc="r.total"/></span><t t-call="ycc.DashDelta"><t t-set="delta" t-value="r.deltas.total"/></t></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.conv"><t t-esc="r.conv === null ? '—' : r.conv + '%'"/></span><t t-call="ycc.DashDelta"><t t-set="delta" t-value="r.deltas.conv"/></t></td>
+       <td><t t-esc="r.arrived"/></td>
+       <td><t t-esc="r.orders"/></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.closed_rate"><t t-esc="r.closed_rate === null ? '—' : r.closed_rate + '%'"/></span><t t-call="ycc.DashDelta"><t t-set="delta" t-value="r.deltas.closed_rate"/></t></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.cancelled"><t t-esc="r.cancelled"/></span><t t-call="ycc.DashDelta"><t t-set="delta" t-value="r.deltas.cancelled"/></t></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.no_show"><t t-esc="r.no_show"/></span></td>
+       <td><span t-att-class="'ycc-dash-flag ' + r.flags.wait"><t t-esc="r.wait === null ? '—' : r.wait + ' د'"/></span></td>
+      </tr>
+     </t>
+    </tbody>
+   </table>
+  </div>
  </section>
  <t t-call="ycc.DashIndicators"><t t-set="scopeLabel" t-value="d.period_label"/></t>
  <section class="ycc-dash-card" aria-label="قمع التحويل">

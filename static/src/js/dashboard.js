@@ -4,7 +4,7 @@ var AbstractAction = require('web.AbstractAction');
 var core = require('web.core');
 var qweb = core.qweb;
 
-var STORAGE_KEY = 'ycc_manager_dashboard_v2';
+var STORAGE_KEY = 'ycc_manager_dashboard_v3';
 function loadPrefs() {
     try { return JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (e) { return {}; }
 }
@@ -15,7 +15,13 @@ function savePrefs(prefs) {
 var Dashboard = AbstractAction.extend({
     events: {
         'click .ycc-dash-tab': '_onTab',
-        'change .ycc-dash-branch': '_onBranch',
+        'click .ycc-dash-branch-toggle': '_onBranchToggle',
+        'change .ycc-dash-branch-all': '_onBranchAll',
+        'change .ycc-dash-branch-cb': '_onBranchItem',
+        'click .ycc-dash-branch-apply': '_onBranchApply',
+        'click .ycc-dash-branch-cancel': '_closeBranchPanel',
+        'click .ycc-dash-branch-panel': '_stop',
+        'click .ycc-dash-flow': '_onFlow',
         'click .ycc-dash-mode': '_onMode',
         'click .ycc-dash-step': '_onStep',
         'change .ycc-dash-compare': '_onCompare',
@@ -27,7 +33,8 @@ var Dashboard = AbstractAction.extend({
         this._super.apply(this, arguments);
         var prefs = loadPrefs();
         this.tab = ['today', 'journey', 'team'].indexOf(prefs.tab) !== -1 ? prefs.tab : 'today';
-        this.branchId = prefs.branchId || false;
+        this.branchIds = Array.isArray(prefs.branchIds) ? prefs.branchIds : [];
+        this.flowMode = ['day', 'week', 'month'].indexOf(prefs.flowMode) !== -1 ? prefs.flowMode : 'day';
         this.mode = ['day', 'month', 'year'].indexOf(prefs.mode) !== -1 ? prefs.mode : 'month';
         this.compare = ['none', 'previous', 'last_year'].indexOf(prefs.compare) !== -1 ? prefs.compare : 'none';
         this.anchor = false;  // the current period by default; navigation is per session
@@ -38,9 +45,12 @@ var Dashboard = AbstractAction.extend({
         this._alive = true;
         // Odoo's action container has a fixed height and does not scroll by itself.
         this.$el.addClass('ycc-dash-host');
+        this._onDocClick = function () { self._closeBranchPanel(); };
+        document.addEventListener('click', this._onDocClick);
         // Only the live "today" tab refreshes itself; analysis tabs refresh on demand.
         this._timer = window.setInterval(function () {
-            if (self._alive && self.tab === 'today' && !document.hidden && self.$el.is(':visible')) {
+            if (self._alive && self.tab === 'today' && !document.hidden && self.$el.is(':visible')
+                    && !self.$('.ycc-dash-branch-panel:visible').length) {
                 self._load(true);
             }
         }, 30000);
@@ -49,10 +59,11 @@ var Dashboard = AbstractAction.extend({
     destroy: function () {
         this._alive = false;
         if (this._timer) { window.clearInterval(this._timer); this._timer = null; }
+        if (this._onDocClick) { document.removeEventListener('click', this._onDocClick); }
         return this._super.apply(this, arguments);
     },
     _savePrefs: function () {
-        savePrefs({tab: this.tab, branchId: this.branchId, mode: this.mode, compare: this.compare});
+        savePrefs({tab: this.tab, branchIds: this.branchIds, mode: this.mode, compare: this.compare, flowMode: this.flowMode});
     },
     _load: function (silent) {
         var self = this;
@@ -61,7 +72,7 @@ var Dashboard = AbstractAction.extend({
         this._busy = this._rpc({
             model: 'ycc.dashboard',
             method: 'get_dashboard_data',
-            args: [this.tab, {branch_id: this.branchId || false, mode: this.mode,
+            args: [this.tab, {branch_ids: this.branchIds, mode: this.mode, flow_mode: this.flowMode,
                               anchor: this.anchor || false, compare: this.compare}],
         }).then(function (data) {
             if (!self._alive) { return; }
@@ -73,7 +84,7 @@ var Dashboard = AbstractAction.extend({
         }, function () {
             if (!self._alive) { return; }
             // A branch removed from the user's access: fall back to all branches once.
-            if (self.branchId) { self.branchId = false; self._savePrefs(); self._queued = true; return; }
+            if (self.branchIds.length) { self.branchIds = []; self._savePrefs(); self._queued = true; return; }
             if (!silent) {
                 self.$el.html('<div class="ycc-dash" dir="rtl"><div class="ycc-dash-empty"><i class="fa fa-exclamation-triangle"></i> تعذر تحميل لوحة المؤشرات.</div></div>');
             }
@@ -97,17 +108,44 @@ var Dashboard = AbstractAction.extend({
         this._savePrefs();
         this._load();
     },
-    _onBranch: function (ev) {
-        var value = ev.currentTarget.value;
-        this.branchId = value ? parseInt(value, 10) : false;
+    _stop: function (ev) { ev.stopPropagation(); },
+    _onBranchToggle: function (ev) {
+        ev.stopPropagation();
+        this.$('.ycc-dash-branch-panel').toggle();
+    },
+    _closeBranchPanel: function () {
+        if (this.$el) { this.$('.ycc-dash-branch-panel').hide(); }
+    },
+    _onBranchAll: function (ev) {
+        this.$('.ycc-dash-branch-cb').prop('checked', ev.currentTarget.checked);
+    },
+    _onBranchItem: function () {
+        var boxes = this.$('.ycc-dash-branch-cb');
+        this.$('.ycc-dash-branch-all').prop('checked', boxes.length === boxes.filter(':checked').length);
+    },
+    _onBranchApply: function (ev) {
+        ev.stopPropagation();
+        var boxes = this.$('.ycc-dash-branch-cb');
+        var checked = boxes.filter(':checked').map(function () { return parseInt(this.value, 10); }).get();
+        // Nothing or everything ticked means all branches.
+        this.branchIds = (!checked.length || checked.length === boxes.length) ? [] : checked;
+        this._closeBranchPanel();
         this._savePrefs();
         this._load();
     },
     _onBranchShortcut: function (ev) {
         ev.preventDefault();
+        ev.stopPropagation();
         var id = parseInt(ev.currentTarget.getAttribute('data-branch'), 10);
         if (!id) { return; }
-        this.branchId = this.branchId === id ? false : id;
+        this.branchIds = (this.branchIds.length === 1 && this.branchIds[0] === id) ? [] : [id];
+        this._savePrefs();
+        this._load();
+    },
+    _onFlow: function (ev) {
+        var mode = ev.currentTarget.getAttribute('data-flow');
+        if (!mode || mode === this.flowMode) { return; }
+        this.flowMode = mode;
         this._savePrefs();
         this._load();
     },
