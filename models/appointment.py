@@ -822,9 +822,10 @@ class YCCAppointment(models.Model):
         if not self.installation_order_id:
             raise UserError(_('لا يوجد أمر تركيب مرتبط لتغيير موعد التسليم.'))
         return {'type':'ir.actions.act_window','name':_('تغيير موعد التسليم'),'res_model':'ycc.delivery.change.wizard','view_mode':'form','target':'new',
-                'context':dict(self.env.context, default_appointment_id=self.id,
-                               default_installation_order_id=self.installation_order_id.id,
-                               default_old_date=self.installation_order_id.delivery_date)}
+                'context': self.env['ycc.delivery.change.wizard']._ycc_clean_context({
+                    'default_appointment_id': self.id,
+                    'default_installation_order_id': self.installation_order_id.id,
+                    'default_old_date': self.installation_order_id.delivery_date})}
 
     # ------------------------------------------------------------------
     # V6.66: shared indicator logic. The calendar endpoint and the manager
@@ -1042,15 +1043,32 @@ class YCCDeliveryChangeWizard(models.TransientModel):
     appointment_id = fields.Many2one('ycc.appointment', readonly=True)
     installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب', readonly=True)
     old_date = fields.Date(string='موعد التسليم الحالي', readonly=True)
-    new_date = fields.Date(string='موعد التسليم الجديد', required=True)
+    # Required in the form; validated in action_apply (no database NOT NULL, so a
+    # missing value shows a clear message instead of a database error).
+    new_date = fields.Date(string='موعد التسليم الجديد')
     reason = fields.Selection([
         ('customer_delay', 'تأخير من قبل العميل'),
         ('branch_postponement', 'تأجيل من قبل الفرع'),
-    ], string='نوع السبب', required=True)
-    note = fields.Text(string='السبب', required=True)
+    ], string='نوع السبب')
+    note = fields.Text(string='السبب')
+
+    @api.model
+    def _ycc_clean_context(self, extra=None):
+        """Context without the caller's default_* keys (they leak from the booking /
+        installation order screens into the wizard and into records it creates)."""
+        ctx = {k: v for k, v in self.env.context.items() if not k.startswith('default_')}
+        ctx.update(extra or {})
+        return ctx
 
     def action_apply(self):
         self.ensure_one()
+        if not self.reason:
+            raise UserError(_('اختر نوع السبب: تأخير من قبل العميل أو تأجيل من قبل الفرع.'))
+        if not (self.note or '').strip():
+            raise UserError(_('اكتب سبب تغيير موعد التسليم.'))
+        if not self.new_date:
+            raise UserError(_('حدد موعد التسليم الجديد.'))
+        self = self.with_context(self._ycc_clean_context())
         Appt = self.env['ycc.appointment']
         order = self.installation_order_id or self.appointment_id.installation_order_id
         if not order:

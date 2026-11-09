@@ -62,9 +62,10 @@ class YCCInstallationOrder(models.Model):
             self.check_access_rule('write')
         return {'type': 'ir.actions.act_window', 'name': _('تغيير موعد التسليم'),
                 'res_model': 'ycc.delivery.change.wizard', 'view_mode': 'form', 'target': 'new',
-                'context': dict(self.env.context, default_installation_order_id=self.id,
-                                default_appointment_id=appt.id or False,
-                                default_old_date=self.delivery_date)}
+                'context': self.env['ycc.delivery.change.wizard']._ycc_clean_context({
+                    'default_installation_order_id': self.id,
+                    'default_appointment_id': appt.id or False,
+                    'default_old_date': self.delivery_date})}
 
     def unlink(self):
         linked = self.filtered(lambda order: order.ycc_appointment_id)

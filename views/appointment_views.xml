@@ -162,7 +162,7 @@
 <form string="تغيير موعد التسليم" class="ycc-delivery-change-form"><sheet>
 <field name="appointment_id" invisible="1" force_save="1"/>
 <div class="ycc-dc-info">
- <div class="ycc-dc-info-item"><span class="fa fa-wrench"/><small>أمر التركيب</small><field name="installation_order_id" readonly="1" options="{'no_open': True, 'no_create': True}"/></div>
+ <div class="ycc-dc-info-item"><span class="fa fa-wrench"/><small>أمر التركيب</small><field name="installation_order_id" readonly="1" force_save="1" options="{'no_open': True, 'no_create': True}"/></div>
  <div class="ycc-dc-info-item"><span class="fa fa-calendar-o"/><small>موعد التسليم الحالي</small><field name="old_date" readonly="1" force_save="1"/></div>
 </div>
 <group class="ycc-dc-main" col="2">
