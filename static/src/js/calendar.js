@@ -251,7 +251,7 @@ var Calendar=AbstractAction.extend({
  _showBookingsModal:function(date,slotId,slotName,bookings,isDaily){
    var branch=(this.payload.branches||[]).filter(function(b){return b.id===this.branchId;},this)[0],self=this;
    var dailyBookings=this._dailyOccupancyBookings(date);
-   var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slotName,branchName:branch?branch.name:'',capacity:this.payload.daily_capacity||0,dailyCount:dailyBookings.length,bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed';}).length,arrived:bookings.filter(function(b){return b.state==='done'||b.state==='installation_created';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length,dailyStates:this._dailyStateCounts(dailyBookings),isDaily:!!isDaily,canCreate:!!this.payload.can_create,canInstall:!!this.payload.can_create||!!this.payload.arrival_only});
+   var html=qweb.render('ycc.PeriodModal',{date:date,slotId:slotId,slotName:slotName,branchName:branch?branch.name:'',capacity:this.payload.daily_capacity||0,dailyCount:dailyBookings.length,bookings:bookings,confirmed:bookings.filter(function(b){return b.state==='confirmed';}).length,arrived:bookings.filter(function(b){return b.state==='done'||b.state==='installation_created';}).length,provisional:bookings.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length,dailyStates:this._dailyStateCounts(dailyBookings),isDaily:!!isDaily,canCreate:!!this.payload.can_create,isPast:date<(this.payload.today||''),isManager:!!this.payload.is_manager,canInstall:!!this.payload.can_create||!!this.payload.arrival_only});
    this._mountPeriodModal(html,date,slotId);
  },
  _period:function(e){

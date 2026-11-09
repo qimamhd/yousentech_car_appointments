@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+ <!--
+  V6.67: installation order header fields are read-only from approval ("معتمدة") onwards.
+  Locked states: confirm, under_checking, work_order, execute_request, execute_started,
+  execute_completed, complete_work, cancel_order. Draft stays editable.
+
+  Every field keeps its original qimamhd_wo_v3 conditions (technician lock, required /
+  invisible settings, sales-rep change privilege); only the locked states are unified.
+  Deliberately NOT locked because the workflow fills them after approval:
+    confirm_date, compelete_done_date (required by "اكتمال التنفيذ" / "تم انجاز"),
+    supervisor_name (assigned before execution starts), check_date (own rule).
+  The delivery date changes through the "تغيير موعد التسليم" button with a recorded reason.
+ -->
+ <record id="view_ycc_installation_order_header_lock" model="ir.ui.view">
+  <field name="name">wo.installation.order.mst.ycc.header.lock</field>
+  <field name="model">wo.installation.order.mst</field>
+  <field name="inherit_id" ref="qimamhd_wo_v3.wo_installation_order_view"/>
+  <field name="priority">90</field>
+  <field name="arch" type="xml">
+   <xpath expr="//form/sheet/group[1]//field[@name='partner_id']" position="attributes">
+    <attribute name="attrs">{'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='partner_mobile']" position="attributes">
+    <attribute name="attrs">{'required':[('partner_mobile_not_required','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='customer_type']" position="attributes">
+    <attribute name="attrs">{'invisible':[('customer_type_invisible','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='car_manuf_id']" position="attributes">
+    <attribute name="attrs">{'invisible':[('car_manf_invisible','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='manufactory_year_id']" position="attributes">
+    <attribute name="attrs">{'required':[('manufactory_year_required','=',True)],'invisible':[('manufactory_year_invisible','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='car_type_id']" position="attributes">
+    <attribute name="attrs">{'invisible':[('car_type_invisible','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='company_id']" position="attributes">
+    <attribute name="attrs">{'readonly':[('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='car_size_id']" position="attributes">
+    <attribute name="attrs">{'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='car_panel_no']" position="attributes">
+    <attribute name="attrs">{'invisible':[('car_panel_invisible','=',True),('car_no_required','=',False)],'required':[('car_no_required','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='order_date']" position="attributes">
+    <attribute name="attrs">{'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='vin_no']" position="attributes">
+    <attribute name="attrs">{'invisible':[('vin_invisible','=',True),('vin_no_required','=',False)],'required':[('vin_no_required','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='car_color_id']" position="attributes">
+    <attribute name="attrs">{'invisible':[('car_colors_invisible','=',True),('car_colors_required','=',False)],'required':[('car_colors_required','=',True)],'readonly':[('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='drum_counter']" position="attributes">
+    <attribute name="attrs">{'required':[('car_counter_not_required','=',True)],'invisible':[('car_counter_not_required','=',False),('drum_counter_invisible','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='agency_id']" position="attributes">
+    <attribute name="attrs">{'required':[('agency_not_required','=',True)],'invisible':[('agency_invisible','=',True),('agency_not_required','=',False)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='sale_man_id']" position="attributes">
+    <attribute name="attrs">{'invisible':[('sale_man_required_flag','=',False),('sale_man_invisible','=',True)],'required':[('sale_man_required_flag','=',True)],'readonly':[('allow_change_salesman_priv','=',False),'|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='delivery_date']" position="attributes">
+    <attribute name="attrs">{'required':[('delivery_date_period_required','=',True)],'invisible':[('delivery_date_period_required','=',False),('delivery_date_period_invisible','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//form/sheet/group[1]//field[@name='delivery_period']" position="attributes">
+    <attribute name="attrs">{'required':[('delivery_date_period_required','=',True)],'invisible':[('delivery_date_period_required','=',False),('delivery_date_period_invisible','=',True)],'readonly':['|',('is_user_technical','=',True),('state','in',['confirm','under_checking','work_order','execute_request','execute_started','execute_completed','complete_work','cancel_order'])]}</attribute>
+   </xpath>
+   <xpath expr="//header/field[@name='state']" position="before">
+    <button name="action_ycc_open_delivery_change" string="تغيير موعد التسليم" type="object" icon="fa-calendar"
+            groups="qimamhd_wo_v3.group_sales_man_priv,yousentech_car_appointments.group_ycc_booking"
+            attrs="{'invisible':['|',('state','not in',['confirm','under_checking','work_order','execute_request','execute_started']),'&amp;',('delivery_date_period_invisible','=',True),('delivery_date_period_required','=',False)]}"/>
+   </xpath>
+  </field>
+ </record>
+</odoo>

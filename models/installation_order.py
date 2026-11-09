@@ -46,6 +46,26 @@ class YCCInstallationOrder(models.Model):
                     raise UserError(_('لا يمكن إنشاء أو ربط فاتورة قبل إنجاز العمل في أمر التركيب.'))
         return super(YCCInstallationOrder, self).write(vals)
 
+    # V6.67: header fields are read-only from approval onwards (view rule), so the
+    # delivery date changes through this button with a recorded reason.
+    YCC_DELIVERY_CHANGE_STATES = ('confirm', 'under_checking', 'work_order', 'execute_request', 'execute_started')
+
+    def action_ycc_open_delivery_change(self):
+        self.ensure_one()
+        if self.state not in self.YCC_DELIVERY_CHANGE_STATES:
+            raise UserError(_('لا يمكن تغيير موعد التسليم في حالة أمر التركيب الحالية.'))
+        appt = self.ycc_appointment_id
+        if appt and not appt._ycc_can_book():
+            raise UserError(_('ليس لديك صلاحية تغيير موعد التسليم.'))
+        if not appt:
+            self.check_access_rights('write')
+            self.check_access_rule('write')
+        return {'type': 'ir.actions.act_window', 'name': _('تغيير موعد التسليم'),
+                'res_model': 'ycc.delivery.change.wizard', 'view_mode': 'form', 'target': 'new',
+                'context': dict(self.env.context, default_installation_order_id=self.id,
+                                default_appointment_id=appt.id or False,
+                                default_old_date=self.delivery_date)}
+
     def unlink(self):
         linked = self.filtered(lambda order: order.ycc_appointment_id)
         appointments = linked.mapped('ycc_appointment_id')

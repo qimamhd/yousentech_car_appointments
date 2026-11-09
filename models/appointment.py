@@ -257,6 +257,13 @@ class YCCAppointment(models.Model):
     company_id = fields.Many2one('res.company',related='branch_id.company_id',store=True,readonly=True)
     actual_arrival_at = fields.Datetime(string='تاريخ ووقت وصول السيارة الفعلي', readonly=True, copy=False, tracking=True)
     installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب المرتبط', readonly=True, copy=False, tracking=True)
+    ycc_is_manager = fields.Boolean(compute='_compute_ycc_is_manager',
+                                    help='مدير المواعيد: يملك تعديل وحذف الحجز ونقل فرعه حتى بعد إنشاء أمر التركيب.')
+
+    def _compute_ycc_is_manager(self):
+        flag = self._ycc_manager()
+        for rec in self:
+            rec.ycc_is_manager = flag
     service_stage = fields.Selection([
         ('provisional','حجز مبدئي'),('contacting','جاري التواصل'),('confirmed','حجز مؤكد'),
         ('done','وصلت السيارة'),('installation_created','تم إنشاء أمر تركيب'),
@@ -502,16 +509,37 @@ class YCCAppointment(models.Model):
         vals = dict(vals)
         if not self._ycc_can_book() and not self._ycc_arrival_only_user():
             raise UserError(_('المواعيد للقراءة فقط؛ لا تملك صلاحية التعديل.'))
-        if any(rec.installation_order_id for rec in self) and not self.env.context.get('ycc_internal_order_unlink'):
+        is_manager = self._ycc_manager()
+        if any(rec.installation_order_id for rec in self) and not self.env.context.get('ycc_internal_order_unlink') \
+                and not is_manager:
             # Contact history stays available after the order: the contact
             # wizard updates only the follow-up date on the booking.
             protected = set(vals) - {'message_follower_ids', 'activity_ids', 'next_contact_at', 'message_main_attachment_id'}
             if protected:
                 raise UserError(_('تم إنشاء أمر تركيب لهذا الحجز؛ بيانات الحجز أصبحت للقراءة فقط.'))
+        if 'branch_id' in vals:
+            if not is_manager and any(rec.installation_order_id for rec in self):
+                raise UserError(_('نقل حجز مرتبط بأمر تركيب إلى فرع آخر متاح لمدير المواعيد فقط.'))
+            new_config = self.env['ycc.branch'].browse(vals['branch_id']) if vals.get('branch_id') else self.env['ycc.branch']
+            for rec in self:
+                order = rec.installation_order_id
+                if order and new_config and order.branch_id and new_config.branch_id != order.branch_id:
+                    raise UserError(_('لا يمكن نقل الحجز %s إلى %s لأن أمر التركيب المرتبط %s مسجل على %s. '
+                                      'يجب أن يبقى الحجز وأمر التركيب على نفس الفرع.')
+                                    % (rec.name, new_config.branch_id.display_name, order.display_name, order.branch_id.display_name))
+            old_names = {rec.id: rec.branch_id.display_name for rec in self}
         if 'date' in vals and vals.get('date'):
             new_date = fields.Date.from_string(vals['date'])
             if new_date < fields.Date.from_string(fields.Date.context_today(self)) and not self._ycc_manager():
                 raise UserError(_('لا يمكن نقل الحجز إلى تاريخ سابق؛ هذه الصلاحية متاحة لمدير المواعيد فقط.'))
+        # Re-scheduling a booking that already sits on a past date (slot, branch,
+        # end date) is booking in the past too: manager only. Status changes,
+        # arrival, notes and contact follow-ups on past bookings stay allowed.
+        if not is_manager and 'date' not in vals and set(vals) & {'slot_id', 'end_slot_id', 'end_date', 'branch_id'}:
+            today = fields.Date.from_string(fields.Date.context_today(self))
+            for rec in self:
+                if rec.date and fields.Date.to_date(rec.date) < today:
+                    raise UserError(_('الحجز %s بتاريخ سابق (%s)؛ تعديل موعده أو فرعه متاح لمدير المواعيد فقط.') % (rec.name, rec.date))
         if self._ycc_arrival_only_user():
             # This group can only mark an existing confirmed booking as arrived.
             # Linking the new installation order is handled by the order create hook.
@@ -537,11 +565,20 @@ class YCCAppointment(models.Model):
         result = super().write(vals)
         if set(vals) & {'branch_id','slot_id','end_slot_id','date','end_date','state','hold_until','is_check_only'}:
             self._check_capacity()
+        if 'branch_id' in vals:
+            for rec in self:
+                if old_names.get(rec.id) != rec.branch_id.display_name:
+                    rec.message_post(body=_('تم نقل الحجز من %s إلى %s بواسطة %s.')
+                                     % (old_names.get(rec.id) or '-', rec.branch_id.display_name or '-', self.env.user.name))
         return result
 
     def unlink(self):
         if not self._ycc_manager():
             raise UserError(_('حذف الحجوزات متاح لمدير المواعيد فقط.'))
+        # Keep a trace on linked installation orders (their link is cleared by ondelete=set null).
+        for rec in self.filtered('installation_order_id'):
+            rec.installation_order_id.sudo().message_post(
+                body=_('تم حذف حجز الموعد المصدر %s بواسطة مدير المواعيد %s.') % (rec.name, self.env.user.name))
         return super().unlink()
 
     @api.model
@@ -720,6 +757,20 @@ class YCCAppointment(models.Model):
             if rec.state not in ('provisional','contacting','postponed') or not rec._occupies():
                 raise UserError(_('Only active provisional bookings can be confirmed.'))
             rec.write({'state':'confirmed'})
+    def action_back_to_provisional(self):
+        """Manager only: return a confirmed booking (car not arrived) to provisional with a fresh hold."""
+        if not self._ycc_manager():
+            raise UserError(_('إرجاع الحجز المؤكد إلى حجز مبدئي متاح لمدير المواعيد فقط.'))
+        for rec in self:
+            if rec.state != 'confirmed' or rec.installation_order_id or rec.actual_arrival_at:
+                raise UserError(_('يمكن إرجاع الحجز إلى مبدئي فقط إذا كان مؤكدًا ولم تصل السيارة ولم يُنشأ أمر تركيب.'))
+            minutes = rec.branch_id.provisional_minutes or 120
+            hold = fields.Datetime.to_string(fields.Datetime.from_string(fields.Datetime.now()) + timedelta(minutes=minutes))
+            rec.with_context(ycc_internal_postpone=True).write({'state': 'provisional', 'hold_until': hold})
+            rec.message_post(body=_('أعاد مدير المواعيد %s الحجز من مؤكد إلى حجز مبدئي. صلاحية الحجز المبدئي حتى %s.')
+                             % (self.env.user.name, hold))
+        return True
+
     def action_done(self):
         for rec in self:
             if rec.state != 'confirmed':
@@ -771,7 +822,9 @@ class YCCAppointment(models.Model):
         if not self.installation_order_id:
             raise UserError(_('لا يوجد أمر تركيب مرتبط لتغيير موعد التسليم.'))
         return {'type':'ir.actions.act_window','name':_('تغيير موعد التسليم'),'res_model':'ycc.delivery.change.wizard','view_mode':'form','target':'new',
-                'context':dict(self.env.context, default_appointment_id=self.id, default_old_date=self.installation_order_id.delivery_date)}
+                'context':dict(self.env.context, default_appointment_id=self.id,
+                               default_installation_order_id=self.installation_order_id.id,
+                               default_old_date=self.installation_order_id.delivery_date)}
 
     # ------------------------------------------------------------------
     # V6.66: shared indicator logic. The calendar endpoint and the manager
@@ -986,9 +1039,8 @@ class YCCDeliveryChange(models.Model):
 class YCCDeliveryChangeWizard(models.TransientModel):
     _name = 'ycc.delivery.change.wizard'
     _description = 'تغيير موعد تسليم السيارة'
-    appointment_id = fields.Many2one('ycc.appointment', required=True, readonly=True)
-    installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب',
-                                            related='appointment_id.installation_order_id', readonly=True)
+    appointment_id = fields.Many2one('ycc.appointment', readonly=True)
+    installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب', readonly=True)
     old_date = fields.Date(string='موعد التسليم الحالي', readonly=True)
     new_date = fields.Date(string='موعد التسليم الجديد', required=True)
     reason = fields.Selection([
@@ -999,12 +1051,20 @@ class YCCDeliveryChangeWizard(models.TransientModel):
 
     def action_apply(self):
         self.ensure_one()
-        appt = self.appointment_id
-        order = appt.installation_order_id
-        if not appt._ycc_can_book():
-            raise UserError(_('ليس لديك صلاحية تغيير موعد التسليم.'))
+        Appt = self.env['ycc.appointment']
+        order = self.installation_order_id or self.appointment_id.installation_order_id
         if not order:
-            raise UserError(_('لا يوجد أمر تركيب مرتبط بهذا الحجز.'))
+            raise UserError(_('لا يوجد أمر تركيب مرتبط لتغيير موعد التسليم.'))
+        appt = self.appointment_id or (order.ycc_appointment_id if 'ycc_appointment_id' in order._fields else Appt)
+        if appt:
+            if not appt._ycc_can_book():
+                raise UserError(_('ليس لديك صلاحية تغيير موعد التسليم.'))
+        else:
+            # Order without a booking: the user needs normal write access to the order.
+            order.check_access_rights('write')
+            order.check_access_rule('write')
+        if order.state in ('cancel_order', 'complete_work'):
+            raise UserError(_('لا يمكن تغيير موعد التسليم في حالة أمر التركيب الحالية.'))
         if not self.reason:
             raise UserError(_('اختر نوع السبب: تأخير من قبل العميل أو تأجيل من قبل الفرع.'))
         note = (self.note or '').strip()
@@ -1023,18 +1083,19 @@ class YCCDeliveryChangeWizard(models.TransientModel):
         if order.order_date and new_date < fields.Date.from_string(order.order_date):
             raise UserError(_('موعد التسليم الجديد لا يمكن أن يسبق تاريخ طلب أمر التركيب (%s).') % order.order_date)
         today = fields.Date.from_string(fields.Date.context_today(self))
-        if new_date < today and not appt._ycc_manager():
+        if new_date < today and not Appt._ycc_manager():
             raise UserError(_('لا يمكن تحديد موعد تسليم بتاريخ سابق؛ هذه الصلاحية متاحة لمدير المواعيد فقط.'))
         reason_label = dict(self._fields['reason'].selection).get(self.reason)
         full_reason = '%s — %s' % (reason_label, note)
         # Pass the explicit workflow context required by the inherited order.write guard.
         order.with_context(ycc_delivery_change_reason=True).write({'delivery_date': self.new_date})
-        self.env['ycc.delivery.change'].create({
-            'appointment_id': appt.id, 'installation_order_id': order.id,
-            'old_date': current or False, 'new_date': self.new_date,
-            'reason_code': self.reason, 'reason': full_reason})
         body = _('تم تغيير موعد التسليم من %s إلى %s. السبب: %s') % (current or _('غير محدد'), self.new_date, full_reason)
-        appt.message_post(body=body)
+        if appt:
+            self.env['ycc.delivery.change'].create({
+                'appointment_id': appt.id, 'installation_order_id': order.id,
+                'old_date': current or False, 'new_date': self.new_date,
+                'reason_code': self.reason, 'reason': full_reason})
+            appt.message_post(body=body)
         order.sudo().message_post(body=body, author_id=self.env.user.partner_id.id)
         return {'type':'ir.actions.act_window_close'}
 
