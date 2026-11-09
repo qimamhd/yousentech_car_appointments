@@ -41,6 +41,26 @@ INDICATOR_DEFS = [
 ]
 
 
+BRANCH_COLORS = ['#4C6EF5', '#0CA678', '#E8590C', '#7048E8', '#D6336C', '#1098AD', '#B07800', '#495057']
+# Direction used to mark the best / weakest branch on each indicator.
+LOWER_IS_BETTER = {'waiting', 'late', 'no_show', 'cancelled', 'wait', 'late_arrival', 'late_delivery',
+                   'open_invoices', 'expired', 'postponed', 'overdue', 'arrival_order', 'booking_arrival',
+                   'order_done'}
+HIGHER_IS_BETTER = {'show_rate', 'conv', 'closed_rate', 'arrived', 'occupancy', 'orders', 'completed',
+                    'invoice_closed', 'total', 'step0', 'step1', 'step2', 'step3', 'step4', 'step5'}
+
+
+def _num(value):
+    """Numeric part of an indicator value ('75%', '26 د', 12) or None."""
+    if isinstance(value, bool) or value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    import re
+    match = re.search(r'-?\d+(?:\.\d+)?', str(value))
+    return float(match.group(0)) if match else None
+
+
 def _add_months(day, months):
     index = day.year * 12 + day.month - 1 + months
     return day.replace(year=index // 12, month=index % 12 + 1, day=1)
@@ -197,6 +217,7 @@ class YCCDashboard(models.AbstractModel):
             raw_ids = [raw_ids] if raw_ids else []
         all_cfg, selected = self._configs(raw_ids)
         flow_mode = params.get('flow_mode') if params.get('flow_mode') in ('day', 'week', 'month') else 'day'
+        compare_branches = bool(params.get('compare_branches')) and len(selected) > 1
         mode = params.get('mode') if params.get('mode') in dict(MODES) else 'month'
         compare = params.get('compare') if params.get('compare') in dict(COMPARES) else 'none'
         try:
@@ -214,6 +235,10 @@ class YCCDashboard(models.AbstractModel):
                             else selected[:1].branch_id.display_name if len(selected) == 1
                             else '%s فروع' % len(selected),
             'multi': len(selected) > 1,
+            'compare_branches': compare_branches,
+            'branch_legend': [{'id': c.id, 'name': c.branch_id.display_name,
+                               'color': BRANCH_COLORS[list(all_cfg).index(c) % len(BRANCH_COLORS)]}
+                              for c in selected] if compare_branches else [],
             'flow_mode': flow_mode,
             'flow_modes': [{'key': 'day', 'label': 'يومي'}, {'key': 'week', 'label': 'أسبوعي'}, {'key': 'month', 'label': 'شهري'}],
             'modes': [{'key': k, 'label': v} for k, v in MODES],
@@ -232,18 +257,76 @@ class YCCDashboard(models.AbstractModel):
         if not all_cfg:
             data['empty'] = _('لا توجد فروع مهيأة لنظام المواعيد ضمن صلاحياتك.')
             return data
-        if tab == 'journey':
-            data.update(self._journey_data(selected, start, end, now_utc, cmp_period))
-            data['indicators'] = self._indicators(selected, start, end, local_now)
-            if len(selected) > 1:
-                data['branch_compare'] = self._journey_branch_compare(selected, start, end, cmp_period)
-        elif tab == 'team':
-            data.update(self._team_data(selected, start, end, now_utc, cmp_period))
-        else:
-            data['tab'] = 'today'
-            data.update(self._today_data(all_cfg, selected, now_utc, local_now, flow_mode))
-            data['indicators'] = self._indicators(selected, today, today + timedelta(days=1), local_now)
+        if tab not in ('journey', 'team'):
+            tab = data['tab'] = 'today'
+        ctx = {'all_cfg': all_cfg, 'now_utc': now_utc, 'local_now': local_now, 'today': today,
+               'flow_mode': flow_mode, 'start': start, 'end': end, 'cmp_period': cmp_period}
+        data.update(self._tab_payload(tab, selected, ctx, branch_table=compare_branches))
+        if compare_branches:
+            per_branch = [(cfg, self._tab_payload(tab, cfg, ctx)) for cfg in selected]
+            self._attach_breakdown(data, per_branch, data['branch_legend'])
         return data
+
+    def _tab_payload(self, tab, selected, ctx, branch_table=False):
+        if tab == 'journey':
+            payload = self._journey_data(selected, ctx['start'], ctx['end'], ctx['now_utc'], ctx['cmp_period'])
+            payload['indicators'] = self._indicators(selected, ctx['start'], ctx['end'], ctx['local_now'])
+            if branch_table:
+                payload['branch_compare'] = self._journey_branch_compare(selected, ctx['start'], ctx['end'], ctx['cmp_period'])
+            return payload
+        if tab == 'team':
+            return self._team_data(selected, ctx['start'], ctx['end'], ctx['now_utc'], ctx['cmp_period'])
+        payload = self._today_data(ctx['all_cfg'], selected, ctx['now_utc'], ctx['local_now'], ctx['flow_mode'],
+                                   branch_table=branch_table)
+        payload['indicators'] = self._indicators(selected, ctx['today'], ctx['today'] + timedelta(days=1), ctx['local_now'])
+        return payload
+
+    # Lists whose items get a per-branch breakdown: (path, item key field, value field)
+    BREAKDOWN_LISTS = [
+        (('kpis',), 'key', 'value'), (('progress',), 'key', 'value'), (('indicators',), 'key', 'count'),
+        (('followups',), 'key', 'count'), (('summary',), 'key', 'value'), (('leaks',), 'key', 'value'),
+        (('funnel',), 'key', 'value'), (('durations', 'rows'), 'key', 'value'), (('people',), 'id', 'created'),
+    ]
+
+    def _attach_breakdown(self, data, per_branch, legend):
+        """Give every indicator a `by_branch` list: one bar per selected branch."""
+        colors = {item['id']: item['color'] for item in legend}
+
+        def get_list(payload, path):
+            node = payload
+            for part in path:
+                node = node.get(part) if isinstance(node, dict) else None
+                if node is None:
+                    return []
+            return node if isinstance(node, list) else []
+
+        for path, key_field, value_field in self.BREAKDOWN_LISTS:
+            for item in get_list(data, path):
+                key = item.get(key_field)
+                rows = []
+                for cfg, payload in per_branch:
+                    match = next((x for x in get_list(payload, path) if x.get(key_field) == key), None)
+                    raw = match.get(value_field) if match else 0
+                    if match is None and path == ('people',):
+                        raw = 0
+                    rows.append({'id': cfg.id, 'name': cfg.branch_id.display_name, 'color': colors.get(cfg.id),
+                                 'value': '—' if raw is None or raw is False else raw, 'num': _num(raw),
+                                 'ids': (match.get('ids') or match.get('created_ids') or []) if match else [],
+                                 'model': (match.get('model') if match else None) or 'ycc.appointment'})
+                nums = [r['num'] for r in rows if r['num'] is not None]
+                is_pct = any('%' in str(r['value']) for r in rows)
+                biggest = max(nums) if nums else 0
+                direction = 'down' if key in LOWER_IS_BETTER else 'up' if key in HIGHER_IS_BETTER else None
+                distinct = len(set(nums)) > 1
+                for r in rows:
+                    n = r['num']
+                    r['width'] = 0 if n is None else int(round(min(100, n) if is_pct else (n * 100.0 / biggest if biggest else 0)))
+                    r['flag'] = ''
+                    if direction and distinct and n is not None:
+                        best = max(nums) if direction == 'up' else min(nums)
+                        worst = min(nums) if direction == 'up' else max(nums)
+                        r['flag'] = 'best' if n == best else 'worst' if n == worst else ''
+                item['by_branch'] = rows
 
     def _indicators(self, selected, start, end, local_now):
         """The calendar's customer-service indicators, from the shared model method."""
@@ -259,7 +342,7 @@ class YCCDashboard(models.AbstractModel):
         return result
 
     # ---------------------------------------------------------------- tab: today
-    def _today_data(self, all_cfg, selected, now_utc, local_now, flow_mode='day'):
+    def _today_data(self, all_cfg, selected, now_utc, local_now, flow_mode='day', branch_table=False):
         Appt = self.env['ycc.appointment']
         Order = self._orders_model()
         today = local_now.date()
@@ -325,7 +408,7 @@ class YCCDashboard(models.AbstractModel):
         occupancy = self._period_occupancy(selected, flow_start, flow_end, today, now_utc)
         flow = self._flow(selected, flow_mode, flow_start, flow_end, now_utc, local_now, occupancy)
         branch_compare = None
-        if len(selected) > 1:
+        if branch_table and len(selected) > 1:
             branch_compare = []
             for cfg in selected:
                 one = self._flow(cfg, flow_mode, flow_start, flow_end, now_utc, local_now, occupancy)

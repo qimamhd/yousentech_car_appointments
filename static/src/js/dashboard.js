@@ -22,6 +22,8 @@ var Dashboard = AbstractAction.extend({
         'click .ycc-dash-branch-cancel': '_closeBranchPanel',
         'click .ycc-dash-branch-panel': '_stop',
         'click .ycc-dash-flow': '_onFlow',
+        'click .ycc-dash-cmp-toggle': '_onCompareBranches',
+        'keydown [role="button"][data-open-model]': '_onOpenKey',
         'click .ycc-dash-mode': '_onMode',
         'click .ycc-dash-step': '_onStep',
         'change .ycc-dash-compare': '_onCompare',
@@ -35,6 +37,7 @@ var Dashboard = AbstractAction.extend({
         this.tab = ['today', 'journey', 'team'].indexOf(prefs.tab) !== -1 ? prefs.tab : 'today';
         this.branchIds = Array.isArray(prefs.branchIds) ? prefs.branchIds : [];
         this.flowMode = ['day', 'week', 'month'].indexOf(prefs.flowMode) !== -1 ? prefs.flowMode : 'day';
+        this.compareBranches = !!prefs.compareBranches;
         this.mode = ['day', 'month', 'year'].indexOf(prefs.mode) !== -1 ? prefs.mode : 'month';
         this.compare = ['none', 'previous', 'last_year'].indexOf(prefs.compare) !== -1 ? prefs.compare : 'none';
         this.anchor = false;  // the current period by default; navigation is per session
@@ -63,7 +66,7 @@ var Dashboard = AbstractAction.extend({
         return this._super.apply(this, arguments);
     },
     _savePrefs: function () {
-        savePrefs({tab: this.tab, branchIds: this.branchIds, mode: this.mode, compare: this.compare, flowMode: this.flowMode});
+        savePrefs({tab: this.tab, branchIds: this.branchIds, mode: this.mode, compare: this.compare, flowMode: this.flowMode, compareBranches: this.compareBranches});
     },
     _load: function (silent) {
         var self = this;
@@ -73,6 +76,7 @@ var Dashboard = AbstractAction.extend({
             model: 'ycc.dashboard',
             method: 'get_dashboard_data',
             args: [this.tab, {branch_ids: this.branchIds, mode: this.mode, flow_mode: this.flowMode,
+                              compare_branches: this.compareBranches,
                               anchor: this.anchor || false, compare: this.compare}],
         }).then(function (data) {
             if (!self._alive) { return; }
@@ -141,6 +145,16 @@ var Dashboard = AbstractAction.extend({
         this.branchIds = (this.branchIds.length === 1 && this.branchIds[0] === id) ? [] : [id];
         this._savePrefs();
         this._load();
+    },
+    _onCompareBranches: function () {
+        this.compareBranches = !this.compareBranches;
+        // Comparing needs at least two branches: a single selected branch widens to all.
+        if (this.compareBranches && this.branchIds.length === 1) { this.branchIds = []; }
+        this._savePrefs();
+        this._load();
+    },
+    _onOpenKey: function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { this._onOpen(ev); }
     },
     _onFlow: function (ev) {
         var mode = ev.currentTarget.getAttribute('data-flow');

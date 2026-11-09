@@ -25,9 +25,15 @@
      <div class="ycc-dash-check-list">
       <t t-foreach="d.branches" t-as="b"><label class="ycc-dash-check"><input type="checkbox" class="ycc-dash-branch-cb" t-att-value="b.id" t-att-checked="(!d.branch_ids.length || d.branch_ids.indexOf(b.id) !== -1) ? 'checked' : undefined"/> <t t-esc="b.name"/></label></t>
      </div>
-     <small class="ycc-dash-sub">اختر فرعين أو أكثر لعرض جدول المقارنة</small>
+     <small class="ycc-dash-sub">اختر فرعين أو أكثر ثم فعّل «مقارنة الفروع»</small>
      <div class="ycc-dash-branch-actions"><button type="button" class="ycc-dash-branch-apply">تطبيق</button><button type="button" class="ycc-dash-branch-cancel">إلغاء</button></div>
     </div>
+   </div>
+   <div class="ycc-dash-field" t-if="d.branches.length > 1">
+    <span><i class="fa fa-columns"/> طريقة العرض</span>
+    <button type="button" t-att-class="'ycc-dash-cmp-toggle' + (d.compare_branches ? ' active' : '')" t-att-aria-pressed="d.compare_branches ? 'true' : 'false'">
+     <span class="ycc-dash-switch"><span/></span><t t-esc="d.compare_branches ? 'مقارنة الفروع: مفعّلة' : 'مقارنة الفروع'"/>
+    </button>
    </div>
    <t t-if="tab !== 'today'">
     <div class="ycc-dash-field">
@@ -62,6 +68,11 @@
   <button type="button" role="tab" t-att-aria-selected="tab === 'team' ? 'true' : 'false'" t-att-class="'ycc-dash-tab' + (tab === 'team' ? ' active' : '')" data-tab="team"><i class="fa fa-users"/> أداء الفريق</button>
  </div>
 
+ <div t-if="d.compare_branches" class="ycc-dash-legendbar">
+  <span class="ycc-dash-legendbar-title"><i class="fa fa-columns"/> وضع مقارنة الفروع</span>
+  <t t-foreach="d.branch_legend" t-as="bl"><button type="button" class="ycc-dash-legend-chip" t-att-data-branch="bl.id" title="عرض هذا الفرع فقط"><i t-attf-style="background: #{bl.color}"/><t t-esc="bl.name"/></button></t>
+  <span class="ycc-dash-legendbar-hint"><i class="fa fa-trophy"/> الأفضل · <span class="is-worst-dot"/> الأضعف · الضغط على شريط الفرع يفتح سجلاته</span>
+ </div>
  <div t-if="d.empty" class="ycc-dash-empty"><i class="fa fa-info-circle"/> <t t-esc="d.empty"/></div>
  <t t-if="!d.empty &amp;&amp; tab === 'today'"><t t-call="ycc.DashToday"/></t>
  <t t-if="!d.empty &amp;&amp; tab === 'journey'"><t t-call="ycc.DashJourney"/></t>
@@ -72,14 +83,31 @@
 <t t-name="ycc.DashIndicators">
  <section class="ycc-dash-card ycc-dash-ind-card" aria-label="مؤشرات خدمة العملاء">
   <div class="ycc-dash-card-head"><h2>مؤشرات خدمة العملاء <small><t t-esc="scopeLabel"/> · نفس حساب شاشة التقويم</small></h2></div>
-  <div class="ycc-dash-ind-strip">
+  <div t-att-class="'ycc-dash-ind-strip' + (d.compare_branches ? ' is-compare' : '')">
    <t t-foreach="d.indicators" t-as="ind">
-    <button type="button" t-att-class="'ycc-dash-ind ind-' + ind.key + (ind.count ? '' : ' is-zero')" t-att-data-open-model="ind.model" t-att-data-open-ids="ind.ids.join(',')" t-att-data-open-title="ind.title" t-att-title="ind.title + ' — اضغط لعرض السجلات'">
-     <i t-att-class="'fa ' + ind.icon"/><span><t t-esc="ind.title"/></span><strong><t t-esc="ind.count"/></strong>
-    </button>
+    <div t-att-class="'ycc-dash-ind-wrap' + (d.compare_branches ? ' is-compare' : '')">
+     <div role="button" tabindex="0" t-att-class="'ycc-dash-ind ind-' + ind.key + (ind.count ? '' : ' is-zero')" t-att-data-open-model="ind.model" t-att-data-open-ids="ind.ids.join(',')" t-att-data-open-title="ind.title" t-att-title="ind.title + ' — اضغط لعرض السجلات'">
+      <i t-att-class="'fa ' + ind.icon"/><span><t t-esc="ind.title"/></span><strong><t t-esc="ind.count"/></strong>
+     </div>
+     <t t-call="ycc.DashBreak"><t t-set="bb" t-value="ind.by_branch"/><t t-set="title" t-value="ind.title"/></t>
+    </div>
    </t>
   </div>
  </section>
+</t>
+
+<t t-name="ycc.DashBreak">
+ <div t-if="bb &amp;&amp; bb.length" class="ycc-dash-break">
+  <t t-foreach="bb" t-as="r">
+   <button type="button" t-att-class="'ycc-dash-break-row' + (r.flag ? ' is-' + r.flag : '')" t-att-data-open-model="r.ids.length ? r.model : undefined" t-att-data-open-ids="r.ids.join(',')" t-att-data-open-title="(title || '') + ' — ' + r.name" t-att-title="r.name + ': ' + r.value">
+    <span class="ycc-dash-break-name"><i t-attf-style="background: #{r.color}"/><t t-esc="r.name"/></span>
+    <span class="ycc-dash-break-track"><span t-attf-style="width: #{r.width}%; background: #{r.color}"/></span>
+    <strong><bdi dir="ltr"><t t-esc="r.value"/></bdi></strong>
+    <i t-if="r.flag === 'best'" class="fa fa-trophy ycc-dash-break-flag" title="الأفضل"/>
+    <i t-if="r.flag === 'worst'" class="ycc-dash-break-worst" title="الأضعف"/>
+   </button>
+  </t>
+ </div>
 </t>
 
 <t t-name="ycc.DashDelta">
@@ -95,6 +123,7 @@
     <div class="ycc-dash-kpi-value"><strong><t t-esc="k.value"/></strong><span><t t-esc="k.unit"/></span></div>
     <div class="ycc-dash-meter"><span t-attf-style="width: #{k.pct}%"/></div>
     <span class="ycc-dash-kpi-note"><t t-esc="k.note"/></span>
+    <t t-call="ycc.DashBreak"><t t-set="bb" t-value="k.by_branch"/><t t-set="title" t-value="k.label"/></t>
    </div>
   </t>
  </section>
@@ -111,11 +140,14 @@
    </div>
    <div class="ycc-dash-progress">
     <t t-foreach="d.progress" t-as="g">
-     <button type="button" t-att-class="'ycc-dash-prog tone-' + g.tone" data-open-model="ycc.appointment" t-att-data-open-ids="g.ids.join(',')" t-att-data-open-title="g.label">
-      <span class="ycc-dash-prog-label"><t t-esc="g.label"/></span>
-      <strong><bdi dir="ltr"><t t-esc="g.value"/></bdi></strong>
-      <small><t t-esc="g.sub"/></small>
-     </button>
+     <div t-att-class="'ycc-dash-prog tone-' + g.tone">
+      <div role="button" tabindex="0" class="ycc-dash-prog-main" data-open-model="ycc.appointment" t-att-data-open-ids="g.ids.join(',')" t-att-data-open-title="g.label">
+       <span class="ycc-dash-prog-label"><t t-esc="g.label"/></span>
+       <strong><bdi dir="ltr"><t t-esc="g.value"/></bdi></strong>
+       <small><t t-esc="g.sub"/></small>
+      </div>
+      <t t-call="ycc.DashBreak"><t t-set="bb" t-value="g.by_branch"/><t t-set="title" t-value="g.label"/></t>
+     </div>
     </t>
    </div>
   </section>
@@ -183,7 +215,10 @@
    <h2>متابعات العملاء</h2>
    <div class="ycc-dash-mini3">
     <t t-foreach="d.followups" t-as="f">
-     <button type="button" t-att-class="'ycc-dash-mini tone-' + f.tone" data-open-model="ycc.appointment" t-att-data-open-ids="f.ids.join(',')" t-att-data-open-title="'متابعات ' + f.label"><strong><t t-esc="f.count"/></strong><span><t t-esc="f.label"/></span></button>
+     <div class="ycc-dash-mini-wrap">
+      <button type="button" t-att-class="'ycc-dash-mini tone-' + f.tone" data-open-model="ycc.appointment" t-att-data-open-ids="f.ids.join(',')" t-att-data-open-title="'متابعات ' + f.label"><strong><t t-esc="f.count"/></strong><span><t t-esc="f.label"/></span></button>
+      <t t-call="ycc.DashBreak"><t t-set="bb" t-value="f.by_branch"/><t t-set="title" t-value="'متابعات ' + f.label"/></t>
+     </div>
     </t>
    </div>
    <button type="button" class="ycc-dash-inline-link" data-open-model="ycc.appointment" t-att-data-open-ids="d.expiring.ids.join(',')" data-open-title="حجوزات مبدئية تنتهي مهلتها خلال ساعة">
@@ -198,12 +233,15 @@
  <div class="ycc-dash-basis"><i class="fa fa-info-circle"/> الأرقام محسوبة حسب <strong>تاريخ الحجز</strong> (مثل شاشة التقويم) للحجوزات التي يبدأ موعدها في <t t-esc="d.period_label"/>.</div>
  <section class="ycc-dash-summary" aria-label="الملخص">
   <t t-foreach="d.summary" t-as="k">
-   <button type="button" t-att-class="'ycc-dash-sum tone-' + k.tone" data-open-model="ycc.appointment" t-att-data-open-ids="k.ids.join(',')" t-att-data-open-title="k.title">
-    <span class="ycc-dash-sum-title"><t t-esc="k.title"/></span>
-    <strong><bdi dir="ltr"><t t-esc="k.value"/></bdi></strong>
-    <t t-call="ycc.DashDelta"><t t-set="delta" t-value="k.delta"/></t>
-    <small t-if="d.compare_label">السابق (<t t-esc="d.compare_label"/>): <bdi dir="ltr"><t t-esc="k.prev"/></bdi></small>
-   </button>
+   <div t-att-class="'ycc-dash-sum tone-' + k.tone">
+    <div role="button" tabindex="0" class="ycc-dash-sum-main" data-open-model="ycc.appointment" t-att-data-open-ids="k.ids.join(',')" t-att-data-open-title="k.title">
+     <span class="ycc-dash-sum-title"><t t-esc="k.title"/></span>
+     <strong><bdi dir="ltr"><t t-esc="k.value"/></bdi></strong>
+     <t t-call="ycc.DashDelta"><t t-set="delta" t-value="k.delta"/></t>
+     <small t-if="d.compare_label">السابق (<t t-esc="d.compare_label"/>): <bdi dir="ltr"><t t-esc="k.prev"/></bdi></small>
+    </div>
+    <t t-call="ycc.DashBreak"><t t-set="bb" t-value="k.by_branch"/><t t-set="title" t-value="k.title"/></t>
+   </div>
   </t>
  </section>
  <section t-if="d.branch_compare" class="ycc-dash-card" aria-label="مقارنة الفروع">
@@ -246,6 +284,11 @@
     </button>
    </t>
   </div>
+  <div t-if="d.compare_branches" class="ycc-dash-funnel-break">
+   <t t-foreach="d.funnel" t-as="f">
+    <div class="ycc-dash-funnel-break-col"><small><t t-esc="f.label"/></small><t t-call="ycc.DashBreak"><t t-set="bb" t-value="f.by_branch"/><t t-set="title" t-value="f.label"/></t></div>
+   </t>
+  </div>
  </section>
 
  <section class="ycc-dash-leaks" aria-label="نقاط التسرب">
@@ -253,6 +296,7 @@
    <div t-att-class="'ycc-dash-card ycc-dash-leak tone-' + l.tone">
     <div class="ycc-dash-card-head"><h3><t t-esc="l.title"/></h3><t t-call="ycc.DashDelta"><t t-set="delta" t-value="l.delta"/></t></div>
     <button type="button" class="ycc-dash-leak-value" data-open-model="ycc.appointment" t-att-data-open-ids="l.ids.join(',')" t-att-data-open-title="l.title"><strong><t t-esc="l.value"/></strong><span><t t-esc="l.share"/></span></button>
+    <t t-call="ycc.DashBreak"><t t-set="bb" t-value="l.by_branch"/><t t-set="title" t-value="l.title"/></t>
     <t t-foreach="l.reasons" t-as="r">
      <div class="ycc-dash-reason"><span class="ycc-dash-bar-label"><span><t t-esc="r.label"/></span><span><t t-esc="r.count"/></span></span><span class="ycc-dash-meter thin"><span t-attf-style="width: #{r.pct}%"/></span></div>
     </t>
@@ -266,7 +310,7 @@
    <h2>أزمنة الرحلة</h2>
    <div class="ycc-dash-durations">
     <t t-foreach="d.durations.rows" t-as="r">
-     <div class="ycc-dash-duration"><span><t t-esc="r.from"/></span><strong><t t-esc="r.value"/> <small><t t-esc="r.unit"/></small></strong><em t-att-class="'tone-' + r.tone"><t t-esc="r.status"/></em></div>
+     <div class="ycc-dash-duration"><span><t t-esc="r.from"/></span><strong><t t-esc="r.value"/> <small><t t-esc="r.unit"/></small></strong><em t-att-class="'tone-' + r.tone"><t t-esc="r.status"/></em><t t-call="ycc.DashBreak"><t t-set="bb" t-value="r.by_branch"/><t t-set="title" t-value="r.from"/></t></div>
     </t>
    </div>
    <div t-if="d.durations.on_time" class="ycc-dash-ontime">
@@ -335,7 +379,8 @@
      <t t-foreach="d.people" t-as="p">
       <tr>
        <td><span class="ycc-dash-person"><span t-att-class="'ycc-dash-avatar ' + p.avatar"><t t-esc="p.initials"/></span><span><strong><t t-esc="p.name"/></strong><small><t t-esc="p.role"/></small></span></span></td>
-       <td><button type="button" class="ycc-dash-num-link" data-open-model="ycc.appointment" t-att-data-open-ids="p.created_ids.join(',')" t-att-data-open-title="'حجوزات ' + p.name"><t t-esc="p.created"/></button><t t-if="d.compare_on"><t t-call="ycc.DashDelta"><t t-set="delta" t-value="p.created_delta"/></t></t></td>
+       <td><button type="button" class="ycc-dash-num-link" data-open-model="ycc.appointment" t-att-data-open-ids="p.created_ids.join(',')" t-att-data-open-title="'حجوزات ' + p.name"><t t-esc="p.created"/></button><t t-if="d.compare_on"><t t-call="ycc.DashDelta"><t t-set="delta" t-value="p.created_delta"/></t></t>
+        <div t-if="d.compare_branches" class="ycc-dash-stackbar" title="توزيع الحجوزات على الفروع"><t t-foreach="p.by_branch" t-as="r"><span t-if="r.num" t-attf-style="flex: #{r.num} 1 0; background: #{r.color}" t-att-title="r.name + ': ' + r.value"/></t></div></td>
        <td><span class="ycc-dash-conv"><span t-att-class="'ycc-dash-meter conv-' + (p.conv_level || 'none')"><span t-attf-style="width: #{p.conv || 0}%"/></span><strong><t t-esc="p.conv_text"/></strong></span><t t-if="d.compare_on"><t t-call="ycc.DashDelta"><t t-set="delta" t-value="p.conv_delta"/></t></t></td>
        <td><t t-esc="p.expired"/></td>
        <td><t t-esc="p.cancelled"/></td>
