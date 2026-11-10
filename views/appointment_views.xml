@@ -63,13 +63,10 @@
   <field name="notes" nolabel="1" attrs="{'readonly':['&amp;',('installation_order_id','!=',False),('ycc_is_manager','=',False)]}" placeholder="أضف ملاحظات عامة حول الحجز..."/>
 </div>
 </sheet><div class="oe_chatter"><field name="message_follower_ids" widget="mail_followers"/><field name="activity_ids" widget="mail_activity"/><field name="message_ids" widget="mail_thread"/></div></form></field></record>
-<record id="view_ycc_appointment_sales_restricted" model="ir.ui.view">
- <field name="name">ycc.appointment.sales.arrival.restricted</field>
- <field name="model">ycc.appointment</field>
- <field name="inherit_id" ref="view_ycc_appointment_form"/>
- <field name="groups_id" eval="[(4, ref('group_ycc_sales_arrival'))]"/>
- <field name="arch" type="xml"><xpath expr="//form" position="attributes"><attribute name="create">false</attribute><attribute name="edit">false</attribute><attribute name="delete">false</attribute></xpath></field>
-</record>
+<!-- V6.72: the arrival-only restriction (no create / edit / delete on the booking form)
+     is applied in ycc.appointment.fields_view_get, only for users who are arrival reps
+     WITHOUT a booking role. The former group-based view also hit booking managers who
+     happened to have the arrival group, hiding Edit and Create for them. -->
 <record id="view_ycc_contact_wizard_form" model="ir.ui.view">
 <field name="name">ycc.contact.wizard.form</field><field name="model">ycc.contact.wizard</field>
 <field name="arch" type="xml">

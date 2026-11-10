@@ -485,6 +485,19 @@ class YCCAppointment(models.Model):
                 and self.env.user.has_group('yousentech_car_appointments.group_ycc_sales_arrival')
                 and not self.env.user.has_group('yousentech_car_appointments.group_ycc_booking'))
 
+    @api.model
+    def fields_view_get(self, view_id=None, view_type='form', toolbar=False, submenu=False):
+        """Arrival-only reps (no booking role) get a booking form without create /
+        edit / delete. Same rule as _ycc_arrival_only_user: booking permission wins."""
+        res = super().fields_view_get(view_id=view_id, view_type=view_type, toolbar=toolbar, submenu=submenu)
+        if view_type == 'form' and self._ycc_arrival_only_user():
+            from lxml import etree
+            doc = etree.XML(res['arch'])
+            for action in ('create', 'edit', 'delete'):
+                doc.set(action, 'false')
+            res['arch'] = etree.tostring(doc, encoding='unicode')
+        return res
+
     def _ycc_can_book(self):
         return self._ycc_manager() or (not self._ycc_arrival_only_user()
             and self.env.user.has_group('yousentech_car_appointments.group_ycc_booking'))
