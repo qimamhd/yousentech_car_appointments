@@ -257,6 +257,14 @@ class YCCAppointment(models.Model):
     company_id = fields.Many2one('res.company',related='branch_id.company_id',store=True,readonly=True)
     actual_arrival_at = fields.Datetime(string='تاريخ ووقت وصول السيارة الفعلي', readonly=True, copy=False, tracking=True)
     installation_order_id = fields.Many2one('wo.installation.order.mst', string='أمر التركيب المرتبط', readonly=True, copy=False, tracking=True)
+    ycc_order_cancelled = fields.Boolean(string='أمر التركيب ملغي', compute='_compute_ycc_order_cancelled',
+                                         help='أمر التركيب المرتبط بحالة ملغي؛ يمكن لمدير المواعيد إرجاع الحجز إلى مبدئي.')
+
+    @api.depends('installation_order_id', 'installation_order_id.state')
+    def _compute_ycc_order_cancelled(self):
+        for rec in self:
+            rec.ycc_order_cancelled = bool(rec.installation_order_id and rec.installation_order_id.state == 'cancel_order')
+
     ycc_is_manager = fields.Boolean(compute='_compute_ycc_is_manager',
                                     help='مدير المواعيد: يملك تعديل وحذف الحجز ونقل فرعه حتى بعد إنشاء أمر التركيب.')
 
@@ -771,18 +779,43 @@ class YCCAppointment(models.Model):
             if rec.state not in ('provisional','contacting','postponed') or not rec._occupies():
                 raise UserError(_('Only active provisional bookings can be confirmed.'))
             rec.write({'state':'confirmed'})
+    def _ycc_can_return_to_provisional(self):
+        """Allowed cases (manager only):
+        - confirmed booking without an installation order: never arrived, or its
+          installation order was deleted (the booking was reset to confirmed);
+        - booking whose linked installation order is cancelled."""
+        self.ensure_one()
+        if self.installation_order_id:
+            return self.installation_order_id.state == 'cancel_order'
+        return self.state == 'confirmed'
+
     def action_back_to_provisional(self):
-        """Manager only: return a confirmed booking (car not arrived) to provisional with a fresh hold."""
+        """Manager only: return a booking to provisional with a fresh hold."""
         if not self._ycc_manager():
-            raise UserError(_('إرجاع الحجز المؤكد إلى حجز مبدئي متاح لمدير المواعيد فقط.'))
+            raise UserError(_('إرجاع الحجز إلى حجز مبدئي متاح لمدير المواعيد فقط.'))
         for rec in self:
-            if rec.state != 'confirmed' or rec.installation_order_id or rec.actual_arrival_at:
-                raise UserError(_('يمكن إرجاع الحجز إلى مبدئي فقط إذا كان مؤكدًا ولم تصل السيارة ولم يُنشأ أمر تركيب.'))
+            if not rec._ycc_can_return_to_provisional():
+                raise UserError(_('يمكن إرجاع الحجز %s إلى مبدئي إذا كان مؤكدًا بدون أمر تركيب '
+                                  '(لم تصل السيارة أو حُذف أمر التركيب)، أو كان أمر التركيب المرتبط ملغيًا.') % rec.name)
             minutes = rec.branch_id.provisional_minutes or 120
             hold = fields.Datetime.to_string(fields.Datetime.from_string(fields.Datetime.now()) + timedelta(minutes=minutes))
-            rec.with_context(ycc_internal_postpone=True).write({'state': 'provisional', 'hold_until': hold})
-            rec.message_post(body=_('أعاد مدير المواعيد %s الحجز من مؤكد إلى حجز مبدئي. صلاحية الحجز المبدئي حتى %s.')
-                             % (self.env.user.name, hold))
+            previous_state = dict(self._fields['state'].selection).get(rec.state, rec.state)
+            notes = []
+            if rec.actual_arrival_at:
+                notes.append(_('أُلغي تسجيل الوصول السابق (%s).') % rec.actual_arrival_at)
+            order = rec.installation_order_id
+            vals = {'state': 'provisional', 'hold_until': hold, 'actual_arrival_at': False}
+            if order:
+                # Cancelled order: unlink it so a new installation order can be created later.
+                vals['installation_order_id'] = False
+                notes.append(_('فُك الارتباط بأمر التركيب الملغي %s.') % order.display_name)
+            rec.with_context(ycc_internal_postpone=True).write(vals)
+            if order:
+                order.sudo().write({'ycc_appointment_id': False})
+                order.sudo().message_post(body=_('أعاد مدير المواعيد %s الحجز %s إلى حجز مبدئي وفك ارتباطه بهذا الأمر الملغي.')
+                                          % (self.env.user.name, rec.name))
+            rec.message_post(body=_('أعاد مدير المواعيد %s الحجز من «%s» إلى حجز مبدئي. صلاحية الحجز المبدئي حتى %s. %s')
+                             % (self.env.user.name, previous_state, hold, ' '.join(notes)))
         if len(self) == 1:
             # Reopen the booking in view mode so the Edit button is available right away.
             return {'type': 'ir.actions.act_window', 'res_model': 'ycc.appointment', 'res_id': self.id,

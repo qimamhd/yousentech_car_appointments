@@ -75,7 +75,8 @@ class YCCInstallationOrder(models.Model):
             appointment.sudo().with_context(ycc_internal_order_unlink=True).write({
                 'installation_order_id': False, 'state': 'confirmed'
             })
-            appointment.sudo().message_post(body=_('تم حذف أمر التركيب المرتبط؛ أعيدت حالة الحجز إلى مؤكد.'))
+            appointment.sudo().message_post(body=_('تم حذف أمر التركيب المرتبط؛ أعيدت حالة الحجز إلى مؤكد. '
+                                                   'يمكن لمدير المواعيد إرجاعه إلى حجز مبدئي من زر «إرجاع إلى حجز مبدئي».'))
         return result
 
 
