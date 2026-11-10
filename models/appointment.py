@@ -474,8 +474,9 @@ class YCCAppointment(models.Model):
                     raise ValidationError(_('اكتملت القدرة الاستيعابية اليومية في %s: الحد الأقصى %s سيارات، بغض النظر عن عدد الفترات.') % (day, rec.branch_id.capacity))
 
     def _ycc_manager(self):
-        return (self.env.user.has_group('yousentech_car_appointments.group_ycc_manager')
-                or self.env.user.has_group('base.group_system'))
+        # Only the module's manager group; the project never relies on
+        # Odoo's "Administration: Settings" group (clients do not get it).
+        return self.env.user.has_group('yousentech_car_appointments.group_ycc_manager')
 
     def _ycc_arrival_only_user(self):
         # Arrival-only restrictions apply only when the user has no booking role.
@@ -552,8 +553,8 @@ class YCCAppointment(models.Model):
                             and self.env.context.get('ycc_source_appointment_id'))
             if not (allowed_arrival or allowed_check_complete or allowed_link):
                 raise UserError(_('صلاحيتك تقتصر على وصول السيارة وإنشاء أمر تركيب.'))
-        if 'hold_until' in vals and not (self.env.user.has_group('base.group_system') or self.env.context.get('ycc_internal_postpone')):
-            raise UserError(_('Only administrators may edit hold expiry.'))
+        if 'hold_until' in vals and not (self._ycc_manager() or self.env.context.get('ycc_internal_postpone')):
+            raise UserError(_('تعديل مهلة الحجز المبدئي متاح لمدير المواعيد فقط.'))
         if vals.get('state') in ('provisional','contacting') and 'hold_until' not in vals:
             for rec in self:
                 if rec.state not in ('provisional','contacting','postponed') or not rec._occupies():
@@ -769,6 +770,11 @@ class YCCAppointment(models.Model):
             rec.with_context(ycc_internal_postpone=True).write({'state': 'provisional', 'hold_until': hold})
             rec.message_post(body=_('أعاد مدير المواعيد %s الحجز من مؤكد إلى حجز مبدئي. صلاحية الحجز المبدئي حتى %s.')
                              % (self.env.user.name, hold))
+        if len(self) == 1:
+            # Reopen the booking in view mode so the Edit button is available right away.
+            return {'type': 'ir.actions.act_window', 'res_model': 'ycc.appointment', 'res_id': self.id,
+                    'view_mode': 'form', 'views': [(False, 'form')], 'target': 'current',
+                    'flags': {'mode': 'readonly'}}
         return True
 
     def action_done(self):
