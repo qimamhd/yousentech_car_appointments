@@ -37,3 +37,8 @@
 ## الترقية
 odoo-bin -c /path/odoo.conf -d DB -u yousentech_car_appointments --stop-after-init
 بعد الترقية، تتولى المهمة التلقائية إنشاء السجلات خلال ساعة. لتجربتها فورًا: الإعدادات ← تقني ← المهام المجدولة ← «Car Care: Customer Experience Calls» ← تشغيل يدوي.
+
+## إصلاح فشل الترقية
+- الخطأ: `Invalid view ycc.feedback.tree definition`. Odoo 13 لا يسمح بخاصية `decoration-…` على الحقول داخل القائمة (tree)، فهي من Odoo 14.
+- أُزيلت من كل الحقول. تلوين الصفوف باقٍ لأنه على مستوى القائمة نفسها، وهذا مسموح في 13.
+- كل القوائم ونوافذ البحث في الموديول صارت تُفحص بملفات قواعد Odoo 13 الأصلية (`tree_view.rng` و`search_view.rng`)، وكلها صالحة.

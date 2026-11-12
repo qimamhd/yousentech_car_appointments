@@ -17,8 +17,8 @@
  <div class="ycc-arrival-audit-title"><i class="fa fa-smile-o"/> تجربة العميل بعد الخدمة</div>
  <group>
   <group>
-   <field name="feedback_state" readonly="1" widget="badge" decoration-info="feedback_state == 'due'" decoration-success="feedback_state == 'done'" decoration-muted="feedback_state in ('unreachable','declined')"/>
-   <field name="feedback_rating" readonly="1" widget="badge" attrs="{'invisible':[('feedback_rating','=',False)]}" decoration-success="feedback_rating in ('5','4')" decoration-warning="feedback_rating == '3'" decoration-danger="feedback_rating in ('2','1')"/>
+   <field name="feedback_state" readonly="1" widget="badge"/>
+   <field name="feedback_rating" readonly="1" widget="badge" attrs="{'invisible':[('feedback_rating','=',False)]}"/>
    <field name="feedback_due_date" readonly="1"/>
    <field name="feedback_attempts" readonly="1" attrs="{'invisible':[('feedback_attempts','=',0)]}"/>
   </group>
