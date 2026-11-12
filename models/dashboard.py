@@ -45,9 +45,9 @@ BRANCH_COLORS = ['#4C6EF5', '#0CA678', '#E8590C', '#7048E8', '#D6336C', '#1098AD
 # Direction used to mark the best / weakest branch on each indicator.
 LOWER_IS_BETTER = {'waiting', 'late', 'no_show', 'cancelled', 'wait', 'late_arrival', 'late_delivery',
                    'open_invoices', 'expired', 'postponed', 'overdue', 'arrival_order', 'booking_arrival',
-                   'order_done'}
+                   'order_done', 'sat_unhappy', 'sat_unreachable', 'sat_due'}
 HIGHER_IS_BETTER = {'show_rate', 'conv', 'closed_rate', 'arrived', 'occupancy', 'orders', 'completed',
-                    'invoice_closed', 'total', 'step0', 'step1', 'step2', 'step3', 'step4', 'step5'}
+                    'invoice_closed', 'total', 'sat_rate', 'sat_avg', 'sat_done', 'step0', 'step1', 'step2', 'step3', 'step4', 'step5'}
 
 
 def _num(value):
@@ -271,6 +271,7 @@ class YCCDashboard(models.AbstractModel):
         if tab == 'journey':
             payload = self._journey_data(selected, ctx['start'], ctx['end'], ctx['now_utc'], ctx['cmp_period'])
             payload['indicators'] = self._indicators(selected, ctx['start'], ctx['end'], ctx['local_now'])
+            payload['sat'] = self._satisfaction(selected, ctx['start'], ctx['end'], ctx['cmp_period'], ctx['today'])
             if branch_table:
                 payload['branch_compare'] = self._journey_branch_compare(selected, ctx['start'], ctx['end'], ctx['cmp_period'])
             return payload
@@ -286,6 +287,7 @@ class YCCDashboard(models.AbstractModel):
         (('kpis',), 'key', 'value'), (('progress',), 'key', 'value'), (('indicators',), 'key', 'count'),
         (('followups',), 'key', 'count'), (('summary',), 'key', 'value'), (('leaks',), 'key', 'value'),
         (('funnel',), 'key', 'value'), (('durations', 'rows'), 'key', 'value'), (('people',), 'id', 'created'),
+        (('sat', 'kpis'), 'key', 'value'),
     ]
 
     def _attach_breakdown(self, data, per_branch, legend):
@@ -452,6 +454,11 @@ class YCCDashboard(models.AbstractModel):
             {'key': 'today', 'label': 'اليوم', 'count': len(fu_today), 'ids': fu_today.ids, 'tone': 'blue'},
             {'key': 'week', 'label': 'خلال 7 أيام', 'count': len(fu_week), 'ids': fu_week.ids, 'tone': 'neutral'},
         ]
+        # V6.74: customer-experience calls due (any booking date) for the selected branches.
+        fb_due = self.env['ycc.feedback'].search([('branch_id', 'in', sel_ids), ('state', '=', 'due'),
+                                                  ('due_date', '<=', today_s)])
+        followups.append({'key': 'feedback', 'label': 'تجربة العميل', 'count': len(fb_due), 'ids': fb_due.ids,
+                          'tone': 'blue' if fb_due else 'neutral', 'model': 'ycc.feedback'})
         return {'kpis': kpis, 'progress': flow['tiles'], 'flow_label': flow_label, 'branch_compare': branch_compare,
                 'alerts': alerts,
                 'alerts_count': len(alerts), 'states': states, 'states_total': sum(s['count'] for s in states),
@@ -762,6 +769,61 @@ class YCCDashboard(models.AbstractModel):
                           ('no_show', 'down'), ('wait', 'down')])
         return rows
 
+    def _satisfaction(self, selected, start, end, cmp_period, today):
+        """Customer experience after service, by the date the call was recorded."""
+        from .feedback import RATINGS
+        Feedback = self.env['ycc.feedback']
+
+        def closed_in(a, b):
+            return Feedback.search([('branch_id', 'in', selected.ids), ('state', '!=', 'due'),
+                                    ('done_at', '>=', self._utc_bound(a)), ('done_at', '<', self._utc_bound(b))])
+
+        def stats(recs):
+            rated = recs.filtered(lambda f: f.state == 'done' and f.rating)
+            happy = rated.filtered(lambda f: int(f.rating) >= 4)
+            return {'rated': rated, 'happy': happy,
+                    'rate': _pct(len(happy), len(rated)) if rated else None,
+                    'avg': round(sum(int(f.rating) for f in rated) / float(len(rated)), 1) if rated else None,
+                    'unhappy': rated.filtered(lambda f: int(f.rating) <= 2),
+                    'unreachable': recs.filtered(lambda f: f.state == 'unreachable'),
+                    'declined': recs.filtered(lambda f: f.state == 'declined')}
+
+        cur = stats(closed_in(start, end))
+        prev = stats(closed_in(cmp_period[0], cmp_period[1])) if cmp_period else None
+        due = Feedback.search([('branch_id', 'in', selected.ids), ('state', '=', 'due'),
+                               ('due_date', '<=', fields.Date.to_string(today))])
+        overdue = due.filtered(lambda f: f.due_date and fields.Date.to_date(f.due_date) < today)
+
+        def tile(key, title, value, display, ids, tone, better, prev_value=None, points=False, sub=''):
+            return {'key': key, 'title': title, 'value': display, 'ids': ids, 'tone': tone, 'sub': sub,
+                    'model': 'ycc.feedback',
+                    'delta': _delta(value, prev_value, better=better, points=points) if prev is not None else None}
+
+        kpis = [
+            tile('sat_rate', 'نسبة الرضا', cur['rate'], ('%s%%' % cur['rate']) if cur['rate'] is not None else '—',
+                 cur['happy'].ids, 'green', 'up', prev['rate'] if prev else None, True, 'راضٍ أو راضٍ جدًا من التقييمات'),
+            tile('sat_avg', 'متوسط التقييم', cur['avg'], ('%s / 5' % cur['avg']) if cur['avg'] is not None else '—',
+                 cur['rated'].ids, 'blue', 'up', prev['avg'] if prev else None, False, 'من 5'),
+            tile('sat_done', 'تقييمات مسجلة', len(cur['rated']), len(cur['rated']), cur['rated'].ids, 'purple', 'up',
+                 len(prev['rated']) if prev else None),
+            tile('sat_unhappy', 'عملاء غير راضين', len(cur['unhappy']), len(cur['unhappy']), cur['unhappy'].ids,
+                 'red', 'down', len(prev['unhappy']) if prev else None, sub='يُنبَّه مدير المواعيد تلقائيًا'),
+            tile('sat_unreachable', 'تعذر التواصل', len(cur['unreachable']), len(cur['unreachable']),
+                 cur['unreachable'].ids, 'gray', 'down', len(prev['unreachable']) if prev else None,
+                 sub='بعد 3 محاولات بدون رد'),
+            tile('sat_due', 'بانتظار التواصل الآن', len(due), len(due), due.ids, 'amber' if not overdue else 'red',
+                 'down', sub=('منها %s متأخرة' % len(overdue)) if overdue else 'لا يوجد متأخر'),
+        ]
+        kpis[-1]['delta'] = None  # a live queue, not a period figure
+        biggest = max([len(cur['rated'].filtered(lambda f, c=code: f.rating == c)) for code, _l in RATINGS] or [0])
+        distribution = []
+        for code, label in RATINGS:
+            group = cur['rated'].filtered(lambda f, c=code: f.rating == c)
+            distribution.append({'key': 'r' + code, 'label': label, 'count': len(group), 'ids': group.ids,
+                                 'pct': _pct(len(group), biggest) if biggest else 0,
+                                 'share': _pct(len(group), len(cur['rated'])) if cur['rated'] else 0})
+        return {'kpis': kpis, 'distribution': distribution, 'rated_total': len(cur['rated'])}
+
     def _durations(self, created, selected, start, end):
         Appt = self.env['ycc.appointment']
         Order = self._orders_model()
@@ -878,7 +940,10 @@ class YCCDashboard(models.AbstractModel):
         overdue = Appt.search([('branch_id', 'in', selected.ids), ('state', 'in', FOLLOWUP_STATES),
                                ('next_contact_at', '<', now_utc)])
         linked = created.filtered(lambda a: a.installation_order_id and a.actual_arrival_at)
-        users = created.mapped('create_uid') | contacts.mapped('user_id') | overdue.mapped('create_uid') \
+        fb_recorders = self.env['ycc.feedback'].search([
+            ('branch_id', 'in', selected.ids), ('state', '!=', 'due'),
+            ('done_at', '>=', self._utc_bound(start)), ('done_at', '<', self._utc_bound(end))]).mapped('done_by')
+        users = fb_recorders | created.mapped('create_uid') | contacts.mapped('user_id') | overdue.mapped('create_uid') \
             | linked.mapped('installation_order_id.create_uid')
         manager = self.env.ref('yousentech_car_appointments.group_ycc_manager', raise_if_not_found=False)
         booking = self.env.ref('yousentech_car_appointments.group_ycc_booking', raise_if_not_found=False)
@@ -919,6 +984,19 @@ class YCCDashboard(models.AbstractModel):
                 'created_delta': _delta(len(mine), prev_created),
                 'conv_delta': _delta(_pct(len(confirmed), len(mine)) if mine else None, prev_conv, points=True),
             })
+        # V6.74: customer experience per user — calls recorded, and satisfaction of the
+        # customers whose bookings the user created (calls recorded in the period).
+        fb_period = self.env['ycc.feedback'].search([
+            ('branch_id', 'in', selected.ids), ('state', '!=', 'due'),
+            ('done_at', '>=', self._utc_bound(start)), ('done_at', '<', self._utc_bound(end))])
+        for row in rows:
+            recorded = fb_period.filtered(lambda f, uid=row['id']: f.done_by.id == uid)
+            mine = fb_period.filtered(lambda f, uid=row['id']: f.booking_user_id.id == uid and f.state == 'done' and f.rating)
+            row['fb_done'] = len(recorded)
+            row['fb_done_ids'] = recorded.ids
+            row['fb_rate'] = _pct(len(mine.filtered(lambda f: int(f.rating) >= 4)), len(mine)) if mine else None
+            row['fb_rate_text'] = ('%s%%' % row['fb_rate']) if row['fb_rate'] is not None else '—'
+            row['fb_rate_level'] = None if row['fb_rate'] is None else 'high' if row['fb_rate'] >= 80 else 'mid' if row['fb_rate'] >= 60 else 'low'
         rows.sort(key=lambda r: (r['conv'] is None, -(r['conv'] or 0), -r['created']))
         for index, row in enumerate(rows):
             row['avatar'] = 'a%s' % (index % 6)

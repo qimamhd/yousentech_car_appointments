@@ -190,7 +190,7 @@ var Dashboard = AbstractAction.extend({
         ev.stopPropagation();
         var el = ev.currentTarget;
         var model = el.getAttribute('data-open-model');
-        if (['ycc.appointment', 'wo.installation.order.mst'].indexOf(model) === -1) { return; }
+        if (['ycc.appointment', 'wo.installation.order.mst', 'ycc.feedback'].indexOf(model) === -1) { return; }
         var id = parseInt(el.getAttribute('data-open-id'), 10);
         if (id) {
             return this.do_action({type: 'ir.actions.act_window', res_model: model, res_id: id,

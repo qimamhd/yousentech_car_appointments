@@ -22,3 +22,5 @@ access_ycc_close_reason_wizard,ycc.close.reason.wizard,model_ycc_close_reason_wi
 access_ycc_delivery_change_wizard,ycc.delivery.change.wizard,model_ycc_delivery_change_wizard,yousentech_car_appointments.group_ycc_booking,1,1,1,1
 access_ycc_delivery_change,ycc.delivery.change,model_ycc_delivery_change,yousentech_car_appointments.group_ycc_booking,1,0,1,0
 access_ycc_delivery_change_manager,ycc.delivery.change.manager,model_ycc_delivery_change,yousentech_car_appointments.group_ycc_manager,1,1,1,1
+access_ycc_feedback_booking,ycc.feedback booking,model_ycc_feedback,yousentech_car_appointments.group_ycc_booking,1,1,1,0
+access_ycc_feedback_manager,ycc.feedback manager,model_ycc_feedback,yousentech_car_appointments.group_ycc_manager,1,1,1,1

@@ -216,7 +216,7 @@
    <div class="ycc-dash-mini3">
     <t t-foreach="d.followups" t-as="f">
      <div class="ycc-dash-mini-wrap">
-      <button type="button" t-att-class="'ycc-dash-mini tone-' + f.tone" data-open-model="ycc.appointment" t-att-data-open-ids="f.ids.join(',')" t-att-data-open-title="'متابعات ' + f.label"><strong><t t-esc="f.count"/></strong><span><t t-esc="f.label"/></span></button>
+      <button type="button" t-att-class="'ycc-dash-mini tone-' + f.tone" t-att-data-open-model="f.model || 'ycc.appointment'" t-att-data-open-ids="f.ids.join(',')" t-att-data-open-title="f.model ? f.label + ' — مستحقة' : 'متابعات ' + f.label"><strong><t t-esc="f.count"/></strong><span><t t-esc="f.label"/></span></button>
       <t t-call="ycc.DashBreak"><t t-set="bb" t-value="f.by_branch"/><t t-set="title" t-value="'متابعات ' + f.label"/></t>
      </div>
     </t>
@@ -305,6 +305,37 @@
   </t>
  </section>
 
+ <section t-if="d.sat" class="ycc-dash-card ycc-dash-sat" aria-label="رضا العملاء بعد الخدمة">
+  <div class="ycc-dash-card-head">
+   <h2><i class="fa fa-smile-o"/> رضا العملاء بعد الخدمة <small>حسب تاريخ تسجيل التواصل · <t t-esc="d.sat.rated_total"/> تقييم</small></h2>
+  </div>
+  <div class="ycc-dash-sat-grid">
+   <t t-foreach="d.sat.kpis" t-as="k">
+    <div t-att-class="'ycc-dash-sum tone-' + k.tone">
+     <div role="button" tabindex="0" class="ycc-dash-sum-main" data-open-model="ycc.feedback" t-att-data-open-ids="k.ids.join(',')" t-att-data-open-title="k.title">
+      <span class="ycc-dash-sum-title"><t t-esc="k.title"/></span>
+      <strong><bdi dir="ltr"><t t-esc="k.value"/></bdi></strong>
+      <t t-call="ycc.DashDelta"><t t-set="delta" t-value="k.delta"/></t>
+      <small t-if="k.sub"><t t-esc="k.sub"/></small>
+     </div>
+     <t t-call="ycc.DashBreak"><t t-set="bb" t-value="k.by_branch"/><t t-set="title" t-value="k.title"/></t>
+    </div>
+   </t>
+  </div>
+  <div class="ycc-dash-sat-dist">
+   <span class="ycc-dash-sub">توزيع التقييمات</span>
+   <t t-foreach="d.sat.distribution" t-as="r">
+    <button type="button" t-att-class="'ycc-dash-sat-row ' + r.key" data-open-model="ycc.feedback" t-att-data-open-ids="r.ids.join(',')" t-att-data-open-title="r.label">
+     <span class="ycc-dash-sat-label"><t t-esc="r.label"/></span>
+     <span class="ycc-dash-sat-track"><span t-attf-style="width: #{r.pct}%"/></span>
+     <strong><t t-esc="r.count"/></strong>
+     <small><bdi dir="ltr"><t t-esc="r.share"/>%</bdi></small>
+    </button>
+   </t>
+   <div t-if="!d.sat.rated_total" class="ycc-dash-muted">لا توجد تقييمات مسجلة في هذه الفترة.</div>
+  </div>
+ </section>
+
  <div class="ycc-dash-row">
   <section class="ycc-dash-card ycc-dash-grow" aria-label="أزمنة الرحلة">
    <h2>أزمنة الرحلة</h2>
@@ -373,7 +404,7 @@
   <div t-if="d.people.length" class="ycc-dash-table-wrap">
    <table class="ycc-dash-table">
     <thead><tr>
-     <th>الموظف</th><th>حجوزات أنشأها</th><th class="w-conv">نسبة التأكيد</th><th>انتهت المهلة</th><th>ملغي</th><th>لم يحضر</th><th>سجلات تواصل</th><th>متابعات متأخرة</th><th>الوصول ← أمر التركيب</th>
+     <th>الموظف</th><th>حجوزات أنشأها</th><th class="w-conv">نسبة التأكيد</th><th>انتهت المهلة</th><th>ملغي</th><th>لم يحضر</th><th>سجلات تواصل</th><th>متابعات متأخرة</th><th>الوصول ← أمر التركيب</th><th>تقييمات سجّلها</th><th class="w-conv">رضا عملائه</th>
     </tr></thead>
     <tbody>
      <t t-foreach="d.people" t-as="p">
@@ -388,6 +419,8 @@
        <td><t t-esc="p.contacts"/></td>
        <td><button type="button" t-att-class="'ycc-dash-pill late-' + p.late_level" data-open-model="ycc.appointment" t-att-data-open-ids="p.late_ids.join(',')" t-att-data-open-title="'متابعات متأخرة — ' + p.name"><t t-esc="p.late"/></button></td>
        <td t-att-class="p.wait_bad ? 'is-bad' : ''"><t t-esc="p.wait_text"/></td>
+       <td><button type="button" class="ycc-dash-num-link" t-att-data-open-model="p.fb_done ? 'ycc.feedback' : undefined" t-att-data-open-ids="(p.fb_done_ids || []).join(',')" t-att-data-open-title="'تقييمات سجّلها ' + p.name"><t t-esc="p.fb_done || 0"/></button></td>
+       <td><span class="ycc-dash-conv"><span t-att-class="'ycc-dash-meter conv-' + (p.fb_rate_level || 'none')"><span t-attf-style="width: #{p.fb_rate || 0}%"/></span><strong><t t-esc="p.fb_rate_text || '—'"/></strong></span></td>
       </tr>
      </t>
     </tbody>

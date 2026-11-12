@@ -1078,3 +1078,31 @@
 .ycc-close-reason-form .o_field_radio .o_radio_item {margin-bottom:8px;font-size:14px;}
 .ycc-close-reason-form .ycc-dc-main textarea.o_field_text {width:100%;min-height:80px;border:1px solid #ced4da;border-radius:6px;padding:8px 10px;}
 .ycc-close-reason-form .ycc-dc-hint {color:#6c757d;font-size:12px;border-top:1px dashed #e3e8ef;padding-top:10px;margin-top:4px;}
+
+/* V6.74: customer-experience calls card in the service strip (12 cards). */
+.ycc-board .ycc-service-strip {grid-template-columns:repeat(12,minmax(0,1fr)) !important;}
+@media(max-width:1100px){.ycc-board .ycc-service-strip {grid-template-columns:repeat(6,minmax(0,1fr)) !important;}}
+@media(max-width:600px){.ycc-board .ycc-service-strip {grid-template-columns:repeat(2,minmax(0,1fr)) !important;}}
+.ycc-service-feedback_due {background:#f4f5f7;color:#6c757d;border-color:#dfe3e8;}
+.ycc-service-feedback_due.is-active {background:#e6f4ff;color:#0b5cad;border-color:#a9d1f7;}
+
+/* V6.74: customer experience form, wizard and booking panel */
+.ycc-feedback-wizard .ycc-fb-customer {display:flex;align-items:center;gap:12px;background:#f6f8fb;border:1px solid #e3e8ef;border-radius:12px;padding:12px 14px;margin-bottom:14px;}
+.ycc-feedback-wizard .ycc-fb-avatar {font-size:34px;color:#5957ce;}
+.ycc-feedback-wizard .ycc-fb-customer-body {display:flex;flex-direction:column;gap:2px;min-width:0;}
+.ycc-feedback-wizard .ycc-fb-customer-body strong {font-size:16px;}
+.ycc-feedback-wizard .ycc-fb-customer-body span, .ycc-feedback-wizard .ycc-fb-customer-body small {color:#5b6270;font-size:12.5px;}
+.ycc-feedback-wizard .ycc-dc-main {width:100%;}
+.ycc-feedback-wizard .ycc-dc-main td.o_td_label {width:140px;min-width:140px;vertical-align:top;padding-top:8px;}
+.ycc-feedback-wizard .ycc-dc-main td {padding-bottom:12px;}
+.ycc-feedback-wizard .o_field_radio.o_horizontal .o_radio_item {margin-inline-end:22px;font-size:14px;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item {display:inline-flex;align-items:center;gap:6px;margin:0 6px 8px 0;padding:8px 14px;border:1px solid #dfe3e8;border-radius:999px;background:#fff;font-size:14px;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(1), .ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(2) {border-color:#a9dec4;background:#f0faf5;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(3) {border-color:#f5d58a;background:#fffaf0;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(4), .ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(5) {border-color:#f4bc9e;background:#fff5f0;}
+.ycc-feedback-wizard textarea.o_field_text {width:100%;min-height:80px;border:1px solid #ced4da;border-radius:6px;padding:8px 10px;}
+.ycc-feedback-wizard .ycc-dc-hint {color:#6c757d;font-size:12px;border-top:1px dashed #e3e8ef;padding-top:10px;}
+.ycc-feedback-form .ycc-fb-sub {color:#5b6270;font-size:13px;}
+.ycc-feedback-form .ycc-fb-result {display:inline-flex;align-items:center;gap:10px;background:#f6f8fb;border:1px solid #e3e8ef;border-radius:10px;padding:8px 14px;margin:6px 0 10px;}
+.ycc-feedback-form .ycc-fb-result-label {font-weight:600;color:#4a5160;}
+.ycc-feedback-form .ycc-fb-result .badge {font-size:14px;padding:6px 12px;}

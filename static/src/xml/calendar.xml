@@ -21,6 +21,11 @@
    <span class="ycc-service-title">بانتظار أمر تركيب</span>
    <strong class="ycc-service-number ycc-waiting-count">0</strong>
   </button>
+  <button type="button" t-att-class="'ycc-service-indicator ycc-service-feedback_due' + (feedbackDue ? ' is-active' : '')" data-indicator="feedback_due" t-att-title="'عملاء حان وقت التواصل معهم لتقييم تجربة الخدمة' + (feedbackOverdue ? ' — منهم ' + feedbackOverdue + ' متأخر' : '')">
+   <span class="ycc-service-icon"><i class="fa fa-smile-o"/></span>
+   <span class="ycc-service-title">تجربة العميل</span>
+   <strong class="ycc-service-number"><t t-esc="feedbackDue"/></strong>
+  </button>
   <t t-foreach="serviceIndicators" t-as="indicator">
    <button type="button" t-att-class="'ycc-service-indicator ycc-service-'+indicator.key" t-att-data-indicator="indicator.key" t-att-title="indicator.title+' — '+indicator.count+' سيارة. اضغط لعرض التفاصيل'">
     <span class="ycc-service-icon"><i t-att-class="'fa '+indicator.icon"/></span>

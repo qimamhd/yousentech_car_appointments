@@ -179,7 +179,7 @@ $ycc-red: #C92A2A;
 .ycc-dash-bar-row.level-full strong { color: $ycc-orange-ink; }
 .ycc-dash-bar-row.level-mid .ycc-dash-meter > span { background: $ycc-blue-2; }
 .ycc-dash-bar-row.level-low .ycc-dash-meter > span { background: $ycc-green; }
-.ycc-dash-mini3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ycc-dash-mini3 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .ycc-dash-mini2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .ycc-dash-mini { border: 0; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 2px; text-align: start; cursor: pointer; background: #F1F3F6; transition: filter .12s; }
 .ycc-dash-mini:hover { filter: brightness(.97); }
@@ -481,3 +481,21 @@ $ycc-red: #C92A2A;
     .ycc-dash-ind-strip.is-compare, .ycc-dash-funnel-break { grid-template-columns: repeat(1, minmax(0, 1fr)); }
     .ycc-dash-legendbar-hint { margin-inline-start: 0; }
 }
+
+/* V6.74: customer satisfaction after service ----------------------------------- */
+.ycc-dash-sat h2 .fa { color: #0B5CAD; }
+.ycc-dash-sat-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.ycc-dash-sat-dist { display: flex; flex-direction: column; gap: 6px; background: #F7F8FA; border-radius: 12px; padding: 12px 14px; }
+.ycc-dash-sat-row { display: grid; grid-template-columns: 110px minmax(40px, 1fr) 36px 44px; align-items: center; gap: 10px; border: 0; background: transparent; padding: 4px 2px; border-radius: 6px; cursor: pointer; text-align: start; font-size: 13px; color: $ycc-ink; }
+.ycc-dash-sat-row:hover { background: #FFFFFF; }
+.ycc-dash-sat-row strong { text-align: end; }
+.ycc-dash-sat-row small { color: $ycc-muted; text-align: end; }
+.ycc-dash-sat-track { height: 10px; border-radius: 5px; background: #E3E6EC; overflow: hidden; }
+.ycc-dash-sat-track > span { display: block; height: 100%; border-radius: 5px; }
+.ycc-dash-sat-row.r5 .ycc-dash-sat-track > span { background: #0B8A5F; }
+.ycc-dash-sat-row.r4 .ycc-dash-sat-track > span { background: #37B24D; }
+.ycc-dash-sat-row.r3 .ycc-dash-sat-track > span { background: #F59F00; }
+.ycc-dash-sat-row.r2 .ycc-dash-sat-track > span { background: #E8590C; }
+.ycc-dash-sat-row.r1 .ycc-dash-sat-track > span { background: #C92A2A; }
+@media (max-width: 1100px) { .ycc-dash-sat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .ycc-dash-sat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ycc-dash-sat-row { grid-template-columns: 90px minmax(30px, 1fr) 30px 40px; } }

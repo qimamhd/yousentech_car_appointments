@@ -89,7 +89,7 @@ var Calendar=AbstractAction.extend({
  var fullDays=rows.filter(function(row){return row.dailyCapacity>0 && row.dailyCount>=row.dailyCapacity;}).length;
  var indicatorDefs=[{key:'late_arrival',title:'تأخر الوصول',icon:'fa-clock-o'},{key:'late_delivery',title:'تأخر التسليم',icon:'fa-calendar-times-o'},{key:'open_invoices',title:'فواتير مفتوحة',icon:'fa-file-text-o'},{key:'checks',title:'تشييك',icon:'fa-stethoscope'},{key:'contacting',title:'جاري التواصل',icon:'fa-phone'},{key:'provisional',title:'حجز مبدئي',icon:'fa-calendar-o'},{key:'no_show',title:'لم يحضر',icon:'fa-user-times'},{key:'postponed',title:'تم تأجيله',icon:'fa-calendar-plus-o'},{key:'completed',title:'تم الإنجاز',icon:'fa-check-circle'},{key:'invoice_closed',title:'إقفال الفاتورة',icon:'fa-check-square-o'}];
  var serviceIndicators=indicatorDefs.map(function(d){return {key:d.key,title:d.title,icon:d.icon,count:((data.service_indicators||{})[d.key]||[]).length};});
- this.$el.html(qweb.render('ycc.Calendar',{branches:data.branches||[],branchId:this.branchId,days:days,slots:slots,rows:rows,timeRows:timeRows,mode:this.mode,arrivalOnly:!!data.arrival_only,canCreate:!!data.can_create,calendarDir:isRtl?'rtl':'ltr',periodLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'gregory',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'gregory',lang),hijriLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang),serviceIndicators:serviceIndicators,arrivalAlerts:data.arrival_alerts||[],arrivalAlertMinutes:data.arrival_alert_minutes||30,summary:{dailyCapacity:data.daily_capacity||0,averagePct:capacity?Math.round(occupied*100/capacity):0,fullDays:fullDays,capacity:capacity,occupied:occupied,confirmed:all.filter(function(b){return b.state==='confirmed';}).length,provisional:all.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length}}));},
+ this.$el.html(qweb.render('ycc.Calendar',{branches:data.branches||[],branchId:this.branchId,days:days,slots:slots,rows:rows,timeRows:timeRows,mode:this.mode,arrivalOnly:!!data.arrival_only,canCreate:!!data.can_create,calendarDir:isRtl?'rtl':'ltr',periodLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'gregory',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'gregory',lang),hijriLabel:fmt(r[0],{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang)+' — '+fmt(add(r[1],-1),{day:'numeric',month:'long',year:'numeric'},'islamic-umalqura',lang),serviceIndicators:serviceIndicators,feedbackDue:data.feedback_due||0,feedbackOverdue:data.feedback_overdue||0,arrivalAlerts:data.arrival_alerts||[],arrivalAlertMinutes:data.arrival_alert_minutes||30,summary:{dailyCapacity:data.daily_capacity||0,averagePct:capacity?Math.round(occupied*100/capacity):0,fullDays:fullDays,capacity:capacity,occupied:occupied,confirmed:all.filter(function(b){return b.state==='confirmed';}).length,provisional:all.filter(function(b){return b.state==='provisional'||b.state==='contacting';}).length}}));},
  _waitText:function(elapsed){
    function pad(n){return (n<10?'0':'')+n;}
    var total=Math.floor(elapsed/1000),d=Math.floor(total/86400),h=Math.floor((total%86400)/3600),m=Math.floor((total%3600)/60),sec=total%60;
@@ -134,6 +134,11 @@ var Calendar=AbstractAction.extend({
    e.preventDefault();e.stopPropagation();
    var key=e.currentTarget.getAttribute('data-indicator');
    if(key==='waiting_order'){return this._waitingOrderModal();}
+   if(key==='feedback_due'){
+     var today=this.payload.today||'';
+     return this.do_action({type:'ir.actions.act_window',name:'تجربة العملاء — مستحقة',res_model:'ycc.feedback',views:[[false,'list'],[false,'form']],view_mode:'list,form',target:'current',
+       domain:[['branch_id','=',this.branchId],['state','=','due'],['due_date','<=',today]]});
+   }
    var items=((this.payload.service_indicators||{})[key]||[]);
    var title=$(e.currentTarget).find('.ycc-service-title').text();
    var self=this;

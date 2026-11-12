@@ -19,4 +19,15 @@
         <field name="perm_read" eval="True"/><field name="perm_write" eval="True"/>
         <field name="perm_create" eval="True"/><field name="perm_unlink" eval="True"/>
     </record>
+    <!-- V6.74: customer experience records follow the booking's branch. -->
+    <record id="ycc_feedback_allowed_branch_rule" model="ir.rule">
+        <field name="name">Customer Experience - Allowed Branches</field>
+        <field name="model_id" ref="model_ycc_feedback"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[('custom_branch_id', 'in', user.allowed_branch_ids.ids)]</field>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
 </odoo>
