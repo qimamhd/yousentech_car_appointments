@@ -1087,21 +1087,72 @@
 .ycc-service-feedback_due.is-active {background:#e6f4ff;color:#0b5cad;border-color:#a9d1f7;}
 
 /* V6.74: customer experience form, wizard and booking panel */
-.ycc-feedback-wizard .ycc-fb-customer {display:flex;align-items:center;gap:12px;background:#f6f8fb;border:1px solid #e3e8ef;border-radius:12px;padding:12px 14px;margin-bottom:14px;}
-.ycc-feedback-wizard .ycc-fb-avatar {font-size:34px;color:#5957ce;}
-.ycc-feedback-wizard .ycc-fb-customer-body {display:flex;flex-direction:column;gap:2px;min-width:0;}
-.ycc-feedback-wizard .ycc-fb-customer-body strong {font-size:16px;}
-.ycc-feedback-wizard .ycc-fb-customer-body span, .ycc-feedback-wizard .ycc-fb-customer-body small {color:#5b6270;font-size:12.5px;}
-.ycc-feedback-wizard .ycc-dc-main {width:100%;}
-.ycc-feedback-wizard .ycc-dc-main td.o_td_label {width:140px;min-width:140px;vertical-align:top;padding-top:8px;}
-.ycc-feedback-wizard .ycc-dc-main td {padding-bottom:12px;}
-.ycc-feedback-wizard .o_field_radio.o_horizontal .o_radio_item {margin-inline-end:22px;font-size:14px;}
-.ycc-feedback-wizard .ycc-fb-rating .o_radio_item {display:inline-flex;align-items:center;gap:6px;margin:0 6px 8px 0;padding:8px 14px;border:1px solid #dfe3e8;border-radius:999px;background:#fff;font-size:14px;}
-.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(1), .ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(2) {border-color:#a9dec4;background:#f0faf5;}
-.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(3) {border-color:#f5d58a;background:#fffaf0;}
-.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(4), .ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(5) {border-color:#f4bc9e;background:#fff5f0;}
-.ycc-feedback-wizard textarea.o_field_text {width:100%;min-height:80px;border:1px solid #ced4da;border-radius:6px;padding:8px 10px;}
-.ycc-feedback-wizard .ycc-dc-hint {color:#6c757d;font-size:12px;border-top:1px dashed #e3e8ef;padding-top:10px;}
+/* V6.74b: customer-experience wizard — tiles and chips over Odoo 13 radio widgets */
+.ycc-feedback-wizard {font-size:13.5px;}
+.ycc-feedback-wizard .ycc-fb-customer {display:flex;align-items:center;gap:14px;background:linear-gradient(0deg,#f7f8fc,#f7f8fc);border:1px solid #e3e8ef;border-radius:14px;padding:14px 16px;margin-bottom:18px;}
+.ycc-feedback-wizard .ycc-fb-avatar {flex:0 0 48px;width:48px;height:48px;border-radius:50%;background:#5957ce;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:22px;}
+.ycc-feedback-wizard .ycc-fb-customer-body {flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:7px;}
+.ycc-feedback-wizard .ycc-fb-name {font-size:17px;font-weight:700;color:#14161a;}
+.ycc-feedback-wizard .ycc-fb-name .o_field_widget {font-weight:700;}
+.ycc-feedback-wizard .ycc-fb-meta {display:flex;flex-wrap:wrap;gap:6px;}
+.ycc-feedback-wizard .ycc-fb-chip {display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e3e8ef;border-radius:999px;padding:3px 10px;font-size:12.5px;color:#4a5160;white-space:nowrap;}
+.ycc-feedback-wizard .ycc-fb-chip .fa {color:#5957ce;}
+.ycc-feedback-wizard .ycc-fb-chip .o_field_widget {width:auto !important;display:inline;direction:ltr;unicode-bidi:isolate;}
+.ycc-feedback-wizard .ycc-fb-attempts {flex:0 0 auto;align-self:flex-start;background:#fff3e3;color:#ac691a;border:1px solid #f7e4c8;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;}
+.ycc-feedback-wizard .ycc-fb-step {margin-bottom:16px;}
+.ycc-feedback-wizard .ycc-fb-step-title {font-size:13px;font-weight:700;color:#26354d;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.ycc-feedback-wizard .ycc-fb-required {font-size:11.5px;font-weight:600;color:#c2410c;background:#fff0e5;border-radius:999px;padding:1px 8px;}
+
+/* shared: hide the native radio dot, the label becomes the control */
+.ycc-feedback-wizard .ycc-fb-tiles .o_radio_item, .ycc-feedback-wizard .ycc-fb-chips .o_radio_item {margin:0 !important;padding:0 !important;min-height:0;display:block;}
+.ycc-feedback-wizard .ycc-fb-tiles .o_radio_input, .ycc-feedback-wizard .ycc-fb-chips .o_radio_input {position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;}
+.ycc-feedback-wizard .ycc-fb-tiles label::after, .ycc-feedback-wizard .ycc-fb-chips label::after {display:none !important;}
+.ycc-feedback-wizard .ycc-fb-tiles label::before, .ycc-feedback-wizard .ycc-fb-chips label::before {position:static !important;display:block;width:auto !important;height:auto !important;border:0 !important;border-radius:0 !important;background:none !important;box-shadow:none !important;font-family:FontAwesome;font-weight:normal;line-height:1;pointer-events:none;}
+
+/* tiles (outcome, rating) */
+.ycc-feedback-wizard .ycc-fb-tiles {display:grid !important;gap:10px;width:100%;}
+.ycc-feedback-wizard .ycc-fb-outcome {grid-template-columns:repeat(3,minmax(0,1fr));}
+.ycc-feedback-wizard .ycc-fb-rating {grid-template-columns:repeat(5,minmax(0,1fr));}
+.ycc-feedback-wizard .ycc-fb-tiles label {display:flex !important;flex-direction:column;align-items:center;justify-content:center;gap:8px;width:100%;min-height:86px;margin:0;padding:12px 6px;border:1.5px solid #e1e5ec;border-radius:12px;background:#fff;cursor:pointer;font-size:13.5px;font-weight:600;color:#4a5160;text-align:center;transition:border-color .12s,background .12s,box-shadow .12s,transform .12s;}
+.ycc-feedback-wizard .ycc-fb-tiles label:hover {border-color:#b9bff0;transform:translateY(-1px);}
+.ycc-feedback-wizard .ycc-fb-tiles label::before {font-size:28px;color:#9aa3b2;}
+.ycc-feedback-wizard .ycc-fb-tiles .o_radio_input:focus-visible + label, .ycc-feedback-wizard .ycc-fb-chips .o_radio_input:focus-visible + label {outline:2px solid #5957ce;outline-offset:2px;}
+.ycc-feedback-wizard .ycc-fb-tiles .o_radio_input:checked + label {border-color:#5957ce;background:#f0f0ff;color:#3d3b9e;box-shadow:0 0 0 3px rgba(89,87,206,.14);}
+.ycc-feedback-wizard .ycc-fb-outcome .o_radio_item:nth-child(1) label::before {content:"\f058";color:#0ca678;}
+.ycc-feedback-wizard .ycc-fb-outcome .o_radio_item:nth-child(2) label::before {content:"\f1f7";color:#e8590c;}
+.ycc-feedback-wizard .ycc-fb-outcome .o_radio_item:nth-child(3) label::before {content:"\f05e";color:#868e96;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(1) label::before {content:"\f118";color:#0b8a5f;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(2) label::before {content:"\f118";color:#37b24d;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(3) label::before {content:"\f11a";color:#e5a100;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(4) label::before {content:"\f119";color:#e8590c;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(5) label::before {content:"\f119";color:#c92a2a;}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(1) .o_radio_input:checked + label {border-color:#0b8a5f;background:#e6f6ee;color:#0b5e3b;box-shadow:0 0 0 3px rgba(11,138,95,.15);}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(2) .o_radio_input:checked + label {border-color:#37b24d;background:#ebfbee;color:#2b8a3e;box-shadow:0 0 0 3px rgba(55,178,77,.15);}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(3) .o_radio_input:checked + label {border-color:#e5a100;background:#fff8e1;color:#8a5a00;box-shadow:0 0 0 3px rgba(229,161,0,.15);}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(4) .o_radio_input:checked + label {border-color:#e8590c;background:#fff0e5;color:#a63a06;box-shadow:0 0 0 3px rgba(232,89,12,.15);}
+.ycc-feedback-wizard .ycc-fb-rating .o_radio_item:nth-child(5) .o_radio_input:checked + label {border-color:#c92a2a;background:#fff0f0;color:#a61e1e;box-shadow:0 0 0 3px rgba(201,42,42,.15);}
+
+/* chips (channel) */
+.ycc-feedback-wizard .ycc-fb-chips {display:flex !important;flex-wrap:wrap;gap:8px;}
+.ycc-feedback-wizard .ycc-fb-chips label {display:inline-flex !important;align-items:center;gap:7px;margin:0;padding:8px 14px;min-height:38px;border:1.5px solid #e1e5ec;border-radius:999px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#4a5160;}
+.ycc-feedback-wizard .ycc-fb-chips label::before {font-size:15px;color:#667792;}
+.ycc-feedback-wizard .ycc-fb-chips .o_radio_item:nth-child(1) label::before {content:"\f095";}
+.ycc-feedback-wizard .ycc-fb-chips .o_radio_item:nth-child(2) label::before {content:"\f232";}
+.ycc-feedback-wizard .ycc-fb-chips .o_radio_item:nth-child(3) label::before {content:"\f0e0";}
+.ycc-feedback-wizard .ycc-fb-chips .o_radio_item:nth-child(4) label::before {content:"\f2b5";}
+.ycc-feedback-wizard .ycc-fb-chips .o_radio_input:checked + label {border-color:#5957ce;background:#5957ce;color:#fff;}
+.ycc-feedback-wizard .ycc-fb-chips .o_radio_input:checked + label::before {color:#fff;}
+
+.ycc-feedback-wizard textarea.o_field_text, .ycc-feedback-wizard .o_field_text textarea {width:100%;min-height:76px;border:1.5px solid #e1e5ec;border-radius:10px;padding:10px 12px;background:#fff;}
+.ycc-feedback-wizard textarea:focus {border-color:#5957ce;outline:none;}
+.ycc-feedback-wizard .ycc-fb-hint {color:#6c757d;font-size:12px;background:#f7f8fa;border-radius:10px;padding:9px 12px;}
+@media (max-width:640px){
+ .ycc-feedback-wizard .ycc-fb-outcome {grid-template-columns:repeat(1,minmax(0,1fr));}
+ .ycc-feedback-wizard .ycc-fb-outcome label {flex-direction:row !important;min-height:52px;gap:10px;}
+ .ycc-feedback-wizard .ycc-fb-outcome label::before {font-size:22px;}
+ .ycc-feedback-wizard .ycc-fb-rating {grid-template-columns:repeat(3,minmax(0,1fr));}
+ .ycc-feedback-wizard .ycc-fb-customer {flex-wrap:wrap;}
+}
 .ycc-feedback-form .ycc-fb-sub {color:#5b6270;font-size:13px;}
 .ycc-feedback-form .ycc-fb-result {display:inline-flex;align-items:center;gap:10px;background:#f6f8fb;border:1px solid #e3e8ef;border-radius:10px;padding:8px 14px;margin:6px 0 10px;}
 .ycc-feedback-form .ycc-fb-result-label {font-weight:600;color:#4a5160;}

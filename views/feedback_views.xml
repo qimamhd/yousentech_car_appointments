@@ -110,21 +110,41 @@
    <form string="تسجيل تجربة العميل" class="ycc-feedback-wizard">
     <field name="feedback_id" invisible="1" force_save="1"/>
     <div class="ycc-fb-customer">
-     <span class="fa fa-user-circle ycc-fb-avatar"/>
+     <span class="ycc-fb-avatar"><i class="fa fa-user"/></span>
      <div class="ycc-fb-customer-body">
-      <strong><field name="partner_id" readonly="1" options="{'no_open': True}"/></strong>
-      <span><field name="phone" widget="phone" readonly="1"/> · <field name="appointment_id" readonly="1" options="{'no_open': True}"/> · <field name="vehicle_plate" readonly="1"/></span>
-      <small>الفاتورة أُقفلت بتاريخ <field name="invoice_date" readonly="1"/><span attrs="{'invisible':[('attempts','=',0)]}"> · محاولات سابقة بدون رد: <field name="attempts" readonly="1"/></span></small>
+      <div class="ycc-fb-name"><field name="partner_id" readonly="1" options="{'no_open': True}"/></div>
+      <div class="ycc-fb-meta">
+       <span class="ycc-fb-chip"><i class="fa fa-phone"/><field name="phone" widget="phone" readonly="1"/></span>
+       <span class="ycc-fb-chip"><i class="fa fa-calendar-check-o"/><field name="appointment_id" readonly="1" options="{'no_open': True}"/></span>
+       <span class="ycc-fb-chip" attrs="{'invisible':[('vehicle_plate','=',False)]}"><i class="fa fa-car"/><field name="vehicle_plate" readonly="1"/></span>
+       <span class="ycc-fb-chip"><i class="fa fa-file-text-o"/>الفاتورة <field name="invoice_date" readonly="1"/></span>
+      </div>
      </div>
+     <span class="ycc-fb-attempts" attrs="{'invisible':[('attempts','=',0)]}"><i class="fa fa-repeat"/> محاولات بدون رد: <field name="attempts" readonly="1"/></span>
     </div>
-    <group class="ycc-dc-main" col="2">
-     <field name="outcome" widget="radio" options="{'horizontal': true}" required="1"/>
-     <field name="channel" widget="radio" options="{'horizontal': true}"/>
-     <field name="rating" widget="radio" class="ycc-fb-rating" attrs="{'invisible':[('outcome','!=','done')],'required':[('outcome','=','done')]}"/>
-     <field name="note" placeholder="ماذا قال العميل عن الخدمة؟ (إجباري عند عدم الرضا)" attrs="{'required':[('outcome','=','done'),('rating','in',['1','2'])]}"/>
-    </group>
-    <div class="ycc-dc-hint"><span class="fa fa-info-circle"/> «لم يرد» يعيد المتابعة غدًا تلقائيًا (حتى 3 محاولات). التقييم «غير راضٍ» أو «غير راضٍ جدًا» يرسل تنبيهًا لمدير المواعيد لمعالجة الملاحظة مع العميل.</div>
-    <footer><button name="action_apply" type="object" string="حفظ" class="btn-primary"/><button string="إلغاء" special="cancel" class="btn-secondary"/></footer>
+
+    <div class="ycc-fb-step">
+     <div class="ycc-fb-step-title">نتيجة التواصل</div>
+     <field name="outcome" widget="radio" nolabel="1" required="1" class="ycc-fb-tiles ycc-fb-outcome"/>
+    </div>
+
+    <div class="ycc-fb-step">
+     <div class="ycc-fb-step-title">قناة التواصل</div>
+     <field name="channel" widget="radio" nolabel="1" class="ycc-fb-chips"/>
+    </div>
+
+    <div class="ycc-fb-step" attrs="{'invisible':[('outcome','!=','done')]}">
+     <div class="ycc-fb-step-title">مدى رضا العميل عن الخدمة</div>
+     <field name="rating" widget="radio" nolabel="1" class="ycc-fb-tiles ycc-fb-rating" attrs="{'required':[('outcome','=','done')]}"/>
+    </div>
+
+    <div class="ycc-fb-step">
+     <div class="ycc-fb-step-title">ملاحظات العميل <small attrs="{'invisible':['|',('outcome','!=','done'),('rating','not in',['1','2'])]}" class="ycc-fb-required">إجبارية عند عدم الرضا</small></div>
+     <field name="note" nolabel="1" placeholder="ماذا قال العميل عن الخدمة؟" attrs="{'required':[('outcome','=','done'),('rating','in',['1','2'])]}"/>
+    </div>
+
+    <div class="ycc-fb-hint"><i class="fa fa-info-circle"/> «لم يرد» يعيد المتابعة غدًا تلقائيًا (حتى 3 محاولات) · «غير راضٍ» أو «غير راضٍ جدًا» يرسل تنبيهًا لمدير المواعيد.</div>
+    <footer><button name="action_apply" type="object" string="حفظ التقييم" class="btn-primary" icon="fa-check"/><button string="إلغاء" special="cancel" class="btn-secondary"/></footer>
    </form>
   </field>
  </record>
